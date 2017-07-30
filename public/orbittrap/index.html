@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title> Orbit Trap Fractals </title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <link href='http://fonts.googleapis.com/css?family=Quicksand' rel='stylesheet' type='text/css'>
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/infooverlay.css", rel="stylesheet"> 
+</head>
+
+<style text='text/css'>
+  p{
+    width:100%;
+    text-align:justify;
+    color:white;
+  }
+  body{
+    font-size:20px;
+    background-color:black;
+    font-family: 'Quicksand', sans-serif;
+  }
+  a{
+    color:white;
+  }
+
+</style>
+
+<div class="overlay">
+    <div class="info">
+      <h1> Orbit Trap Fractals </h1>
+      <p>Construct your own fractal by tweaking a complicated, complex function.  Like sand art but for grown ups.  Thanks to <a href='http://people.math.sc.edu/howard/Sisson/SissonPaper.pdf'>Dr. Sisson for introducing</a> and explaining the concept.</p>
+      <a href='http://www.monogon.net'><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>  More projects on Monogon.net</a>
+    </div>
+
+    <a class="hover-area"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></a>
+  </div>
+
+<body bgcolor="#002244">
+
+<script src="js/three.min.js"></script>
+<script src="js/Detector.js"></script>
+<!-- <script src="js/OrbitControls.js"></script> -->
+<script src="js/THREEx.KeyboardState.js"></script>
+<script type='text/javascript' src='js/tinycolor-min.js'></script>
+<!-- <script src="js/THREEx.FullScreen.js"></script> -->
+<!-- <script src="js/THREEx.WindowResize.js"></script> -->
+<script type='text/javascript' src='js/DAT.GUI.min.js'></script>
+
+<!-- ---------------- Custom Shader Code ------------------------ -->
+<script id="vertexShader" type="x-shader/x-vertex">
+varying vec2 vUv;
+const int depth = 1024;
+void main() 
+	{ 
+	  vUv = uv;
+		gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+	}
+</script>
+
+<!-- ----------------------------------------------------------- -->
+
+<script id="orbitVShader" type="x-shader/x-vertex">
+// uniform float mixAmount;
+uniform float time;
+varying vec2 vUv;
+const int depth = 1024;
+
+void main(){
+	vUv = uv;
+	gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+}
+</script>
+
+<script id="orbitFShader" type="x-shader/x-fragment">
+// uniform float mixAmount;
+varying vec2 vUv;
+uniform float time;
+uniform float a;
+uniform float b;
+uniform float c;
+uniform float d;
+uniform float e;
+uniform float f;
+uniform float g;
+uniform float h;
+uniform float i;
+uniform float j;
+// uniform float k;
+uniform float w;
+uniform float r;
+uniform int N;
+uniform float shifth;
+uniform float shiftx;
+uniform float shifty;
+uniform float zoom;
+uniform float hue;
+uniform float sat;
+uniform float val;
+
+vec2 cMult( vec2 a, vec2 b)
+{
+    return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x);
+}
+
+vec2 cPow( vec2 z, float p)
+{
+    float th = atan(z.y, z.x);
+    return vec2(cos(p*th) , sin(p*th))*pow(length(z), p);
+}
+
+vec2 cDiv(vec2 a, vec2 b)
+{
+    return vec2( a.x*b.x + a.y * b.y, a.y*b.x - a.x*b.y )/(b.x*b.x+b.y*b.y);
+}
+
+vec3 rgb2hsv(vec3 c)
+{
+    vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+    vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+    vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+
+    float d = q.x - min(q.w, q.y);
+    float e = 1.0e-10;
+    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+vec3 hsv2rgb(vec3 c)
+{
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+vec2 fofz(vec2 p)
+{
+    return cDiv( 
+            cMult( vec2( a, b ), cPow( p, c )) + cMult(vec2(d ,e), p),
+      //---------------------------------------------------------------
+            cMult( vec2( f, g ), cPow( p, h )) + vec2(i, j) );
+}
+
+    // return cDiv( (cMult(vec2(a, b), cPow(p, c)) + cMult(vec2(d ,e), p)),
+    //   //---------------------------------------------------------------
+    //         cPow(p,f)+vec2(g, h) );
+
+
+vec3 orbitTrap(vec2 xy)
+{
+  int n = 0;
+  float l = 0.0;
+  int j = 0;
+
+  for (int i = 0; i < 22; i ++){
+  	l = length(xy);
+  	if (l<(r+w) && l > (r-w)){
+     	break;
+    }    	
+    xy = fofz(xy);
+    j++;
+  }
+  return vec3(xy, float(j));
+}
+
+void main(){
+	vec2 xy = (vUv - vec2(.5, .5))*4.0*pow(2.0,zoom) +vec2(shiftx, shifty) ;  // (-2, 2)
+  vec3 res = orbitTrap(xy);
+  float l = length(vec2(res.x, res.y));
+	l = abs(r-l);
+  // l = max(l, val);
+	vec3 col = hsv2rgb(vec3( mod( hue/360. + time*shifth + val*res.z/float(N), 1.0), sat*1.0, (1.0-floor(res.z/float(N)) )/w*(l) ));
+	gl_FragColor = vec4(col.x, col.y, col.z, 1.0);
+}
+</script>
+<!-- ----------------------------------------------------------- -->
+
+<div class='contain' style='width:100%; text-align:center;'>
+<span id="ThreeJS" style="position: relative; width:900px;top:0px; overflow:hidden; margin: 0px;"></span>
+</div>
+
+<script>
+// MAIN
+//http://people.math.sc.edu/howard/Sisson/SissonPaper.pdf
+// standard global variables
+var container, scene, camera, orthocam, renderer, controls, stats, parameters;
+var keyboard = new THREEx.KeyboardState();
+var clock = new THREE.Clock();
+var customUniforms;
+// custom global variables
+var cube;
+var N, line;
+var rendsize
+this.timePassed = 0.0;
+
+init();
+animate();
+
+// FUNCTIONS 		
+function init() 
+{
+	// SCENE
+	clock.start();
+	scene = new THREE.Scene();
+	// CAMERA
+	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+  rendsize = 900//Math.min(SCREEN_WIDTH, SCREEN_HEIGHT) - 100;
+  console.log(rendsize);
+	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
+	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
+	scene.add(camera);
+	camera.position.set(0,150,400);
+	camera.lookAt(scene.position);	
+
+  orthocam = new THREE.OrthographicCamera( -25, 25, -25, 25, 1, 100 );
+  scene.add(orthocam);
+  orthocam.position.set( 0, 0, 50);
+  orthocam.lookAt( new THREE.Vector3( 0, 0, 0 ) );
+
+	// RENDERER
+	if ( Detector.webgl )
+		renderer = new THREE.WebGLRenderer( {antialias:true} );
+	else
+		renderer = new THREE.CanvasRenderer(); 
+	renderer.setSize(rendsize, rendsize);
+	container = document.getElementById( 'ThreeJS' );
+	container.appendChild( renderer.domElement );
+	// EVENTS
+	// THREEx.WindowResize(renderer, orthocam);
+	// THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
+
+	//////////////
+	// SHADERS! //
+	//////////////
+	customUniforms = 
+	{
+    time: {type: "f", value: 0.0},
+		a: {type: "f", value:  1.0},
+    b: {type: "f", value: -1.0},
+    c: {type: "f", value:  4.0},
+    d: {type: "f", value:  7.0},
+    e: {type: "f", value:  1.0},
+    f: {type: "f", value:  2.0},
+    g: {type: "f", value:  0.0},
+    h: {type: "f", value:  5.0},
+    i: {type: "f", value:  6.0},
+    j: {type: "f", value:  0.0},
+    r: {type: "f", value:  1.0},
+    w: {type: "f", value:  0.1},
+    N: {type: "i", value:  22},
+    hue: {type: "f", value:  0.0},
+    sat: {type: "f", value:  1.0},
+    val: {type: "f", value:  1.0},
+
+    shiftx: {type: "f", value: 0},
+    shifty: {type: "f", value: 0},
+    shifth: {type: "f", value:  0},
+    zoom: {type: "f", value: 0},
+
+		mixAmount: 	 { type: "f", value: 0.0 }
+	};
+
+	var planeGeom = new THREE.PlaneGeometry(50, 50);
+	var planeMat = new THREE.MeshBasicMaterial( {color: 0x990000});
+
+	//orbit trap fractal shader
+	var orbitMaterial = new THREE.ShaderMaterial({
+		uniforms: customUniforms,
+		vertexShader: document.getElementById('orbitVShader').textContent,
+		fragmentShader: document.getElementById('orbitFShader').textContent,
+		side: THREE.DoubleSide
+	});
+
+	orbitPlane = new THREE.Mesh( planeGeom.clone(), orbitMaterial);
+	orbitPlane.position.set( 0, 0, 0);
+	scene.add(orbitPlane);
+
+	var gui = new dat.GUI({autoplace:false, width:300});
+	parameters = 
+	{
+		a: 1.0, // numeric
+    b: -1.0,
+    c: 4.0,
+    d: 7.0,
+    e: 1.0,
+    f: 2.0,
+    g: 0.0,
+    h: 5.0,
+    i: 6.0,
+    j: 0.0,
+    r: 1.0,
+    w: 0.1,
+    N: 22,
+    shiftx: 0,
+    shifty: 0,
+    shifth: 0,
+    zoom:0,
+    lineguide:false,
+    color: {h:0, s:1, v:1},
+    hue: 0.0,
+    sat: 1.0,
+    val: 1.0,
+    resetview: function(){}
+	};
+  var s = .01;
+
+  var f1 = gui.addFolder('f(z) parameters');
+  var f2 = gui.addFolder('annulus');
+  var f3 = gui.addFolder('view');
+  f1.add( parameters, 'a' ).name('a').min(-15.0).max(15.0).step(s).onChange(function(value) {customUniforms.a.value = parameters.a;updateEquation();});
+  f1.add( parameters, 'b' ).name('b').min(-15.0).max(15.0).step(s).onChange(function(value) {customUniforms.b.value = parameters.b;updateEquation();});
+  f1.add( parameters, 'c' ).name('c').min(-15.0).max(15.0).step(1).onChange(function(value) {customUniforms.c.value = parameters.c;updateEquation();});
+  f1.add( parameters, 'd' ).name('d').min(-15.0).max(15.0).step(s).onChange(function(value) {customUniforms.d.value = parameters.d;updateEquation();});
+  f1.add( parameters, 'e' ).name('e').min(-15.0).max(15.0).step(s).onChange(function(value) {customUniforms.e.value = parameters.e;updateEquation();});
+  f1.add( parameters, 'f' ).name('f').min(-30.0).max(30.0).step(s).onChange(function(value) {customUniforms.f.value = parameters.f;updateEquation();});
+  f1.add( parameters, 'g' ).name('g').min(-15.0).max(15.0).step(s).onChange(function(value) {customUniforms.g.value = parameters.g;updateEquation();});
+  f1.add( parameters, 'h' ).name('h').min(-15.0).max(15.0).step(1).onChange(function(value) {customUniforms.h.value = parameters.h;updateEquation();});
+  f1.add( parameters, 'i' ).name('i').min(-15.0).max(15.0).step(s).onChange(function(value) {customUniforms.i.value = parameters.i;updateEquation();});
+  f1.add( parameters, 'j' ).name('j').min(-15.0).max(15.0).step(s).onChange(function(value) {customUniforms.j.value = parameters.j;updateEquation();});
+
+  f2.add( parameters, 'r' ).name('r').min(0.1).max(3.0).step(.01).onChange(function(value) {customUniforms.r.value = parameters.r;updateEquation();});
+  f2.add( parameters, 'w' ).name('w').min(0.01).max(1.0).step(.01).onChange(function(value) {customUniforms.w.value = parameters.w;updateEquation();});
+  f2.add( parameters, 'N' ).name('N').min(1).max(22).step(1).onChange(function(value) {customUniforms.N.value = parameters.N;});
+  f2.add( parameters, 'lineguide' ).name('line guide').onChange(function(value) { line.visible = parameters.lineguide; });
+
+  f3.add( parameters, 'shiftx' ).name('shift  x').min(-5).max(5).step(.01).listen().onChange(function(value) {customUniforms.shiftx.value = parameters.shiftx;});
+  f3.add( parameters, 'shifty' ).name('shift  y').min(-5).max(5).step(.01).listen().onChange(function(value) {customUniforms.shifty.value = parameters.shifty;});
+  f3.add( parameters, 'shifth' ).name('hue').min(-2).max(2).step(.01).listen().onChange(function(value) {customUniforms.shifth.value = parameters.shifth;});
+  f3.add( parameters, 'zoom' ).name('zoom').min(-15).max(15).step(.01).listen().onChange(function(value) {customUniforms.zoom.value = parameters.zoom;});
+  f3.addColor( parameters, "color").onChange(function(value){
+      var hsv = tinycolor(value).toHsv();
+      console.log("hsv", hsv)
+      parameters.hue = hsv['h'];
+      parameters.sat = hsv['s'];
+      parameters.val = hsv['v'];
+      customUniforms.hue.value = hsv['h'];
+      customUniforms.sat.value = hsv['s'];
+      customUniforms.val.value = hsv['v'];
+    });
+  f3.add( parameters, 'resetview').onChange(function(){ 
+      console.log("woop", parameters.shiftx);
+     parameters.shiftx = 0; 
+     customUniforms.shiftx.value = parameters.shiftx;
+     parameters.shifty = 0; 
+     customUniforms.shifty.value = parameters.shifty;
+     parameters.shifth = 0; 
+     customUniforms.shifth.value = parameters.shifth;
+     parameters.zoom = 0; 
+     customUniforms.zoom.value = parameters.zoom;
+     for (var i in gui.__controllers) {
+      gui.__controllers[i].updateDisplay();
+  }
+    });  //doesn't work yet, silly closuresnsclopes!
+  f1.open(); f2.open(); f3.open();
+
+  //add a series of line segments to serve as a guide for how the fractal works, starts turned off
+  var geometry = new THREE.Geometry();
+  for (i = 0; i < 6; i++)
+    geometry.vertices.push(new THREE.Vector3( 0, 0, 0));
+  line = new THREE.Line(geometry, new THREE.LineBasicMaterial({color:0xffffff, linewidth:1})) //linewidth doesn't work on windows :P
+  line.visible = false;
+  scene.add(line);
+
+	// gui.close();
+  document.getElementById('ThreeJS').addEventListener( 'mousemove', onDocumentMouseMove, false);  
+  document.getElementById('ThreeJS').addEventListener( 'mousedown', onDocumentMouseClick, false);  
+
+} // end init()
+
+function animate() 
+{
+  requestAnimationFrame( animate );
+  customUniforms.time.value = clock.getElapsedTime();
+	render();		
+	update();
+}
+
+function update()
+{
+	if ( keyboard.pressed("z") ) 
+	{ 
+		drawRough();
+	}
+}
+
+function render() 
+{
+	renderer.render( scene, orthocam );
+}
+
+function onDocumentMouseClick(evt){
+  //moved functionality
+}
+
+function onDocumentMouseMove(evt){
+  if (parameters.lineguide){
+    var z = Math.pow(2, parameters.zoom);
+    var x = (evt.offsetX -rendsize/2)/rendsize*4 //(-2, 2)
+    var y = (evt.offsetY -rendsize/2)/rendsize*4 
+
+    x *= z;
+    y *= z;
+
+    x += parameters.shiftx;
+    y += parameters.shifty;
+
+    var v = new THREE.Vector2( x, y ); //(-2, 2);
+
+    for (l=0; l<line.geometry.vertices.length;l++){
+      line.geometry.vertices[l].set( 
+        (v.x - parameters.shiftx)*12.5/z, 
+        (v.y - parameters.shifty)*12.5/z, 
+        1.0 ) ;    
+      var v = fofz( v );
+    }
+    line.geometry.verticesNeedUpdate =true;
+  }
+}
+
+function updateEquation(){
+  var equationspan = document.getElementById("equation")
+  equationspan.innerHTML = " `f(z) = (( " + parseFloat(parameters.a) + "+ " +parameters.b+ " i )z^("+parameters.c+") + (" + parameters.d + "+ " +parameters.e+ " i)z) /( ( " + parseFloat(parameters.f) + "+ " +parameters.g+ " i )z^("+parameters.h+") + (" + parameters.i + "+ " +parameters.j+ "i) )` "
+  MathJax.Hub.Typeset('equation');
+  
+}
+
+//recreate the complex plane math on the cpu, for the guide lines
+
+function cMult( a, b){
+  return new THREE.Vector2( a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x );
+}
+
+function cPow( z, p){
+  var th = Math.atan2(z.y, z.x);
+  var mult = Math.pow(z.length(), p);
+  return new THREE.Vector2(Math.cos(p*th)*mult,  Math.sin(p*th)*mult) ;
+}
+
+function cDiv(a, b){
+  var diver = (b.x*b.x+b.y*b.y);
+  return new THREE.Vector2( (a.x*b.x + a.y*b.y)/diver, (a.y*b.x - a.x*b.y )/diver);
+}
+
+function fofz( p ){
+  var num1 = cMult( new THREE.Vector2(parameters.a, parameters.b), cPow(p, parameters.c));
+  var num2 = cMult( new THREE.Vector2(parameters.d, parameters.e), p)
+  var numerator = new THREE.Vector2(0,0);
+  numerator.addVectors(num1, num2);
+  var den1 = cMult(new THREE.Vector2(parameters.f, parameters.g), cPow(p, parameters.h));
+  var den2 = new THREE.Vector2( parameters.i, parameters.j);
+  var denominator = new THREE.Vector2(0,0);
+  denominator.addVectors(den1, den2);
+  return cDiv( numerator, denominator); 
+}
+
+</script>
+
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({messageStyle: "none"});
+</script>
+
+<!-- <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=AM_HTMLorMML-full"></script>  -->
+<!-- <script type="text/javascript" src="js/MathJax.js?config=AM_HTMLorMML-full"></script>  -->
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=AM_HTMLorMML-full"></script>
+ 
+<div class='contain' style='max-width:800; width:80%; text-align:center; margin-left:auto; margin-right:auto'>
+  <span id="equation" style='color:white'></span>
+  <span>
+    <p>I first learned of Orbit Trap Fractals from Dr. Paul Sisson, where he used them as a context to teach Mathematica.  You can find his nice write up of them <a href='http://people.math.sc.edu/howard/Sisson/SissonPaper.pdf'> here</a>.  I have since found them to be a very helpful Hello World! alternative for getting a handle on general purpose shader programming.</p>
+    <p>Additionally they serve a wonderful purpose of demystifying the complex plane for students new to the concept, where the terminology begs to be dismissed.  "Imaginary"?  "Complex"?  Never has there been a greater disparity between denotation and connotation.  A student faced with the utility of the complex plane in the face of pretty much anything rotational will quickly disabuse themselves of the bias, but that requires a lot more mental overhead, often occurring many semesters after first exposure.</p>
+    <p>Fractals better serve that purpose,  and Orbit Trap Fractals do a better job at this than the Mandelbrot / Julia varieties. With simple tools at hand, exploration is natural, and familiarity soon follows.  </p>
+    <p>So what's going on?  Every pixel represents a (x,y) coordinate which can be though of as a complex number z = x + yi.  Unlike boring Real coordinates, comple coordinates can do more than add and subtract with each other.  They can multiply, divide, etc., and these operations can be taught to the gpu.  A function, f, is conjured up that when applied to one of these complex coordinate pixels returns a new one.  The color of every pixel is determined by how many applications of the function f it takes to land in the red ring of radius 1 and width .1 by default.</p>
+    <p>The journeys of individual pixel coordinates can be analyzed above by sweeping the mouse cursor over the fractal.  A train of white lines display each leap of applying f.</p>
+    <p>At extreme levels of zoom, floating point errors start to show themselves.  Looks like sidewalk chalk.  Likewise for certain values of f parameters, the inability of floating point numbers to represent otherwise pleasently round decimal values can be seen in the display of f(z).  These uglies could be hidden more easily than the visual discrepancies, but that would be hiding the error, not fixing.  </p>
+  </span>
+</div>
+
+
+
+<!-- <div id="cv">
+  //cpu based recreation of the fractal, for troubleshooting complex plane math errors
+  <canvas id="myCanvas" width="879" height="879" style="border:0px solid #000000;">
+    <script>
+      function drawRough(){     
+      var c = document.getElementById("myCanvas");
+      var ctx = c.getContext("2d");
+      for (xx = -40; xx < 40; xx++)
+        for (yy = -40; yy < 40; yy++){
+          var x = xx/20; var y = yy/20;
+          var l = new THREE.Vector2(x,y).length()
+          var h = 0;
+          var n = 0;
+          for (n=0; n<20; n++){
+            if (l < 1.1 && l > .9)
+              break;
+            else
+              h += 20;
+              var xy = fofz( new THREE.Vector2(x,y));
+              x = xy.x; y = xy.y;  
+              l = new THREE.Vector2(x,y).length()
+          }
+          
+          ctx.fillStyle = "hsl("+String(h)+", 100%, 50%)";
+          ctx.fillRect((xx+40)*rendsize/80, (yy+40)*rendsize/80,rendsize/80,rendsize/80);
+        }
+      }
+      // drawRough();
+    </script>
+</div>  -->
+
+<script>
+updateEquation();
+
+</script>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-67709103-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+</body>
+</html>

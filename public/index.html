@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title> Monogon.net </title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <link href='http://fonts.googleapis.com/css?family=Quicksand' rel='stylesheet' type='text/css'>
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/index.css" type = "text/css" rel="stylesheet">
+</head>
+
+<body>
+<script src="js/three.min.js"></script>
+<script src="js/Detector.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/THREEx.KeyboardState.js"></script>
+<script src="js/THREEx.FullScreen.js"></script>
+<script src="js/THREEx.WindowResize.js"></script>
+<script src="js/shaders/CopyShader.js"></script>
+<script src="js/shaders/BokehShader.js"></script>
+<script src="js/tween.min.js"></script>
+
+<div id="ThreeJS" style="overflow: hidden; position: fixed; left:0px; top:0px;  width:100%; height:100%;">
+  <canvas id="threejscanvas"></canvas>
+</div>
+
+<div class="container">
+  
+  <div class="row">
+    <div class="col-sm-12 col-md-12">
+      <div class="page-header" style="border-bottom:0px;">    
+          <h1>Monogon</h1>
+      </div>
+    </div>
+  </div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/raytracing.png" class="img-responsive" alt="raytracing how to">
+    </div>
+    <div class="col-sm-12 col-md-6">
+
+      <h3>Raytracing</h3>
+      <p>A breakdown of how to use shaders and the gpu to explore the world of raytracing.  I add a new bit here and there as inspiration strikes.</p>
+      <p>The fundamentals I learned from Inigo Quilez's <a href="https://www.youtube.com/watch?time_continue=1&v=9g8CdctxmeU">live demo</a>.  I also recommend checking all the great wisdom at <a href="http://www.iquilezles.org/">his site</a>.</p>
+      <a href="raytracing/" class="btn btn-primary" role="button">Raytracing</a> 
+      </p>
+    </div>
+  </div>
+
+<div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
+
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/wattilebig.png" class="img-responsive" alt="a multi-user, cyberpunkscape">
+    </div>
+    <div class="col-sm-12 col-md-6">
+
+      <h3>Wat</h3>
+      <p>A multi-user virtual hangout place reminiscent of Neuromancer, Snow Crash, Tron and pretty much any other 80's to 90's rendition of what computers are all about.  Anachronism at its finest.</p>
+      <p>WASD for movement, SHIFT for runs, SPACE to jump, mousedrag to look around, ' to yell a bit, and " to leave a permanent post.  If you yell an imgur link, that image gets posted to the world where you are.  So far no one has thrown out any dongs, but no promises.  User beware!</p>
+      <p></p>
+      <p>Built using Mongo and Express running on Node.  Socket.io instead of Angular, so not quite MEAN.  First crafted on cloud9, but thrown onto Amazon Web Services to get some permanency.  Currently the link goes off domain to AWS, because my current host does not support Node.  Given how crazy cool Node is, this strikes me as a strong argument for shifting Monogon.net over to AWS completely.</p>
+      <p>
+      <a href="wat/" class="btn btn-primary" role="button">Wat</a> 
+      </p>
+    </div>
+  </div>
+
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
+
+<div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/riemann.png" class="img-responsive" alt="reimann sum visual guide">
+    </div>
+    <div class="col-sm-12 col-md-6">
+
+      <h3>Riemann Sum Visualizer</h3>
+      <p>A quick tool to demonstrate how a Riemann Sum works.</p>
+      <a href="riemann/" class="btn btn-primary" role="button">Riemann Sum</a> 
+      </p>
+    </div>
+  </div>
+
+<div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
+
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/cards.png" class="img-responsive" alt="The super swords of something">
+    </div>
+    <div class="col-sm-12 col-md-6">
+
+      <h3>Cards</h3>
+      <p>A multiplayer, interactive deck of tarot cards that the Goodjers over at <a href="https://www.gamerswithjobs.com/">Gamers With Jobs</a> used to play a long form "collaborative storytelling rpg" called <a href="https://www.gamerswithjobs.com/node/1299623">The Unmarked</a>.  The game has since completed and can either be listened to in podcast or video form.</p>
+      <p>At the time of playing The Unmarked, only the players had access to the site.  The goal was to emulate a group of people sitting at the same table, and flipping cards.  The results of the cards flips would dictate how the story progressed, and all players would see the same result real-time.  Game master Rob Daviau had the power to disable specific cards and shuffle the deck.</p>
+      <p>Initially I was only responsible for the frontend, with the backend a Laraval project for another Goodjer.  Eventually I got fed up with our slow solution for keeping all players synchronized, so I up and learned Node and socket.io.  This instance connects all visitor to the same "deck".</p>
+      <p>Click a face down card to flip it.  Click a face up card to get a better look at that card.  'S' shuffles.  </p>
+      <p>
+      <a href="cards/" class="btn btn-primary" role="button">Cards</a> 
+      </p>
+    </div>
+  </div>
+
+<div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
+
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/asteroidstilebig.png" class="img-responsive" alt="asteroids, all of them">
+    </div>
+    <div class="col-sm-12 col-md-6">
+
+      <h3>Asteroids</h3>
+      <p>An animated representation of all observed asteroids in 3D.  Positions for each asteroid are approximated on the gpu by way of a custom vertex shader.</p>
+      <p>By default only 50,000 asteroids are loaded, but up to 688,004 may be observed at a time if you have the hardware to handle it.</p>
+      <p>Thanks to <a href='http://ssd.jpl.nasa.gov/'>NASA</a> for orbital elements of the asteroids and planets, and thanks to Scott Manley for making the original videos that made me want to see this in 3D bad enough to make it.</p>
+      <p>
+      <a href="asteroids/index.html#50000" class="btn btn-primary" role="button">50,000</a> 
+      <a href="asteroids/index.html#200000" class="btn btn-default" role="button">200,000</a>
+      <a href="asteroids/index.html#688000" class="btn btn-default" role="button">688,000</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
+ 
+<!--   <div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/newtontilebig.png" class="img-responsive" alt="a journey of newton, probly didn't happen">
+    </div>
+    <div class="col-sm-12 col-md-6">
+      <h3>Newton</h3>
+      <p>A simple test of procedurally animated a model by manipulating the bones with code.  Also an excuse to make a low poly model of Isaac Newton.
+      </p>
+      <p>
+      <a href="newton.html" class="btn btn-primary" role="button">Check out Newton</a>
+      <a href="newtonvr.html" class="btn btn-default" role="button">WebVR Version</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div> -->
+
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/eightqueentilebig.png" class="img-responsive" alt="a little game: put eight queens in their place">
+    </div>
+    <div class="col-sm-12 col-md-6">
+      <h3>Eight Queens</h3>
+      <p>Can you place eight queens on a chess board such that no queen may take another?  From observing people attempt this challenge, I have noticed that the time it takes to find a solution is directly proportional to the age of the person.  Also adults tend to find the same solution.  Go figure.  <br> <br>  This was also my first brush with javascript, and a nice project to get a handle on interactivity in this environment.  Neat things in javascript are so much easier to share than Python!</p>
+      <p><a href="eightqueens/" class="btn btn-primary" role="button">Take the Eight Queen Challenge</a></p>
+    </div>
+  </div>
+
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
+
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/solchesstilebig.png" class="img-responsive" alt="solitaire chess">
+    </div>
+    <div class="col-sm-12 col-md-6">
+      <h3>Solitaire Chess</h3>
+      <p>A chess based version of solitaire, and my first experiment in ThreeJS.  The goal is to keep taking pieces on the board with any other piece until there is only one left.<br><br> The algorithm for generating a new board will always provide one that can be solved, but could be enhanced to filter out less interesting permutations.</p>
+      <p><a href="/solchess/" class="btn btn-primary" role="button">Play Solitaire Chess</a></p>
+    </div>
+  </div>
+
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
+
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/scalecomparehitilebig.png" class="img-responsive" alt="a comparison of scales">
+    </div>
+    <div class="col-sm-12 col-md-6">
+      <h3>Scale Compare</h3>
+      <p>A comparison of scales for a few scifi ships and Halo.  Earth for scale.  The Halo ring is spinning at an appropriate rate to generate one earth gravity on the surface.<br>A version with the massive ringworld from Larry Niven's series is also in the works, but the terrain is procedurally generated on the gpu and may be too much for some users' machines to handle.<br><br> Thanks to NASA for the hi res textures for the Earth, and to BOLL at <a href = 'http://halo.bungie.org/misc/mapping_halo/'>halo.bungie.org</a> for the Halo texture.</p>
+      <p>
+        <a href="/scalecompare/scalecomparehi.html" class="btn btn-primary" role="button">View Comparison</a>
+        <a href="/scalecompare/scalecompareringworld.html" class="btn btn-default" role="button">WIP Ringworld</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
+
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/gravitytilebig.png" class="img-responsive" alt="worlds within worlds">
+    </div>
+    <div class="col-sm-12 col-md-6">
+      <h3>N-body Gravity Sim</h3>
+      <p>General purpose computing on graphics processing units is pretty neat.  At 16,000+ particles some pretty nice proto-galaxy stuff starts to appear.  Have yet to see spiral galaxy arms arise, yet, but maybe it just hasn't run long enough.  <a href='http://www.mediadesk.uzh.ch/articles/2011/erstmals-einblick-in-die-geburt-der-milchstrasse.html'>Zurich did it with 18.6 million.</a>  Downright wasteful! </p>
+      <p>The gpgpu crunching in the background requires floating point textures, which a lot of mobile devices are not going to even attempt to support.  So that'll just be a white screen.  On a desktop or laptop with a more proper gpu, it would be wiser to attempt the smaller 4,096 particles version first.  </p>
+      <a href="/nbody/gravity.html#64" class="btn btn-primary" role="button">4,096 Particles</a>
+      <a href="/nbody/gravity.html#128" class="btn btn-default" role="button">16,384 Particles</a>
+    </div>
+  </div>
+
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
+
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/pointcloudbig.png" class="img-responsive" alt="if gnats ruled the world">
+    </div>
+    <div class="col-sm-12 col-md-6">
+      <h3>Point Cloud Terrain</h3>
+      <p>Using the power of point clouds to render terrain data is great.  First attempt was Olympus Mons, tallest mountain in the solar system.  So tall you could walk out of the Martian atmosphere!  I've been playing around with scaling the points in the vertex shader to better hide the gaps without protruding too much.  So far the best has been a discrete partial derivative.  This effect pulses on and off to better judge how effective it is, along with a redness to indicate severity of slope.</p>
+      <br>
+      <p>Thanks, <a href="http://mola.gsfc.nasa.gov/">MOLA</a> for the points.</p>
+      <p>Second about a square kilometer of the trails behind NCAR.  Here two layers are compared to determine the difference between ground and vegetation, and color is passed along as vertex colors.  </p>
+      <p>Thanks, <a href="http://www.opentopography.org/">Open Topography</a> for the points.</p>
+      <p>Thanks, <a href="http://www.gdal.org/">Geospatial Data Abstraction Library</a> for analysis and conversion tools.</p>
+      <p>By default each pointcloud presents less data than is available to spare unwitting gpu's.  The hashtag parameter scales down, so if you would like to see higher resolution, put in a smaller number.  Be warned, olympus at #1 is 3804^2 points.  That's probably too many.</p>
+      <p>
+        <a href="/pointcloud/ncar.html#4" class="btn btn-primary" role="button">NCAR Trails</a>
+        <a href="/pointcloud/olympus.html#8" class="btn btn-default" role="button">Olympus</a>
+      </p>
+      <p>Another take on the NCAR trails, but rendered with <a href="http://www.potree.org/">Potree</a>, which dynamically loads the points nearer the viewer from the server.</p>
+      <a href="/pointcloud/potree/ncar/" class="btn btn-primary" role="button">NCAR Potree</a>
+    </div>
+  </div>
+
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
+
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/orbittraptilebig.png" class="img-responsive" alt="gnarly shapes">
+    </div>
+    <div class="col-sm-12 col-md-6">
+      <h3>Orbit Trap Fractal</h3>
+      <p>Construct your own fractal by tweaking a complicated, complex function.  Like sand art but for grown ups.  Thanks to <a href='http://people.math.sc.edu/howard/Sisson/SissonPaper.pdf'>Dr. Sisson for introducing</a> and explaining the concept.</p>
+      <br>
+        <a href="/orbittrap/" class="btn btn-primary" role="button">Orbit Trap Fractals</a>
+      </p>
+    </div>
+  </div>
+
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
+
+  <div class="row">
+    <div class="col-sm-12 col-md-6"></div>
+    <div class="col-sm-12 col-md-6"><h3>Mistakes and Errata</h3></div>
+  </div>
+
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/mtmistakeThin.png" class="img-responsive" alt="noisy smoke">
+    </div>
+    <div class="col-sm-12 col-md-6">
+        <a href="/errata/mtmistake.html#256" class="btn btn-primary" role="button">Crystal Smoke</a>
+        <p>GPU Advection leads to beautiful crystal smoke.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/nucleiThin.png" class="img-responsive" alt="atomic rainbow">
+    </div>
+    <div class="col-sm-12 col-md-6">
+        <a href="/errata/nuclei.html#64" class="btn btn-primary" role="button">Atomic Rainbow</a>
+        <p>Gravity leads to an atomic rainbow display.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/golThin.png" class="img-responsive" alt="Conway's Game of Life">
+    </div>
+    <div class="col-sm-12 col-md-6">
+        <a href="/errata/gol.html#1024" class="btn btn-primary" role="button">Game of Life</a>
+        <p>A simple GPU exercise, Conway's Game of Life.</p>
+    </div>
+  </div>
+
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
+
+  <div class="row">
+    <div class="col-sm-12">
+      <h3> Who?</h3>
+      <p>Monogon.net is a playground for Daniel Martin to easily share things he has made.  Daniel Martin is a thing for turning calories into triangles.  Triangles are so nice because if you get enough of them to cooperate at the same time, you can do anything.  </p>
+      <p>More specifically he wields
+      <br>Python,
+      <br>Javascript,
+      <br>C++,
+      <br>Mathematica,
+      <br>Java,
+      <br>C#
+      <br>
+      <br>and, wherever possible, shaders to make computers do his bidding.  Preferably in parallel.  
+      <br><br>
+    </p>
+      <p>Perhaps you like triangles.  Perhaps you like them so much that you would like some yourself, and would like to alter Daniel Martin so that he turns money into calories into specific triangles.
+      <br><br>
+      Or maybe you found a typo.
+      <br><br>
+      Either way Daniel Martin can be reached at:
+      <br><br>
+      <h3>danny dot craig dot martin at gmail dot com</h3>
+    </p>
+    </div>
+  </div>
+
+  <hr>
+
+
+</div>
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-67709103-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="js/bootstrap.min.js"></script>
+
+<!-- indexbg.js animates the background of revolving platonic solids -->
+<script src="js/indexbg.js"></script>
+
+</body>
+</html>

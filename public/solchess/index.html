@@ -1,0 +1,753 @@
+
+<!doctype html>
+<html>
+	<head>
+		<title> Sol Chess </title>
+		
+  	<link href='http://fonts.googleapis.com/css?family=Quicksand' rel='stylesheet' type='text/css'>
+		<!-- <link rel='stylesheet' href='styles/main.css'> -->
+		<link rel="SHORTCUT ICON" href="monogon.ico" type="image/x-icon" />
+		<link rel="ICON" href="monogon.ico" type="image/ico" />
+		<link href="css/bootstrap.min.css" rel="stylesheet">
+  	<link href="css/infooverlay.css", rel="stylesheet">
+	</head>
+	
+	<body>
+
+<div class="overlay">
+  <div class="info">
+    <h1>Sol Chess</h1>
+    <p>A simple puzzle where the aim to reduce a pre-positioned down to one remaining piece.  Any of the remaining pieces may be used each turn to take another, but one piece must be eliminated every turn.</p>
+  </div>
+
+  <a class="hover-area"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></a>
+</div>
+
+	<div id='canvas'>
+		<script src="js/three.min.js"></script>
+		<!-- <script src="js/jsonLoader.js"></script> -->
+		<script src="js/OrbitControls.js"></script>
+		<script src="js/TrackballControls.js"></script>
+		<script src="fonts/droid_sans_bold.typeface.js"></script>
+		<script>
+
+			/////////// GLOBALS
+			var camAngle = Math.PI/2.95//Math.atan2(122,1)
+			var words = [];
+			var spots = [];
+			var numOfPieces = 4;
+			var origx= 0;
+			var origz=0;
+			var board = [];
+			var boardStart = [];
+			var pieces = []; //list of piece Meshes for the raycaster later
+			var selector;  //placemat mesh indicating what board square the piece is over
+			var selected;  //ref to the Mesh of th piece being held, null = no piece
+			var offset = new THREE.Vector3();  //to figure out where to "hold" the piece
+			var pieceTypes = ["pawn", "knight", "bishop", "rook", "queen", "king"];
+			//2 pawns, knights, bishops, rooks; 1 queen, 1 king
+
+			var scene = new THREE.Scene();
+			var time = 0;
+			//fov, aspect ratio, near plane, far plane
+			//var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+			var dim = Math.min(window.innerWidth,window.innerHeight*2)
+			var camera = new THREE.PerspectiveCamera(75, 2, 0.1, 1000);
+
+			var renderer = new THREE.WebGLRenderer({antialias:true});
+
+			/////////// INIT
+			renderer.setSize(dim,dim/2);
+			renderer.shadowMapEnabled = true;
+			//renderer.shadowMapType = THREE.PCFSoftShadowMap;
+			renderer.shadowMapType = THREE.BasicShadowMap;
+			renderer.setClearColor( 0xf0f0f0 );
+			renderer.shadowMapCullFace = THREE.CullFaceBack;
+			//add's a canvas element
+			var rndr = document.body.appendChild(renderer.domElement);
+
+			scene.add(new THREE.AmbientLight(0x555555));
+			var light = new THREE.SpotLight( 0xffffff, 1.5);
+			light.position.set( 500, 500, 0);
+			light.castShadow = true;
+			light.shadowCameraVisible = false;
+			light.shadowCameraNear = .1;
+			light.shadowCameraFar = 100//camera.far;
+			light.shadowCameraFov = 50;
+			light.shadowBias = -0.00022;
+			light.shadowDarkness = 0.3;
+			light.shadowMapWidth = 2048;
+			light.shadowMapHeight = 2048;
+			scene.add(light);
+
+			//NO WAIT, it's an invisible plane that a ray can intersect to see how much the mouse has moved since selecting a piece
+			var plane = new THREE.Mesh(
+				new THREE.PlaneBufferGeometry( 2000, 2000, 8, 8),
+				new THREE.MeshBasicMaterial({color:0x00ff00, opacity: 0.0, transparent: true})
+				);
+			plane.rotation.x =-Math.PI /2;
+			plane.position.y = 1;
+			plane.visible = false;
+			plane.recieveShadow = false;
+			scene.add(plane);
+
+			//so we move the camera
+			camera.position.z = 11;
+			camera.position.y = 12;
+			camera.position.x = 0;
+			//camera.up = new THREE.Vector3(0,1,0)
+			camera.lookAt(new THREE.Vector3(0,0,2))
+			console.log("cam", camera)
+			//camera.up = new THREE.Vector3(0,0,1);
+
+			var mouse = new THREE.Vector2();
+			var jsonLoader = new THREE.JSONLoader();
+
+			/////////////// FUNCTIONS
+
+			function onWindowResize( event ) {
+
+				SCREEN_WIDTH = window.innerWidth;
+				SCREEN_HEIGHT = window.innerHeight;
+
+				dim = Math.min(window.innerWidth,window.innerHeight*2)
+
+				renderer.setSize( dim, dim/2 );
+
+				//camera.aspect = 0.5 * SCREEN_WIDTH / SCREEN_HEIGHT;
+				//camera.updateProjectionMatrix();
+
+				//cameraPerspective.aspect = 0.5 * SCREEN_WIDTH / SCREEN_HEIGHT;
+				//cameraPerspective.updateProjectionMatrix();
+			}
+
+			function SeedRandom(state1,state2){
+			    var mod1=4294967087
+			    var mul1=65539
+			    var mod2=4294965887
+			    var mul2=65537
+			    if(typeof state1!="number"){
+			        state1=+new Date()
+			    }
+			    if(typeof state2!="number"){
+			        state2=state1
+			    }
+			    state1=state1%(mod1-1)+1
+			    state2=state2%(mod2-1)+1
+			    function random(limit){
+			        state1=(state1*mul1)%mod1
+			        state2=(state2*mul2)%mod2
+			        if(state1<limit && state2<limit && state1<mod1%limit && state2<mod2%limit){
+			            return random(limit)
+			        }
+			        return (state1+state2)%limit
+			    }
+			    return random
+			}
+			rand=SeedRandom(433, 194);
+
+			function availableSpots(board, place, type){
+				// returns a list of spots to move to, for a piece of type, from a place
+				//console.log("trying to move a piece from ", place)
+				//spots.length = 0;
+				spots.splice(0,spots.length)
+				//console.log("should be nothing", spots)
+
+				//for every spot on the board, x,y 
+				for (x=-4; x<4; x++){
+					for (y=-4; y<4; y++){
+						if ( allowedToMove( [x,y], place, type)){
+							//console.log("allowed to move to ", [x,y])
+							//check to see if there is already something on the board there
+							var shouldpush = true;
+							for (p=0;p<board.length; p++){
+								if ((board[p][1] == x) & (board[p][2] == y)){
+									shouldpush = false;
+									//console.log(spots)
+									//pass, this place on the board has a piece on it already
+								}
+								else{
+									//probly need a check to make sure the piece hasn't moved through something, or maybe put that in allowedToMove
+									//spots.push([x,y]);  //HUGE MISTAKE
+
+								}
+								
+							}
+							if (shouldpush) spots.push([x,y])
+						}
+						else{
+							//seems like a mistake, why say x,y is an available spot if that piece isn't allowed to move there?
+							//spots.push([x,y])
+						}
+					}
+				}
+
+				//console.log("spots for ", type, ": ")
+				//for (s=0; s<spots.length;s++) console.log(spots[s][0],spots[s][1])
+				return spots;
+			}
+
+			function genBoard(numOfPieces){
+				//tries to put numOfPieces chess pieces on the board
+				board.length = 0;	//set the board to nothing
+				availablePieces = ["pawn", "pawn", "knight", "knight", "rook", "rook", "bishop", "bishop", "queen", "king"]
+				for (i=0; i<numOfPieces; i++){
+					if (board.length == 0){
+						//pick a random piece to put on the board randomly
+						//rand = SeedRandom(7)
+						r = rand(availablePieces.length);
+						var pt = availablePieces[r];
+						//remove that piece from the available pieces
+						availablePieces.splice(r,1);
+						
+						toadd = [pt, rand(8)-4, rand(8)-4]
+						board.push(toadd)
+					}
+					else{
+						//pick one of the pieces on the board randomly, move it "backwards", leaving a new random piece behind
+						var p = rand(board.length);
+						var oldspot = [board[p][1],board[p][2]]
+
+						availSpots = availableSpots(board, [board[p][1], board[p][2]], board[p][0]);
+						if (availSpots.length ==0){
+							//crap we got stuck placing pieces, just give up and start over
+							board.length = 0;
+							return board;
+						}
+						else{
+							spot = availSpots[rand(availSpots.length)];
+							board[p][1] = spot[0];
+							board[p][2] = spot[1]; 
+							r = rand(availablePieces.length);
+							var pt = availablePieces[r];
+							availablePieces.splice(r,1);			
+							board.push([pt, oldspot[0], oldspot[1]])
+						}	
+					}
+				}
+				return board;
+			}
+
+			board = genBoard(4);
+			boardStart = board.slice();
+
+			function loadAndPlacePiece(type, place){
+				//type is a string of the name of the piece
+				//place is a list of x,y coords from -4 to 3
+				//var PATH = "file:///C:/monogon/models/";
+				var PATH = "models/"
+
+				var FILETYPE = ".json";
+				var FULLPATH = PATH.concat(type).concat(FILETYPE)
+				//console.log(FULLPATH)
+				jsonLoader.load(FULLPATH, function(geometry){
+					var material = new THREE.MeshLambertMaterial( {color:0x222222, shading:THREE.FlatShading, opacity:.2, transparent:false} );
+					var object = new THREE.Mesh( geometry, material);
+					object.scale.set(1,1,1);
+					if (type == "knight") object.rotation.y += -Math.PI/2;
+					object.position.set(place[0]*2.5 + 1.25, .20, place[1]*2.5+ 1.25)
+					object.boardcoord = [place[0], place[1]];
+					object.name = type;
+					pieces.push(object);
+					object.isPiece = true;
+					object.castShadow = true;
+					object.receiveShadow = true;
+					//console.log(object)
+					scene.add(object);
+				})
+			}
+
+			function placePiecesOnBoard(){
+				for (pc = 0; pc<board.length;pc++){
+					loadAndPlacePiece(board[pc][0], [board[pc][1], board[pc][2]]);
+				}
+			}
+			placePiecesOnBoard();
+
+			function clearBoard(){
+				for (i=pieces.length; i>-1;i--) scene.remove(pieces[i])	
+				pieces.length = 0;
+
+			}
+
+			function removePieceFromPlace(place){
+				for (i = 0; i < pieces.length; i++){
+					if (pieces[i].boardcoord[0] == place[0] & pieces[i].boardcoord[1] == place[1]){
+						scene.remove(pieces[i])
+						pieces.splice(i,1);
+						for (b=0; b<board.length;b++){
+							if ((board[b][1] == place[0]) & (board[b][2] == place[1])){
+								console.log("removing from board:", board[b])
+							 board.splice(b,1)
+							}
+						}
+						return true;
+					}
+				}
+				return false;
+			}
+
+			function allowedToMove(from, to, type){
+				//console.log(from, to, type)
+				//generate a short list of obstructed locations from the board list, no types
+				if ((from[0] == to[0]) & (from[1] == to[1])) return false;
+				var obstructions = [];
+				obstructions.length = 0;
+				for (j = 0; j < board.length; j++) obstructions.push([board[j][1],board[j][2]])
+				//console.log("obstructions: ", obstructions)
+
+				if (type == "knight") {
+					if ((Math.abs(from[0] - to[0]) + Math.abs(from[1] - to[1])) == 3 & from[0] != to[0] & from[1] != to[1]){
+						// need to worry about instructions
+						//NEVERMIND, knights jump over other pieces, by the nine!
+						return true;
+					}
+				}
+				else if (type == "king"){
+					if (  ((Math.abs(from[0] - to[0])) <2 & (Math.abs(from[1] - to[1])) < 2)) return true
+				}
+				else if (type == "rook"){
+					//horizontal or vertical
+					if ((Math.abs(from[0] - to[0]) == 0) & (Math.abs(from[1] - to[1]) != 0)){
+						//console.log("vert")
+						//need to check squares in between from and to for obstruction
+						for (k = Math.min(from[1],to[1])+1; k < Math.max(from[1], to[1]); k++){
+							for (j=0; j<obstructions.length; j++){
+								if ((from[0] == obstructions[j][0]) & (k == obstructions[j][1])){
+									//console.log("obstructed! at ", from[0], obstructions[j][1])
+									return false
+								}
+							}
+						}			
+
+						return true;
+					}
+					else if((Math.abs(from[0] - to[0]) != 0) & (Math.abs(from[1] - to[1]) == 0))
+					 {
+					 	//console.log("horiz")
+						for (k = Math.min(from[0],to[0])+1; k < Math.max(from[0], to[0]); k++){
+							for (j=0; j<obstructions.length; j++){
+								if ((from[1] == obstructions[j][1]) & (k == obstructions[j][0])){
+									//console.log("obstructed! at ", k, from[1])
+									return false
+								}
+							}
+						}			
+						return true
+					}
+				}
+				else if (type == "bishop"){
+					var slope = ( from[1] - to[1] ) / ( from[0] - to[0] );
+					if ( slope == 1 || slope == -1){
+						//check for things in the way:
+						//console.log("obstr: ", obstructions)
+						for (k = Math.min(from[0],to[0])+1; k < Math.max(from[0],to[0]); k +=1){
+							//console.log("bishop k:", Math.min(from[0],to[0])+1, Math.max(from[0],to[0] ),"k ", k, "y: ", ( -1*slope*(from[0]-k)+from[1] ))
+							for (j = 0; j < obstructions.length; j++){
+								if (( ( -1*slope*(from[0]-k)+from[1] ) == obstructions[j][1]) & (k == obstructions[j][0])){
+										//console.log('bishop obstruction at x:', k)
+										return false
+								} 
+							}
+						}
+						return true;
+					} 
+				}
+				else if (type == "queen"){
+					var slope = ( from[1] - to[1] ) / ( from[0] - to[0] );
+					if ( ( slope == 1 || slope == -1) || ( ((Math.abs(from[0] - to[0]) == 0) & (Math.abs(from[1] - to[1]) != 0)) ||
+					 ((Math.abs(from[0] - to[0]) != 0) & (Math.abs(from[1] - to[1]) == 0))
+					 )){ 
+					 	//check for obstructions (shamelessly copied from bishop and rook code, may be a fast way)
+					if ((Math.abs(from[0] - to[0]) == 0) & (Math.abs(from[1] - to[1]) != 0)){
+						//console.log("vert")
+						//need to check squares in between from and to for obstruction
+						for (k = Math.min(from[1],to[1])+1; k < Math.max(from[1], to[1]); k++){
+							for (j=0; j<obstructions.length; j++){
+								if ((from[0] == obstructions[j][0]) & (k == obstructions[j][1])){
+									//console.log("obstructed! at ", from[0], obstructions[j][1])
+									return false
+								}
+							}
+						}			
+
+						return true;
+					}
+					else if((Math.abs(from[0] - to[0]) != 0) & (Math.abs(from[1] - to[1]) == 0))
+					 {
+					 	//console.log("horiz")
+						for (k = Math.min(from[0],to[0])+1; k < Math.max(from[0], to[0]); k++){
+							for (j=0; j<obstructions.length; j++){
+								if ((from[1] == obstructions[j][1]) & (k == obstructions[j][0])){
+									//console.log("obstructed! at ", k, from[1])
+									return false
+								}
+							}
+						}			
+						return true
+					}
+					if ( slope == 1 || slope == -1){
+						//check for things in the way:
+						//console.log("obstr: ", obstructions)
+						for (k = Math.min(from[0],to[0])+1; k < Math.max(from[0],to[0]); k +=1){
+							//console.log("bishop k:", Math.min(from[0],to[0])+1, Math.max(from[0],to[0] ),"k ", k, "y: ", ( -1*slope*(from[0]-k)+from[1] ))
+							for (j = 0; j < obstructions.length; j++){
+								if (( ( -1*slope*(from[0]-k)+from[1] ) == obstructions[j][1]) & (k == obstructions[j][0])){
+										//console.log('bishop obstruction at x:', k)
+										return false
+								} 
+							}
+						}
+						return true;
+					} 					
+					return true;
+				}
+			}
+			else if (type == "pawn"){
+				if ( ( Math.abs(to[0]-from[0]) == 1) & (to[1]-from[1]) == -1 ) return true;
+			}
+				return false;
+			}
+
+			function startOver(numOfPieces){
+				console.log("starting over")	
+				clearBoard();
+				board.length = 0;
+				//console.log(board)
+				while (board.length ==0){
+					board = genBoard(numOfPieces);
+					//console.log("in while: ", board)
+				}
+				boardStart.length=0;
+				boardStart = board.slice();
+				placePiecesOnBoard();
+			}
+
+			//selector object
+			//"file:///C:/monogon
+			jsonLoader.load("models/selector.json", function(geometry, materials){
+				var material = new THREE.MeshFaceMaterial( materials );
+				//var material = new THREE.MeshLambertMaterial( {color:0x444444} );
+				selector = new THREE.Mesh( geometry, material);
+				selector.scale.set(1.25,1,1.25);
+				selector.position.set(1*2.5 + 1.25, 0.1, 2*2.5+ 1.25);
+				selector.name = "selector";
+				selector.castShadow = false;
+				selector.receiveShadow = false;
+				selector.visible = false;
+				scene.add(selector);
+			})
+
+			// FLOOR
+			var floorTexture = new THREE.ImageUtils.loadTexture( 'images/checkerboard.jpg' );
+			floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
+			floorTexture.repeat.set( 2, 2 );
+			var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
+			var floorGeometry = new THREE.PlaneGeometry(20, 20, 1, 1);
+			var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+			floor.position.y = 0.0;
+			floor.rotation.x = Math.PI / 2;
+			floor.name = "floor";
+			floor.receiveShadow = true;
+			scene.add(floor);
+
+			// box to show where mouse intersects plane
+			box = new THREE.Mesh( new THREE.BoxGeometry(.1,.1,.1), new THREE.MeshBasicMaterial({color: 0x00ff00}));
+			//scene.add(box);
+			//box to show where pawn's origin is
+			box2 = new THREE.Mesh( new THREE.BoxGeometry(.1,.1,.1), new THREE.MeshBasicMaterial({color: 0xff0000}));
+			//scene.add(box2);
+
+			/////////////// CONTROLS //////////////////
+			/*
+			//controls = new THREE.TrackballControls(camera);
+			controls = new THREE.OrbitControls(camera, renderer.domElement)
+			
+			controls.rotateSpeed = 1.0;
+			controls.zoomSpeed = 1.2;
+			controls.panSpeed = 1.2;
+			controls.noZoom = false;
+			controls.noPan = false;
+			controls.staticMoving = true;
+			controls.dynamicDampingFactor = 0.3; 
+			controls.enabled = false;
+			*/
+
+			function plopText(txt, pos, rot, ht){
+
+				var materialFront = new THREE.MeshBasicMaterial( { color: 0x999999 } );
+				var materialSide = new THREE.MeshBasicMaterial( { color: 0x000000 } );
+				var materialArray = [ materialFront, materialSide ];
+				var textGeom = new THREE.TextGeometry( txt, 
+				{
+					size: 1, height: ht, curveSegments: 4,
+					weight: "bold", style: "normal",
+					font: "droid sans",
+					bevelThickness: .1, bevelSize: .01, bevelEnabled: true,
+					material: 0, extrudeMaterial: 1
+				});
+				// font: helvetiker, gentilis, droid sans, droid serif, optimer
+				// weight: normal, bold
+				
+				var textMaterial = new THREE.MeshFaceMaterial(materialArray);
+				var textMesh = new THREE.Mesh(textGeom, textMaterial );
+				
+				textGeom.computeBoundingBox();
+				var textWidth = textGeom.boundingBox.max.x - textGeom.boundingBox.min.x;
+				
+				
+				textMesh.position.set( pos[0]-textWidth/2, pos[1], pos[2] );
+
+				textMesh.rotation.x = rot[0]; //-Math.PI / 4 + .6;
+				textMesh.rotation.y = rot[1];//.1
+				textMesh.rotation.z = rot[2]
+				//textMesh.lookAt(new THREE.Vector3(0,0,0))
+				//textMesh.rotation.y += .4;
+				textMesh.name = txt;
+				words.push(textMesh)
+				scene.add(textMesh);
+				return textMesh;
+				}
+
+			plopText("reset", [-15, 2, -10], [-.2,.1,0], 1.5)
+			plopText("new", [-15, 4, -10], [-.2,.0,0], 1.5)
+			plopText("wat", [-15, 0, -10], [-.2,.0,0], 1.5)
+			watText = plopText("VICTORY", [0, 100, -12], [0,0,0], 1.5)
+
+			//underneath the board goes an explanation
+			plopText("solitaire Chess", [0,-1,8], [Math.PI/4,0,0], .2)
+			plopText("every move, take a piece", [0,-1,5], [Math.PI/4,0,0], .2)
+			plopText("winnow to 1 to win", [0,-1,2], [Math.PI/4,0,0], .2)
+
+			function updateCamera(){
+				//smoothly change the cameraAngle, and use that to update the x,y pos of camera
+				currCamAngle = Math.atan2(camera.position.y, camera.position.z)
+
+				var delta = camAngle - currCamAngle;
+				//console.log(camAngle, currCamAngle,  delta)
+				currCamAngle += delta/10;
+				camera.position.y = 12*Math.sin(currCamAngle);
+				camera.position.z = 5+8*Math.cos(currCamAngle);
+				camera.lookAt(new THREE.Vector3(0,0,4))
+			}
+
+			function victory(){
+				console.log("VICTORY, ON MARS");
+				numOfPieces = Math.min(8,numOfPieces +1);
+				watText.position.y = -2;
+
+			}
+
+			/////////////// RENDER LOOP //////////////////////
+			//main render loop, better than setInterval for performance reasons, etc.
+			var render = function () {
+				time +=1;
+				requestAnimationFrame(render);
+
+				light.position.set( 25*Math.cos(time/400), 25, 25*Math.sin(time/400));
+				//light.position.set( 15, 15, 0);
+
+				renderer.render(scene, camera);
+
+				watText.position.y += .05;
+				updateCamera();
+				//controls.update();
+
+			}
+			render();
+
+			function getMouse(){
+				return new THREE.Vector2(	((event.clientX - renderer.domElement.offsetLeft) / dim)*2 -1,
+				-((event.clientY - renderer.domElement.offsetTop) / (dim/2))*2+1)
+			}
+
+			function onMouseMove( event){
+				//event.preventDefault();
+
+				/*
+				mouse.x =  ((event.clientX - renderer.domElement.offsetLeft) / window.innerWidth)*2 -1;
+				mouse.y = -((event.clientY - renderer.domElement.offsetTop) / window.innerHeight)*2+1;
+				*/
+
+				mouse = getMouse();
+
+				var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 ).unproject( camera );
+				var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+				var intersects = raycaster.intersectObject(plane);
+				
+				//if (intersects.length > 0) box.position.copy(intersects[0].point);
+
+				if (selected){
+					//move the selected piece
+					selected.position.copy(intersects[0].point.sub(offset));
+					selected.position.y = 1;
+
+					//keep the pieces on the board!
+					selected.position.x = Math.max(Math.min(selected.position.x, 10), -10);
+					selected.position.z = Math.max(Math.min(selected.position.z, 10), -10);
+					
+					//figure out where that relates in terms of board squares, 0-7
+					var xb = Math.min(Math.floor((selected.position.x)/2.5),3);
+					var zb = Math.min(Math.floor((selected.position.z)/2.5),3);
+					
+					selector.position.set(xb*2.5 + 1.25,.20, zb*2.5+ 1.25);
+					
+					//troubleshootin
+					//box2.position.copy(selected.position);
+
+				}
+				return false;
+			}
+
+			function onMouseDown(event){
+				event.preventDefault();
+				if (camAngle < 0) camAngle *=-1;
+				//figure out where the mouse clicked in the canvas, offset by where the canvas lives in the browser
+				/*
+				mouse.x =  ((event.clientX - renderer.domElement.offsetLeft) / window.innerWidth)*2 -1;
+				mouse.y = -((event.clientY - renderer.domElement.offsetTop) / window.innerHeight)*2+1;
+				*/
+
+				mouse = getMouse();
+
+				//figure out what all that could have clicked, I believe sorted by distance from camera
+				var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 ).unproject( camera );
+				var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+				var gensects = raycaster.intersectObjects(words);
+				if (gensects.length>0){
+					if (gensects[0].object.name =="new"){
+						//player clicked the new "button"
+						startOver(numOfPieces);
+					}
+					else if (gensects[0].object.name =="reset"){
+						//player clicked the reset "button"
+						clearBoard();
+						board = boardStart.slice();
+						placePiecesOnBoard();
+					}
+					else if (gensects[0].object.name =='wat') {
+						if (camAngle > 0)camAngle*= -1;
+						//watText.position.y = -2;
+					}
+				}
+				var intersects = raycaster.intersectObjects(pieces);
+				var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+				if (intersects.length > 0) plane.position.copy(intersects[0].point);
+				var pintersects = raycaster.intersectObject(plane);
+				if (intersects.length>0 & pintersects.length >0) {
+					grabbedOnPlane = pintersects[0].point;
+					grabbedOnPiece = intersects[0].point;
+					
+					//console.log("first intersected: ", intersects[0].object.name);
+					//controls.enabled = false; // haven't seen this work yet
+					selected = intersects[0].object;
+					selector.visible = true;
+					//offset.copy( intersects[0].point).sub( intersects[0].object.position );
+					offset.copy(grabbedOnPiece.sub(selected.position));
+					offset.y = 0;
+
+					origx = Math.min(Math.floor((selected.position.x)/2.5),3);
+					origz = Math.min(Math.floor((selected.position.z)/2.5),3);
+					grabbedType = selected.name;
+				
+				}
+				else{
+					//controls.enabled = true;
+				}
+				return false
+			}
+
+			function onMouseUp(event){
+				event.preventDefault();
+				if (selected){
+
+					//figure out where we are
+					var xb = Math.min(Math.floor((selected.position.x)/2.5),3);
+					var zb = Math.min(Math.floor((selected.position.z)/2.5),3);
+
+					//figure out if the currently held piece is allowed to move there
+
+					//if this is a legal move for this piece
+					//also need to ensure that a piece will be removed
+					//also need to ensure nothing was blocking that move 
+					//ALSO had to make sure a piece wasn't TAKING ITSELF!  :/
+					if (allowedToMove([origx, origz], [xb,zb], grabbedType) & ((origx != xb)|(origz != zb))){
+						//drop it down where it is now
+						
+						if (removePieceFromPlace([xb,zb])){
+							selected.boardcoord = [xb,zb];	
+							selected.position.set(xb*2.5 + 1.25,.20, zb*2.5+ 1.25);
+							//need to update the "board" array TOFIX
+							for (p=0; p<board.length; p++){
+								if ( (origx == board[p][1]) & (origz == board[p][2]) ){
+									//console.log("need to remove a piece from 'board' at ", origx, origz)
+									//board.splice(p,1);
+									board[p][1]=xb;
+									board[p][2]=zb;
+									if (board.length==1) victory();
+								}
+							}
+							//board.push([selected.name, origx, origz] )
+							//console.log(board)
+							//if (board.length == 1) console.log("VICTORY")
+						}
+						//just drop the held piece back where it came from
+						else selected.position.set(origx*2.5 + 1.25,.20, origz*2.5+ 1.25);
+						
+					}
+					// else put it back where it came from
+					else selected.position.set(origx*2.5 + 1.25,.20, origz*2.5+ 1.25);
+
+					//as we move pieces around, the "board" array of values is not being updated, messing up the collecting of obstructions later
+
+					//no longer holding that piece either way
+					selected = null;  // lets go of selected piece
+					selector.visible = false;
+				}
+				return false;
+				//controls.enabled = true;
+			}
+
+			function onKeyDown(event){
+				if (event.keyCode == 32){
+					//console.log(scene)
+					startOver(8);
+				}
+				else if (event.keyCode == 82){
+					clearBoard();
+					board = boardStart.slice();
+					placePiecesOnBoard();
+				}
+				else if (event.keyCode == 66){
+					//barf out the "board" contents to console for troubleshootin reasons
+					console.log('----- board -----')
+					for (j=0;j<board.length;j++) console.log(board[j])
+				}
+				else if (event.keyCode == 67){
+					//c
+					//rotate camera around to see underside of the board from 0,12,11
+					//to 0,-12,11
+					camAngle*= -1;
+				}
+				else console.log(event.keyCode)
+			}
+
+			window.addEventListener('mousemove', onMouseMove, false);
+			window.addEventListener('mousedown', onMouseDown, true);
+			window.addEventListener('mouseup', onMouseUp, false);
+			window.addEventListener('keydown', onKeyDown, false);
+			window.addEventListener( 'resize', onWindowResize, false );
+
+		</script>
+
+	</div>
+	<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-67709103-1', 'auto');
+  ga('send', 'pageview');
+</script>
+	</body>
+</html>

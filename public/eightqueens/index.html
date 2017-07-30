@@ -1,0 +1,357 @@
+<!doctype html>
+<html>
+	<head>
+		<title> The Eight Queens</title>
+		<link rel='stylesheet' href='mainoverflowshow.css'>
+		<link rel="SHORTCUT ICON" href="monogon.ico" type="image/x-icon" />
+		<link rel="ICON" href="monogon.ico" type="image/ico" />
+		<style> body {overlow: show;} </style>
+	</head>
+	
+	<body style="overflow=show">
+
+		
+		<div> <p>Here is a challenge.  Place queens on a chess board such that no queen can take another in one move.</p></div>
+		
+		<div id="content"><canvas id="myCanvas" width="800" height="800"></canvas></div>
+
+		<div>
+			<p>The queens are indicated by yellow squares, which can be clicked to place and again to be removed.  Squares which are blocked by placed queens are represented by red.  There is definitely a solution of eight queens, but are there more?  (Not counting mirroring and rotations)</p>
+			<p>This challenge was first presented by Max Bezzel in 1848.  It took two years to be publically solved, and yet with the tool above people can find a solution in minutes.  I think this speaks to the power of the human brain when it is given a tool to quickly iterate over a problem.</p>
+			<p>For comparison, this is a computer's attempt to find all solutions.  Built to present a straightforward algorithm visually rather than for speed.</p>
+		</div>
+
+		<div style="text-align: center">
+		<button onclick="startSearch()">Start Search</button>
+		<button onclick="slowerSearch()">Slow Down</button>
+		<button onclick="fasterSearch()">Speed Up</button>
+		<p></p></div>
+
+		<div id="content2"><canvas id="secondCanvas" width="800" height="800"></canvas></div>
+
+		<div id="searchSummary"></div>
+		<div id="content3">
+			<canvas id="thirdCanvas" width="800" height="1200" style='border:0px;' </canvas>
+		</div>
+
+		<script>
+			var size = 8;
+			var blankboard = [];
+			var board = [];
+			var board2 = [];
+			for (i=0; i<size*size; i++){
+				board.push(0)
+				board2.push(0)
+				blankboard.push(0)
+			}
+			var w = 800; var h = 800;
+			var c= document.getElementById("myCanvas");
+			var c2=document.getElementById("secondCanvas");
+			var c3=document.getElementById("thirdCanvas");
+			var ctx3 = c3.getContext("2d");
+			
+			var ctx=c.getContext("2d");
+			var ctx2 = c2.getContext("2d")
+			var queens = [];
+		
+			function getMousePos(canvas, evt) {
+        var rect = canvas.getBoundingClientRect();
+				w = rect.width; h = rect.height;
+
+        return {
+          x: evt.clientX - rect.left,
+          y: evt.clientY - rect.top
+        };
+      }
+
+			function rgbToHex(r, g, b) {
+			    if (r > 255 || g > 255 || b > 255)
+			        //throw "Invalid color component";
+			      	console.log("tried rgbToHex for:",r,g,b)
+			      	r = r%255; g = g%255; b = g%255;
+			    return ((r << 16) | (g << 8) | b).toString(16);
+			}
+
+			function setupBlocks(canvas, size, ctx){
+				ctx.fillStyle = '#999';
+				var rect = canvas.getBoundingClientRect();
+				w = rect.width*2; h = rect.height*2;
+		
+				for (i = 0; i < 8; i++){
+					for (j=0; j< 8; j++){
+						ctx.fillRect(5+i*100, 5+j*100, 90, 90);
+					}
+				}
+				ctx.fillStyle = '#000099';
+				ctx.fillRect(w/2.0, w/2.0, 10,10);
+			}
+
+			function click(canvas, mpos){
+				// figure out which block you're looking at
+				//xblock and yblock represent x,y coords on the board
+				//boardPlace is a linear description of position 0-63 scanline
+				//val is what is happening there currently, 0 nothing, 1-98 restricted by
+				//other queens, 99 represents a queen there
+				var rect = canvas.getBoundingClientRect();
+				var xblock = Math.floor(size*mpos.x/rect.width);
+				var yblock = Math.floor(size*mpos.y/rect.height);
+				var boardPlace = 8*yblock+xblock;
+				var val = board[boardPlace];
+				console.log("xb yb bp", xblock, yblock, boardPlace);
+
+				// get the color clicked
+				var p = ctx.getImageData(mpos.x, mpos.y, 1, 1).data; 
+    		var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
+
+    		if (val == 99){
+    			//queen here, should be removed
+    			board[boardPlace]=0;
+    			var qpos = [xblock, yblock];
+
+    			// was searching through list of queens and removing the one that was clicked, may be removable
+     			for (q=0; q<queens.length; q++){
+     				// this is the way to cleanly remove an element from an array, javascript you so silly
+     				// array.delete will leave a messy void :(
+     				if (queens[q][0] == qpos[0] & queens[q][1] == qpos[1]) queens.splice(q,1);
+     			}
+
+     			//change values of the board to indicate what is being covered by
+     			//the recently placed queen
+     			//better implemented for the automatic search version as a scanTheBoard func
+     			for (x = 0; x< size; x++){
+    				for (y=0; y<size; y++){
+    					p = x+y*size;
+    					if (x == xblock){board[p]-=1;}
+    					if (y == yblock){board[p]-=1;}
+    					if ((y - yblock) == (x - xblock)){board[p]-=1;}
+    					if ((y - yblock) == -1*(x - xblock)){board[p]-=1;}
+    				}
+    			}
+					board[boardPlace]=0;
+     			
+     			//redraw
+    			paintGrid(canvas, board);
+    		}
+    		else if (val == 0){
+    			//an available space, not restricted by other queens, and not a queen
+    			//place a queen
+    			queens[queens.length] = [xblock, yblock]
+
+    			for (x = 0; x< size; x++){
+    				for (y=0; y<size; y++){
+    					p = x+y*size;
+    					if (x == xblock) board[p]+=1;
+    					if (y == yblock) board[p]+=1;
+    					if ((y - yblock) == (x - xblock)) board[p]+=1;
+    					if ((y - yblock) == -1*(x - xblock)) board[p]+=1;
+    				}
+    			}
+    			board[boardPlace]=99;
+    			paintGrid(canvas, board);
+    		}
+			}
+			
+			function paintGrid(canvas, b, scalar, xstart,ystart){
+				//paints a chessboard to "canvas" based on board "b", scaled to size "scalar"
+				//shifted by xstart and ystart to provide margins
+
+				//this is how you set a default parameter value in javascript?  ew
+				scalar = typeof scalar !== 'undefined' ? scalar : 1;
+				xstart = typeof xstart !== 'undefined' ? xstart : 0;
+				ystart = typeof ystart !== 'undefined' ? ystart : 0;
+				myctx = canvas.getContext("2d")
+				for (p = 0; p<size*size; p++){
+					if (b[p] > 0 & b[p] < 99){
+						// here the color of the square is chosen to reflect how many queens could take it
+						startString = '#';
+						myctx.fillStyle=startString.concat(String(rgbToHex(128+30*b[p], 128-30*b[p], 128-30*b[p])));
+					}
+					if (b[p]==99){
+						myctx.fillStyle='#999900'
+					}
+					if (b[p]<1){
+						myctx.fillStyle='#999999'
+					}
+					x = p%size;
+					y = Math.floor(p/size)
+					myctx.fillRect((5+100*x)*scalar+xstart, (5+100*y)*scalar+ystart, 90*scalar, 90*scalar);
+				}
+			}
+
+			c.addEventListener('mousedown', function(evt){
+				var mousePos = getMousePos(c, evt);
+				click(c, mousePos)
+			},false);
+
+			function clickSols(c3, mpos){
+				var rect = c3.getBoundingClientRect();
+				var xblock = Math.floor(size*mpos.x/rect.width);
+				var yblock = Math.floor(size*mpos.y/rect.width);
+				var boardPlace = 8*yblock+xblock;
+				//console.log("click sols at ", mpos, boardPlace)
+				if (boardPlace < solBoards.length) {
+					console.log(solBoards[boardPlace]);
+					board = solBoards[boardPlace].slice(0);
+					paintGrid(c, solBoards[boardPlace]);
+				}
+
+			}
+
+			c3.addEventListener('mousedown', function(evt){
+				clickSols(c3, getMousePos(c3,evt));
+			}, false);
+
+			///////////////////////////////////////////SEARCH ////////////////////
+			var solBoards = [];
+			var solsFound = 0;
+			var solsFound7 = 0;
+			var solsFound6 = 0;
+			var solsFound5 = 0;
+			var keepSearching = false;
+			searchQueens = [];
+			scanTheBoard(board2, searchQueens)
+
+			var available = availableSpots(board2, -1);
+
+			paintGrid(c2, board2);
+
+			ctx3.font="40px Arial";
+			ctx3.fillStyle="#dddddd";
+			ctx3.fillText("This space reserved for found solutions.", 50, 400)
+
+			var searchSpeed = 1000;
+
+			function slowerSearch(){ searchSpeed = Math.min(searchSpeed*10,10000);	}
+			function fasterSearch(){	searchSpeed = Math.max(searchSpeed*.1, .1);}
+
+			function availableSpots(b, limit){
+				// return a list of available spots for a new queen, greater than limit
+				available = [];
+				for (s = limit+1; s < b.length; s++) if (b[s] == 0) available.push(s);
+				return available;
+			}
+
+			function scanTheBoard(b, qlist){
+				//figure out which spots are off limits based on queens
+				//b = blankboard;
+				for (p=0; p<size*size; p++){b[p]=0}
+				for (q=0; q<searchQueens.length; q++){
+					xblock = searchQueens[q]%size;
+					yblock = Math.floor(searchQueens[q]/size);
+				  for (x = 0; x< size; x++){
+	  				for (y=0; y<size; y++){
+	  					p = x+y*size;
+	  					if (x == xblock){b[p]+=1;}
+	  					if (y == yblock){b[p]+=1;}
+	  					if ((y - yblock) == (x - xblock)){b[p]+=1;}
+	  					if ((y - yblock) == -1*(x - xblock)){b[p]+=1;}
+	  					if (p==searchQueens[q]){b[p] =99}
+	  				}
+	  			}
+	  		}
+
+			}
+
+			function callBack(){
+				ctx2.fillStyle='#999999';
+				val = searchQueens[0];
+				
+				//if there are 8 queens out, stop, drop, and make a lil version of this
+				//configuration on third canvas for posterity
+				//then continue exactly as if this were a "stuck" state
+				if (searchQueens.length==8){
+					//paint a small copy to the third context
+					w = 800;
+					scalar = .125; ledge = scalar*w; marg = .05*w*scalar;
+					scalar*=.9;
+					//console.log("ledge scalar w", ledge, scalar, w)
+					paintGrid(c3,board2, scalar, ((solsFound%8)*ledge)+marg, ledge*Math.floor(solsFound/8)+marg)
+					ctx3.fillStyle='#000000'
+
+					//add a copy of this solution, board2, to the list solBoards
+					solBoards.push(board2.slice(0));
+					//console.log(solBoards)
+
+					//keep track of how many 8queen solutions we found so far
+					solsFound +=1;
+
+					lastQueen = searchQueens.length - 1;
+					lastQueenPos = searchQueens[lastQueen]
+					searchQueens.pop()
+					scanTheBoard(board2,searchQueens)
+					available = availableSpots(board2, lastQueenPos)
+
+					
+
+					if (solsFound == 92){keepSearching=false}
+
+					if (keepSearching) setTimeout(callBack, 1);
+				}
+				else{
+					//
+					lastQueen = searchQueens.length - 1;
+					lastQueenPos = searchQueens[lastQueen]
+					// generate a list of available spots for another queen
+					scanTheBoard(board2, searchQueens);
+					if (available.length ==0){
+						//there weren't any, the lastQueen was stuck
+						
+						//before removing the last queen, take stock of how many we have,
+						//increment counters for different getting stuckses, and present them
+						if (searchQueens.length == 7){solsFound7+=1;}
+						if (searchQueens.length == 6){solsFound6+=1}
+						if (searchQueens.length == 5){solsFound5+=1}
+						summText = "<p></p><p>Currently the search has found !7 instances where the board was completely blocked by seven queens, !6 boards blocked by six queens, and !5 instances with five queens.</p><p>Full solutions of eight queens are collected below.  So far we have !8 of them.</p>";
+						summText = summText.replace("!8", solsFound);
+						summText = summText.replace("!7", solsFound7);
+						summText = summText.replace("!6", solsFound6);
+						summText = summText.replace("!5", solsFound5);
+						document.getElementById("searchSummary").innerHTML=summText;
+
+						//remove the last queen, find availability of the board WITHOUT the most recent spot
+						//the replacement queen will be placed the next time this function is called
+						searchQueens.pop()
+						scanTheBoard(board2,searchQueens)
+						available = availableSpots(board2, lastQueenPos)
+					}
+					else{
+						//there were spots for a new queen, insert it, figure out what the board looks
+						//like now and what spots are available for new queens
+						searchQueens.push(available[0])
+						board2[available[0]]=99;
+						scanTheBoard(board2, searchQueens)
+						available = availableSpots(board2, available[0])
+					}
+					//call this function again to make another move, if applicable.
+					if (keepSearching) {setTimeout(callBack, searchSpeed);}
+				}
+				//keepSearching = false;
+				paintGrid(c2, board2)
+				
+			}
+
+			function startSearch(){
+				console.log("starting search")
+				if (keepSearching == true){
+					keepSearching = false;
+				} 
+				else{
+					keepSearching = true;
+				}
+				//start searching through a sequence of calls to the callBack function,
+				//each represents one placement or removal of a queen to the board.
+				setTimeout(callBack, 1);
+			}
+			setupBlocks(c, size, ctx);				
+
+		</script>
+
+		<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-67709103-1', 'auto');
+  ga('send', 'pageview');
+</script>
+	</body>

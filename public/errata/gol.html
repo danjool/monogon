@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- <link href="css/bootstrap.min.css" rel="stylesheet"> -->
+  <link href="css/infooverlay.css", rel="stylesheet">
+  <link href='http://fonts.googleapis.com/css?family=Quicksand' rel='stylesheet' type='text/css'>
+</head>
+
+<body style="margin:0px;">
+
+<script src="js/three.min.js"></script>
+<script src="js/jquery.min.js"></script>
+<!-- <script src="js/underscore.js"></script> -->
+<script src="js/TrackballControls.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/ShaderLoader.js"></script>
+<script src="js/DAT.GUI.min.js"></script>
+
+<script src="js/PhysicsRenderer.js"></script>
+
+<style>
+body{
+  background-color: #888;
+}
+</style>
+<div id="gol" style="margin: 0px auto; width:1024px"></div>
+
+<!-- <div class="overlay">
+  <div class="info">
+    <h1>GPU Conway's Game of Life</h1>
+    <p><a href='https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life'>GoL</a> is a perfect candidate for gpu parallael processing, as each cell's fate is determined by only eight neihbors.</p><p>The calculations are being sent through cabbibo's <a href='https://github.com/cabbibo/PhysicsRenderer/'>physics renderer</a> to take advantage of multiple render-to-texture passes.  Overkill for sure, but the credit is due just as well.</p>
+    <a href='http://www.monogon.net'><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>  More projects on Monogon.net</a>
+  </div>
+
+  <a class="hover-area"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></a>
+</div> -->
+
+<script>
+
+
+  var scene , camera , renderer, clock , controls, time = 0.0;
+  var debugMesh;
+
+  var simulation;
+
+  var simulationUniforms = {
+  
+    dT:{ type:"f" , value: 0 },
+    centerPos: { type:"v3" , value: new THREE.Vector3()},
+    time:{ type:"f" , value: 0},
+    attraction:{type:"f", value: 1.0},
+    cohesion:{type:"f", value: 0.0},
+    minDistance:{type:"f", value: 0.0001},
+    linDrag:{type:"f", value: 1.0},    
+    speedLim:{type:"f", value: 1000000.0}
+
+  }
+
+  var renderUniforms = {
+    t_pos:{ type:"t" , value: null }
+  }
+
+  var shaders = new ShaderLoader( 'shaders' );
+
+  shaders.load( 'ss-gol'    , 'sim'    , 'simulation' );
+  shaders.load( 'vs-lookupRound'  , 'lookup' , 'vertex'     );
+  shaders.load( 'fs-lookupRound'  , 'lookup' , 'fragment'   );
+
+  shaders.shaderSetLoaded = function(){
+
+    init();
+    animate();
+
+  }
+
+
+  
+  function init(){
+      scene = new THREE.Scene();
+
+      var side = Math.min(window.innerWidth, window.innerHeight);
+      var sidelog2 = Math.log(side) / Math.log(2.0);
+      var pow2side = Math.pow(2.0, Math.floor(sidelog2));
+
+      var hash = document.location.hash.substr( 1 );
+      if (hash) hash = parseInt(hash, 0);
+      /* TEXTURE WIDTH FOR SIMULATION */
+      var SIZE = hash || pow2side;
+
+      console.log("sides of square: ", pow2side)
+
+      var ar = window.innerWidth / window.innerHeight;
+
+      //camera = new THREE.PerspectiveCamera( 75, ar , .1, 1000000 );
+      //camera.position.z = 100;
+
+      camera = new THREE.OrthographicCamera( -50, 50, -50, 50, 1, 100 );
+      scene.add(camera);
+      camera.position.set( 0, 0, -50);
+      camera.lookAt( new THREE.Vector3( 0, 0, 0 ) );
+
+      renderer = new THREE.WebGLRenderer();
+      renderer.setSize( SIZE, SIZE );
+
+      container = document.getElementById( 'gol' );
+
+      container.appendChild( renderer.domElement );
+
+      // document.body.appendChild( renderer.domElement );
+
+
+      controls = new THREE.OrbitControls( camera );
+      clock = new THREE.Clock();
+
+      simulation = new PhysicsRenderer( SIZE , shaders.ss.sim , renderer );
+
+      simulation.material.defines = { SIZE: SIZE.toFixed(0)};
+      simulation.simulation.defines = { SIZE: SIZE.toFixed(0)};
+
+      console.log('defines: ', simulation.material.defines);
+      console.log('simulation: ', simulation);
+
+      var geo = createLookupGeometry( SIZE );
+
+      var mat = new THREE.ShaderMaterial({
+        uniforms: renderUniforms,
+        vertexShader: shaders.vs.lookup,
+        fragmentShader: shaders.fs.lookup,
+
+      });
+
+      simulation.setUniforms( simulationUniforms );
+
+      var particles = new THREE.PointCloud( geo , mat );
+      particles.frustumCulled = false;
+
+      //scene.add( particles );
+
+
+      simulation.addBoundTexture( renderUniforms.t_pos , 'output' );
+      // simulation.resetRand( 500 );
+      var rt = createPositionTexture(SIZE)
+      simulation.reset(rt);
+
+      var gui = new dat.GUI();
+
+      var effectController = {
+        attraction: 1.0,
+        cohesion: 0.0,
+        minDistance: 0.0001,
+        linDrag: 1.0,
+        speedLim: 1000000.0
+      };
+
+      var valuesChanger = function() {
+        simulationUniforms.attraction.value = effectController.attraction;        
+        simulationUniforms.cohesion.value = effectController.cohesion;        
+        simulationUniforms.minDistance.value = effectController.minDistance;
+        simulationUniforms.linDrag.value = effectController.linDrag;
+        simulationUniforms.speedLim.value = effectController.speedLim;
+      };
+
+      valuesChanger();
+
+      gui.add( effectController, "attraction", 0.0, 100.0, 0.1 ).onChange( valuesChanger );
+      gui.add( effectController, "cohesion", 0.0, 100.0, 0.1 ).onChange( valuesChanger );
+      gui.add( effectController, "minDistance", 0.0001, 1000.0, 0.001 ).onChange( valuesChanger );
+      gui.add( effectController, "linDrag", 0.0, 1.0, 0.01 ).onChange( valuesChanger );
+      gui.add( effectController, "speedLim", 0.0, 1000000.0, 1.0 ).onChange( valuesChanger );
+
+      dat.GUI.toggleHide();
+
+      simulation.addDebugScene(scene);
+
+      simulation.update();
+
+      var geo = new THREE.PlaneBufferGeometry( 100 , 100 );        
+      debugMesh = new THREE.Mesh( geo , new THREE.MeshBasicMaterial({
+        map: simulation.simulationUniforms.t_pos.value
+      }));
+      // scene.add(debugMesh);
+
+      window.addEventListener("keydown", keydown, false);
+      
+  }
+
+  function keydown(event){
+    console.log(event.keyCode);
+    if (event.keyCode == 67 ){
+      // debugMesh.material.map.value = simulation.simulationUniforms.t_pos.value;
+      // console.log(simulation);
+      // console.log(debugMesh);
+    }
+  }
+
+  function animate(){
+
+    requestAnimationFrame( animate );
+ 
+    var deltatime = clock.getDelta();
+
+    simulationUniforms.dT.value = deltatime;
+    time += deltatime;
+    
+    simulationUniforms.time.value = time;
+    simulation.update();
+    var flip = (simulation.counter+1)%3
+    camera.position.set( -105 +105*flip, 0, -50);
+    camera.lookAt( new THREE.Vector3( -105 +105*flip, 0, 0 ) );
+
+   // controls.update();
+    
+    renderer.render( scene , camera );
+
+  }
+
+
+  function createLookupGeometry( size ){        
+        
+    var geo = new THREE.BufferGeometry();
+    var positions = new Float32Array(  size * size * 3 );
+
+    for ( var i = 0, j = 0, l = positions.length / 3; i < l; i ++, j += 3 ) {
+
+      positions[ j     ] = ( i % size ) / size;
+      positions[ j + 1 ] = Math.floor( i / size ) / size;
+    
+    }
+
+    var posA = new THREE.BufferAttribute( positions , 3 );
+    geo.addAttribute( 'position', posA );
+
+
+    return geo;
+    
+  }
+  function createPositionTexture(size){
+
+  var a = new Float32Array( size * size * 4 );
+
+  for ( var k = 0, kl = a.length; k < kl; k += 4 ) {
+
+    var r = Math.random();
+    var x = 0.0;
+    var y = 0.0;
+    var z = 0.0;
+
+    if ( r > 0.7 ){
+      x = 1.0; y = 1.0; z = 1.0; 
+    }
+
+    a[ k + 0 ] = x;
+    a[ k + 1 ] = y;
+    a[ k + 2 ] = z;
+    a[ k + 3 ] = 1;
+
+  }
+
+  var texture = new THREE.DataTexture( 
+    a,
+    size,
+    size,
+    THREE.RGBAFormat,
+    THREE.FloatType
+  );
+  console.log( texture) ;
+
+  texture.minFilter =  THREE.NearestFilter,
+  texture.magFilter = THREE.NearestFilter,
+
+  texture.needsUpdate = true;
+
+  return texture;
+
+
+}
+
+function createSinTexture(size){
+
+  var size = size || 128;
+  var data = new Float32Array( size * size * 4 );
+
+  for( var i =0; i < data.length; i++ ){
+
+    //makes some weird sin based positions
+    data[ i ] = Math.sin( i*.1 ) * 30;
+
+  }
+
+  var texture = new THREE.DataTexture( 
+    data,
+    size,
+    size,
+    THREE.RGBAFormat,
+    THREE.FloatType
+  );
+
+  texture.minFilter =  THREE.NearestFilter,
+  texture.magFilter = THREE.NearestFilter,
+
+  texture.needsUpdate = true;
+
+  return texture;
+  }
+
+
+</script>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-67709103-1', 'auto');
+  ga('send', 'pageview');
+</script>
+<!-- 
+    <script src="js/jquery-2.1.1.min.js"></script>    
+    
+    <script src="js/bootstrap.min.js"></script> 
+ -->
+</body>
+</html>

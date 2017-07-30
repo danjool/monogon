@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title> How to Raytracing </title>
+	<link rel='stylesheet' href='css/raytrace.css'>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        tex2jax: {
+          inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+          displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
+          processEscapes: true
+        }
+      });
+    </script>
+
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({ TeX: { extensions: ["color.js"], jax: ["input/TeX","output/SVG"] }});
+    </script>
+
+<!-- The old mathjax cdn got itself deprecated! -->
+<!-- <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/2.5-latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script> -->
+<!-- <script type="text/javascript" src="js/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script> -->
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+</head>
+<body style="overflow-x:hidden;">
+
+<script type='text/javascript' src="js/three75.min.js"></script>
+<script type='text/javascript' src="js/Detector.js"></script>
+<script type='text/javascript' src="js/OrbitControls.js"></script>
+<script type='text/javascript' src="js/THREEx.KeyboardState.js"></script>
+<script type='text/javascript' src="js/THREEx.FullScreen.js"></script>
+<script type='text/javascript' src="js/THREEx.WindowResize.js"></script>
+<script type='text/javascript' src='js/DAT.GUI.min.js'></script>
+<!-- <script src="../fonts/droid_sans_bold.typeface.js"></script> -->
+<!-- <script src="js/arrowhelper.js"></script> -->
+
+<!-- -------------------------- -->
+<script id="rayCastVert" type="x-shader/x-vertex">
+varying vec2 vUv;
+varying vec4 myPos;
+varying vec3 myVert;
+
+void main(){
+    vUv = uv;
+    myPos = modelMatrix * vec4( position, 1.0);
+    myVert = position;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+}
+</script>
+
+
+<script id="rayCastFrag" type="x-shader/x-fragment">
+uniform vec3 pos;
+uniform vec3 fakeCamPos;
+varying vec2 vUv;
+varying vec4 myPos;
+varying vec3 myVert;
+uniform float time;
+
+float iSphere( in vec3 ro, in vec3 rd, in vec4 sph)
+{
+    vec3 oc = ro - sph.xyz;  
+    float b = 2.0 * dot(oc, rd);
+    float c = dot(oc, oc) - sph.w*sph.w;
+    float h = b*b - 4.0*c;
+    if ( h<0.0) return -1.0;
+    float t = (-b - sqrt(h))/2.0;
+    return t;
+}
+
+vec3 nSphere ( in vec3 p, in vec4 sph)
+{
+    return normalize((p - sph.xyz));
+}
+
+float iPlane( in vec3 ro, in vec3 rd )
+{
+    return  (-5.0-ro.z)/rd.z;
+}
+vec3 nPlane( in vec3 p)
+{
+    return vec3(0.0, 0.0, 1.0);
+}
+
+vec4 sph()
+{
+    return vec4(30.0*sin(sin(time)), 0.0, 60.0-30.0*cos(sin(time)), 10.0);
+}
+
+float intersect(in vec3 ro, in vec3 rd, in vec4 sph1, out float resT)
+{
+    resT = 1000.0;
+    float id = -1.0;
+    float tsph = iSphere(ro, rd, sph1);
+    float tpla = iPlane( ro, rd );
+    if (tsph > 0.0)
+    {
+        id = 1.0;
+        resT = tsph;
+    }
+    if (tpla > 0.0 && tpla < resT)
+    {
+        id = 2.0;
+        resT = tpla;
+    }
+    return id;
+}
+
+void main(){
+
+    vec4 sph1 = sph();
+	vec3 light = normalize( vec3(1.0, 0.0, 0.0));
+	vec3 ro = vec3(pos.x, pos.z, 	pos.y);
+	//ro = vec3(fakeCamPos.x, fakeCamPos.z, fakeCamPos.y);
+	vec3 rp = vec3(myPos.x, myPos.z, 	myPos.y);
+	vec3 rd = normalize(rp - ro);
+    rd = normalize( myPos.xzy - pos.xzy );
+	float t;
+	float id = intersect( ro, rd, sph1, t);
+	vec4 col = vec4(0.0);
+
+	if ( id > 0.5 && id < 1.5)
+    {
+        vec3 p = ro + t*rd;
+        vec3 nor = nSphere( p, sph1);
+        float dif = clamp(dot(nor, light), 0.0, 1.0);
+        float ao = .5 + -.5*nor.z;
+        col = vec4(0.3, 0.6, .7, 1.0)*dif*ao + ao*vec4(.4, .3,.4, 1);
+    }
+    if ( id > 1.5)
+    {
+        vec3 p = ro + t*rd;
+        vec3 nor = nPlane( p);
+        float dif = clamp(dot(nor, light), 0.0, 1.0);
+        vec4 grid = vec4(mod(floor(p.x*10.0),10.0), mod(floor(p.y*10.0), 10.0 ), 1.0, 1.0);
+        float amb = smoothstep( 0.0, sph1.w,length( p.xz-sph1.xz));
+        col = vec4(amb*.7,amb*.4,amb*.2,1);
+        float c = mod(mod(floor(p.x/25.0), 2.0)+mod(floor(p.y/25.0), 2.0), 2.0);
+        col = vec4(c,c,c,1.0);
+    }
+    if (id == -1.0)
+    {
+        col = vec4(39.0,40.0,34.0,255.0)/255.0;
+    }
+
+		gl_FragColor = col;
+}
+	
+</script>
+
+<script id="rayCastFragFaceCamera" type="x-shader/x-fragment">
+uniform vec3 pos;
+uniform vec3 fakeCamPos;
+varying vec2 vUv;
+varying vec4 myPos;
+varying vec3 myVert;
+uniform float time;
+
+float iSphere( in vec3 ro, in vec3 rd, in vec4 sph)
+{
+    vec3 oc = ro - sph.xyz;  
+    float b = 2.0 * dot(oc, rd);
+    float c = dot(oc, oc) - sph.w*sph.w;
+    float h = b*b - 4.0*c;
+    if ( h<0.0) return -1.0;
+    float t = (-b - sqrt(h))/2.0;
+    return t;
+}
+
+vec3 nSphere ( in vec3 p, in vec4 sph)
+{
+    return normalize((p - sph.xyz));
+}
+
+float iPlane( in vec3 ro, in vec3 rd )
+{
+    return  (-5.0-ro.z)/rd.z;
+}
+vec3 nPlane( in vec3 p)
+{
+    return vec3(0.0, 0.0, 1.0);
+}
+
+vec4 sph()
+{
+    return vec4(30.0*sin(sin(time)), 0.0, 60.0-30.0*cos(sin(time)), 10.0);
+}
+
+float intersect(in vec3 ro, in vec3 rd, in vec4 sph1, out float resT)
+{
+    resT = 1000.0;
+    float id = -1.0;
+    float tsph = iSphere(ro, rd, sph1);
+    float tpla = iPlane( ro, rd );
+    if (tsph > 0.0)
+    {
+        id = 1.0;
+        resT = tsph;
+    }
+    if (tpla > 0.0 && tpla < resT)
+    {
+        id = 2.0;
+        resT = tpla;
+    }
+    return id;
+}
+
+void main(){
+
+    vec4 sph1 = sph();
+    vec3 light = normalize( vec3(1.0, 0.0, 0.0));
+    vec3 ro = vec3(pos.x, pos.z,    pos.y);
+    ro = vec3(fakeCamPos.x, fakeCamPos.z, fakeCamPos.y);
+    vec3 rp = vec3(myPos.x, myPos.z, myPos.y);
+    vec3 rd = normalize(rp - ro);
+    float t;
+    float id = intersect( ro, rd, sph1, t);
+    vec4 col = vec4(0.0);
+
+    if ( id > 0.5 && id < 1.5)
+    {
+        vec3 p = ro + t*rd;
+        vec3 nor = nSphere( p, sph1);
+        float dif = clamp(dot(nor, light), 0.0, 1.0);
+        float ao = .5 + -.5*nor.y;
+        col = vec4(0.3, 0.6, .7, 1.0)* dif*ao + ao*vec4(.4, .3,.4, 1);
+    }
+    if ( id > 1.5)
+    {
+        vec3 p = ro + t*rd;
+        vec3 nor = nPlane( p);
+        float dif = clamp(dot(nor, light), 0.0, 1.0);
+        vec4 grid = vec4(mod(floor(p.x*10.0),10.0), mod(floor(p.y*10.0), 10.0 ), 1.0, 1.0);
+        float amb = smoothstep( 0.0, sph1.w,length( p.xz-sph1.xz));
+        col = vec4(amb*.7,amb*.4,amb*.2,1);
+        float c = mod(mod(floor(p.x/25.0), 2.0)+mod(floor(p.y/25.0), 2.0), 2.0);
+        col = vec4(c,c,c,1.0);
+    }
+    if (id == -1.0)
+    {
+        col = vec4(0.1,0.1,0.1,1);
+    }
+
+        gl_FragColor = col;
+}
+    
+</script>
+
+<script id="rayCastFragFaceCameraPixellated" type="x-shader/x-fragment">
+uniform vec3 pos; uniform vec3 fakeCamPos; varying vec2 vUv; varying vec4 myPos; varying vec3 myVert; uniform float time;
+
+float iSphere( in vec3 ro, in vec3 rd, in vec4 sph)
+{
+    vec3 oc = ro - sph.xyz;  
+    float b = 2.0 * dot(oc, rd);
+    float c = dot(oc, oc) - sph.w*sph.w;
+    float h = b*b - 4.0*c;
+    if ( h<0.0) return h;
+    float t = (-b - sqrt(h))/2.0;
+    return t;
+}
+
+void main(){
+    float mult = 4.0;
+    vec4 sph1 = vec4(30.0*sin(sin(time)), 0.0, 60.0-30.0*cos(sin(time)), 10.0);
+    vec3 light = normalize( vec3(1.0, 0.0, 0.0));
+    vec3 ro = vec3(fakeCamPos.x, fakeCamPos.z, fakeCamPos.y);
+    vec3 rp = vec3( mult * floor( myPos.x / mult ), mult * floor( myPos.z / mult ), mult* floor( myPos.y/ mult ) );
+    vec3 rd = normalize(rp - ro);
+    float t = iSphere( ro, rd, sph1 );
+    vec4 col = vec4(0.1,0.1,0.1,1);
+
+    if ( t > 0.0 ) { col = vec4(0.3, 0.6, .7, 1.0); }
+    else { col = vec4( 0.3, 0.6, .7, 1.0 )*(1.0 - sqrt(abs(t))/10.); }
+    gl_FragColor = col;
+}    
+</script>
+
+<script id="rayCastFragPixellated" type="x-shader/x-fragment">
+uniform vec3 pos; uniform vec3 fakeCamPos; varying vec2 vUv; varying vec4 myPos; varying vec3 myVert; uniform float time;
+
+float iSphere( in vec3 ro, in vec3 rd, in vec4 sph)
+{
+    vec3 oc = ro - sph.xyz;  
+    float b = 2.0 * dot(oc, rd);
+    float c = dot(oc, oc) - sph.w*sph.w;
+    float h = b*b - 4.0*c;
+    if ( h<0.0) return h;
+    float t = (-b - sqrt(h))/2.0;
+    return t;
+}
+
+void main(){
+    float mult = 4.0;
+    vec4 sph1 = vec4(30.0*sin(sin(time)), 0.0, 60.0-30.0*cos(sin(time)), 10.0);
+    vec3 light = normalize( vec3(1.0, 0.0, 0.0));
+    vec3 ro = vec3(pos.x, pos.z, pos.y);
+    vec3 rp = vec3( mult * floor( myPos.x / mult ), mult * floor( myPos.z / mult ), mult* floor( myPos.y/ mult ) );
+    vec3 rd = normalize(rp - ro);
+    float t = iSphere( ro, rd, sph1 );
+    vec4 col = vec4(0.1,0.1,0.1,1);
+
+    if ( t > 0.0 ) { col = vec4(0.3, 0.6, .7, 1.0); }
+    else { col = vec4( 0.3, 0.6, .7, 1.0 )*(1.0 - sqrt(abs(t))/10.); }
+    gl_FragColor = col;
+}    
+</script>
+
+<script id="rayCastFragFlat" type="x-shader/x-fragment">
+uniform vec3 pos; uniform vec3 fakeCamPos; varying vec2 vUv; varying vec4 myPos; varying vec3 myVert; uniform float time;
+
+float iSphere( in vec3 ro, in vec3 rd, in vec4 sph)
+{
+    vec3 oc = ro - sph.xyz;  
+    float b = 2.0 * dot(oc, rd);
+    float c = dot(oc, oc) - sph.w*sph.w;
+    float h = b*b - 4.0*c;
+    if ( h<0.0) return h;
+    float t = (-b - sqrt(h))/2.0;
+    return t;
+}
+
+void main(){
+    vec4 sph1 = vec4(30.0*sin(sin(time)), 0.0, 60.0-30.0*cos(sin(time)), 10.0);
+    vec3 light = normalize( vec3(1.0, 0.0, 0.0));
+    vec3 ro = vec3(pos.x, pos.z, pos.y);
+    vec3 rp = vec3( myPos.x, myPos.z, myPos.y );
+    vec3 rd = normalize(rp - ro);
+    float t = iSphere( ro, rd, sph1 );
+    vec4 col = vec4(0.1,0.1,0.1,1);
+
+    if ( t > 0.0 ) { col = vec4(0.3, 0.6, .7, 1.0); }
+    //else { col = vec4( 0.3, 0.6, .7, 1.0 )*(1.0 - sqrt(abs(t))/10.); }
+    gl_FragColor = col;
+}    
+</script>
+
+<script id="rayCastFragOneLight" type="x-shader/x-fragment">
+uniform vec3 pos; uniform vec3 fakeCamPos; varying vec4 myPos; uniform float time;
+float iSphere( in vec3 ro, in vec3 rd, in vec4 sph)
+{
+    vec3 oc = ro - sph.xyz;  
+    float b = 2.0 * dot(oc, rd);
+    float c = dot(oc, oc) - sph.w*sph.w;
+    float h = b*b - 4.0*c;
+    if ( h<0.0) return -1.0;
+    float t = (-b - sqrt(h))/2.0;
+    return t;
+}
+void main(){
+
+    vec4 sph1 = vec4(30.0*sin(sin(time)), 0.0, 60.0-30.0*cos(sin(time)), 10.0);
+    vec3 light = normalize( vec3(1.0, 0.0, 0.0));
+    vec3 rd = normalize(myPos.xzy - pos.xzy);
+    rd = normalize( myPos.xzy - pos.xzy );
+    float t = iSphere( pos.xzy, rd, sph1);
+    vec4 col = vec4(0.0);
+
+    if (t > 0.0){
+        vec3 p = pos.xzy + t*rd;
+        vec3 nor = normalize((p - sph1.xyz)/sph1.w);
+        float dif = clamp(-dot(nor, light), 0.0, 1.0);
+        float ao = .5 + -.5*nor.y;
+        col = vec4(0.3, 0.6, .7, 1.0)*dif;//*ao + ao*vec4(.4, .3,.4, 1);
+        gl_FragColor = col;
+    }
+}
+</script>
+
+<script id="rayCastFragIsosurface" type="x-shader/x-fragment">
+uniform vec3 pos; uniform vec3 fakeCamPos; varying vec4 myPos; uniform float time;
+
+float iSphere( in vec3 ro, in vec3 rd, in vec4 sph)
+{
+    vec3 oc = ro - sph.xyz;  
+    float b = 2.0 * dot(oc, rd);
+    float c = dot(oc, oc) - sph.w*sph.w;
+    float h = b*b - 4.0*c;
+    if ( h<0.0) return -1.0;
+    float t = (-b - sqrt(h))/2.0;
+    return t;
+}
+void main(){
+
+    vec4 sph1 = vec4(30.0*sin(sin(time)), 0.0, 60.0-30.0*cos(sin(time)), 10.0);
+    sph1 = vec4( 0., 0., 0., 10.);
+    vec3 light = normalize( vec3(1.0, 0.0, 0.0));
+    vec3 rd = normalize(myPos.xzy - pos.xzy);
+    rd = normalize( myPos.xzy - pos.xzy );
+    float t = iSphere( pos.xzy, rd, sph1);
+    vec4 col = vec4(0.0);
+
+    if (t > 0.0){
+        vec3 p = pos.xzy + t*rd;
+        vec3 nor = normalize((p - sph1.xyz)/sph1.w);
+        float dif = clamp(-dot(nor, light), 0.0, 1.0);
+        float ao = .5 + -.5*nor.y;
+        col = vec4(0.3, 0.6, .7, 1.0)*dif;//*ao + ao*vec4(.4, .3,.4, 1);
+        gl_FragColor = col;
+    }
+}
+</script>
+
+<script id="rayCastFragIsoSurface2" type="x-shader/x-fragment">
+uniform vec3 pos;
+uniform vec3 fakeCamPos;
+varying vec2 vUv;
+varying vec4 myPos;
+varying vec3 myVert;
+uniform float time;
+
+vec3 Sky( vec3 ray ){ return mix( vec3(.8), vec3(0), exp2(-(1.0/max(ray.z,.01))*vec3(.4,.6,1.0)) );}
+
+float ellipsoid( in vec3 p ) { return (4.0*p.x*p.x + 1.0*p.y*p.y + 1.0*p.z*p.z - 225.0); }
+vec3 ellipsoidG( in vec3 p) { return vec3(32.0*p.x, 8.0*p.y, 8.0*p.z); }
+
+float hypparab( in vec3 p ) { return (0.1*p.x*p.x - 0.5*p.y*p.y - p.z); }
+vec3 hypparabG( in vec3 p) { return vec3(.2*p.x, -1.*p.y, -1.0); }
+
+float hypone( in vec3 p ) { return (p.y*p.y + p.x*p.x - p.z*p.z - 3.); }
+vec3 hyponeG( in vec3 p) { return vec3( 2.*p.x, 2.*p.y, -2.*p.z ); }
+
+float parabaloid( in vec3 p ) { return (  p.x*p.x + p.y*p.y - 4.*p.z ); }
+vec3 parabaloidG( in vec3 p ) { return vec3( 2.*p.x, 2.*p.y, -4. );}
+
+vec3 shading( in vec3 pos, in vec3 rd, in vec3 grad, in vec3 lightDir, in vec3 lightCol, in vec3 mat )
+{
+    vec3 l; vec3 specular; vec3 reflection; float fresnel;
+    l = mat*max(.0, dot( grad, lightDir ) );
+    l += mix( mat, vec3(.1), -grad.y+1. ); //amb
+    // l *= clamp( .01+floor( mod(pos.x, 5.0)*mod(pos.y, 5.0)*mod(pos.z, 5.0)*10.0), 0.0, 1.0 ); //slicey lines
+
+    specular = lightCol*pow(max(.0,dot(grad,  normalize(lightDir-rd) )), 1000.0)*1000.0/32.0;
+
+    reflection = Sky( reflect( rd, grad ) );
+    fresnel = pow( 1.0+dot( grad, rd ), 2.0 );  //5.0
+    fresnel = mix( .0, 0.8, fresnel );  //.2
+
+    return vec3(mix( l*mat, reflection, fresnel ) + specular);
+
+}
+
+void main(){
+    vec3 lightDir = normalize( vec3(1.0, 0.1, 0.4));
+    vec3 ro = vec3(pos.x, pos.z, pos.y);
+    vec3 rp = vec3(myPos.x, myPos.z, myPos.y);
+    vec3 rd = normalize(rp - ro);
+    vec4 col = vec4(Sky(rd), 1.0);
+
+    float t = 0.1;
+    float h=2.0; float j = 2.0;
+    vec3 grad;
+    
+    vec3 mat1 = vec3(0.2, 0.8, 0.1);
+    vec3 p; 
+    for( int i=0; i < 600; i++ )
+    {
+        p = ro + t*rd;
+        h = hypone( p );
+        j = ellipsoid( p );
+        // if (j < 1.9 && h < 1.9){
+        //     // col = vec4(1.0, 0.0, 0.0, 1.0);
+        //     break;
+        // }
+        if( h < 0.01 ) 
+        {
+            grad = hyponeG( p );
+            grad -= max(.0, dot( grad, rd ))*grad ;
+            grad = normalize(grad);
+            col = vec4( shading( p, rd, grad, lightDir, vec3(.98,.95,.92), mat1 ), 1.0);
+            break;
+        }
+        else if (j < 0.01){
+            grad = ellipsoidG( p );
+            grad -= max(.0, dot( grad, rd ))*grad ;
+            grad = normalize(grad);
+            col = vec4( shading( p, rd, grad, lightDir, vec3(.98,.95,.92), vec3(.1, .2, .8) ), 1.0);
+            break;    
+        }
+        t = t+max(0.02, min(0.05*min(j,h), 1.0) );
+    }
+
+    gl_FragColor = col;
+}
+    
+</script>
+
+<!-- -------------------------- -->
+
+<div class="interactive" id="raytrace1"></div>
+<script src='js/raytrace1.js'></script>
+
+<div id="middlecontent"><p>What's remarkable about the above scene is how it is produced.  Unlike most renditions of three dimensional scenes, this one is an example of raytracing.  Even better, the ray tracing is done in real time, on your machine, in your browser.  This is made possible by the extreme parallelization capabilities of modern gpus, and the ease with which they can be programmed to using shaders.</p>
+
+<p>A benefit of raytraced rendering is a lack of polygons.  The limiting factor in displaying a smooth curve like a sphere's edge will be the pixels.</p>
+
+</div>
+
+<div id="middlecontent"><p>For comparison, this is what passed for a round pipe in 1996.</p></div>
+
+<div class="interactive" id='unpipe' style="margin: 0 auto; width:400px; height:400px"></div>
+
+<script>
+var pipeTHREE = function(){
+var container, scene, camera, renderer;
+scene = new THREE.Scene();
+camera = new THREE.PerspectiveCamera( 45.0, 1.0, 0.1, 500.0);
+camera.position.set(0, 4, 4)
+scene.add(camera);
+if ( Detector.webgl )
+    renderer = new THREE.WebGLRenderer( {antialias:true} );
+else
+    renderer = new THREE.CanvasRenderer(); 
+    renderer.setSize(400, 400);
+    renderer.domElement.display = "block";
+    container = document.getElementById( 'unpipe' );
+    container.appendChild( renderer.domElement );
+renderer.setClearColor( 0x272822, 1 );
+var dirLight2 = new THREE.DirectionalLight(0xffffff);
+dirLight2.position.set(1,1,1);
+scene.add(dirLight2);
+
+var controls2 = new THREE.OrbitControls( camera, renderer.domElement);
+controls2.target = new THREE.Vector3(0,0,0);
+controls2.noZoom = true;
+
+var textureLoader = new THREE.TextureLoader();
+var loader = new THREE.JSONLoader(); // init the loader util
+loader.load('models/unpipe.json', function (geometry) {
+  var material = new THREE.MeshLambertMaterial({
+    // map: THREE.ImageUtils.loadTexture('../images/unpipe.png'),
+    map: textureLoader.load('images/unpipe.png')
+    //colorAmbient: [.48, .48, .48],
+    //colorDiffuse: [.48, .48, .48],
+    //colorSpecular: [.89, .89, .89]
+  });
+  var mesh = new THREE.Mesh(
+    geometry,
+    material
+  );
+  scene.add(mesh);
+});
+
+animate2()
+
+function animate2(){
+    requestAnimationFrame( animate2 );
+    renderer.render( scene, camera );
+}}();
+</script>
+
+<div id="middlecontent"><p>This way of representing objects has a certain nostalgic charm to it.  No doubt.  Constructing a virtual world from scratch out of triangles alone is an art form.  </p><p>But for a more direct sampling of the underlying shapes, raytracing bypasses the smoke and mirrors of rasterization, zbuffering, etc.  Zoom in as much as you like, the structure doesn't fail.  The math behind the shape and the lighting of it are achieved every pixel, every frame.  </p><p>No surprise then that to understand how raytracing works, you need a little math.</p></div>
+
+<div class="interactive" id="raytrace2"></div>
+<script src='js/raytrace2.js'></script>
+
+<div id="middlecontent"><p>From this point of view you can see the raytracing works.  It all boils down to answering one question:  How far would you have to travel in a specific direction to hit the ball? </p>
+<p>The rest is details.  If you can answer that question, you can render a sphere perfectly.  No vertices, no corners.  We can answer that question, and the secret sauce is the old highschool quadratic formula.  Remember that?</p></div>
+
+
+
+
+
+<div style='text-align:center'  id="middlecontent">
+<p>$x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}$</p>
+<p id="ste">solves the equation 
+    <a id="myLink" title="Click to show algebraic proof."
+ href="#" onclick="showProof();return false;">How?</a>
+
+</p>
+<a id='proof' style="display:none;">
+<p>$2ax +b = \pm \sqrt{b^2-4ac}$</p>
+<p>$4a^2 x^2 + 4abx + b^2 = b^2-4ac$</p>
+<p>$4a^2 x^2 + 4abx = -4ac$</p>
+<p>$a x^2 + bx = -c$</p>
+</a>
+
+<p>$ax^2 + bx + c = 0$</p>
+</div>
+<script>
+function showProof(){
+    document.getElementById("proof").style.display = 'block';
+    document.getElementById("ste").style.display = 'none';
+}
+</script>
+
+<div id="middlecontent"><p>But to do this in three dimensions requires vectors.  These vectors:</p></div>
+
+<div class="interactive" id='sideview'></div><script src='js/sideview.js'></script>
+
+
+  $$
+  \definecolor{pspice}{RGB}{253, 151,31}
+  \definecolor{cyan}{RGB}{0,185,215}
+  \definecolor{ache}{RGB}{255,61,115}
+  \definecolor{groan}{RGB}{166,226,46}
+  \definecolor{flour}{RGB}{253,245,169}
+  \definecolor{bleen}{RGB}{130,205,185}
+  
+  $$
+<div id="middlecontent">
+<p>$\vec d$ is the direction vector of our line segment of length $\color{ache} t$ extending from the camera $\color{pspice} \vec o$ through a pixel at location $\color{flour} \vec p$ to hit a point $\vec x$ on the sphere centeache at $\color{groan}\vec s$ with radius $\color{bleen} r$.  Note that of those variables, in practice we only need to calculate $\color{ache} t$ and $\vec x$.  The rest driven known by user or the environment of the program.  And $\color{cyan}\vec d$ is just $\color{flour}\vec p - \color{pspice}\vec o$ normalized.</p>
+
+<p>The sphere is defined as all the points x that are a distance $r$ away from $\color{groan}\vec s$, mathematically that's given by: </p>
+
+<p style='text-align:center'>$|| \vec x - \color{groan}\vec s \color{white}||^2 = \color{bleen}r\color{white}^2$ </p>
+
+<p>The equivalent definition for the ray is:  </p>
+
+<p style='text-align:center'>$\vec x = \color{pspice}{\color{pspice}\vec o} \color{white} + \color{cyan}\vec d \color{ache}t$</p>
+
+<p>$\vec x$ is what needs to be solved for, but not directly.  First we'll find the length $\color{ache} t$.</p>
+
+<p>Combining the equations for the sphere and line by substituting $\vec x$ we get </p>
+
+<p style='text-align:center'>$|| \color{pspice}{\vec o} \color{white} + \color{cyan}\vec d \color{ache}t \color{white} - \color{groan}\vec s \color{white} ||^2 = \color{bleen}r\color{white}^2$</p>
+
+<p style='text-align:center'>$(\color{pspice}\vec o \color{white}- \color{groan}\vec s \color{white})^2 + 2( \color{pspice}{\vec o} \color{white}- \color{groan}\vec s\color{white}) \color{cyan}\vec d \color{ache}t \color{white}+ \color{cyan}\vec d\color{white}^2 \color{ache}t\color{white}^2 - \color{bleen}r\color{white}^2 = 0$</p>
+
+<p>Which is the quadratic equation we know how to solve for $\color{ache} t$, perhaps more easily seen if we rearrange things a little.</p>
+
+<p style='text-align:center'>$\color{cyan}\vec d\color{white}^2 \color{ache}t\color{white}^2 + 2(\color{pspice}\vec o\color{white}-\color{groan}\vec s\color{white})\color{cyan}\vec d \color{ache}t\color{white} + (\color{pspice}{\vec o}\color{white} - \color{groan}\vec s\color{white})^2 - \color{bleen}r\color{white}^2 = 0$</p>
+
+<p>In terms of the quadratic formula's abc's, </p>
+
+    <p style='text-align:center'>$\begin{align} a & = \color{cyan}\vec d \color{white}^2 = 1 \\b & = 2(\color{pspice}\vec o\color{white} - \color{groan} \vec s\color{white}) \color{cyan}\vec d \\ c & = (\color{pspice}\vec o\color{white} - \color{groan}\vec s\color{white})^2 - \color{bleen}r\color{white}^2  \end{align} $</p>
+    <!-- <p style='text-align:center'>$b = 2(\color{pspice}\vec o\color{white} - \color{groan} \vec s\color{white}) \color{cyan}\vec d$</p>
+    <p style='text-align:center'>$c = (\color{pspice}\vec o\color{white} - \color{groan}\vec s\color{white})^2 - \color{bleen}r\color{white}^2 $</p> -->
+
+<p>Because $\color{cyan}\vec d$ is a unit vector of length 1, $\color{cyan}\vec d\color{white}^2= 1$ and can be ignored.  Thus the solution for $\color{ache}t$ is:</p>
+
+<p style='text-align:center'>$\color{ache}t\color{white} = {-2(\color{pspice}\vec o\color{white} - \color{groan} \vec s\color{white}) \color{cyan}\vec d \color{white} \pm \sqrt{(2(\color{pspice}\vec o\color{white} - \color{groan} \vec s\color{white}) \color{cyan}\vec d\color{white})^2 
+- 4 ((\color{pspice}\vec o\color{white} - \color{groan}\vec s\color{white})^2 - \color{bleen}r\color{white}^2) 
+}}/2$ </p>
+
+<p style='text-align:center'>$\color{ache}t\color{white} = -(\color{pspice}\vec o\color{white} - \color{groan} \vec s\color{white}) \color{cyan}\vec d\color{white} \pm \sqrt{
+((\color{pspice}\vec o\color{white} - \color{groan} \vec s\color{white}) \color{cyan}\vec d\color{white})^2 
+-(\color{pspice}\vec o\color{white} - \color{groan}\vec s\color{white})^2 + \color{bleen}r\color{white}^2 
+}$ </p>
+<p>A line may intersect may intersect a sphere once, twice, or not at all.  The radicand $((\color{pspice}\vec o\color{white} - \color{groan} \vec s\color{white}) \color{cyan}\vec d\color{white})^2 -(\color{pspice}\vec o\color{white} - \color{groan}\vec s\color{white})^2 + \color{bleen}r\color{white}^2$ 
+dictates which is the case.  If the radicand is negative there are no interceptions, positive indicates two interceptions, and zero for exactly one intersection.</p>
+
+<p>That may seem like a lot of math to answer a single question, but really most of it is just a justification for how little code we can get away with:</p>
+</div>
+
+<div id="middlecontent">
+<pre><code>
+
+    //a function to determine where a ray from point p with direction
+    //d would intersect a sphere defined by a vec4
+
+    float intersectSphere( in vec3 p, in vec3 d, in vec4 sph)
+    {   
+        //a sphere that swings back and forth, with a radius of 10
+        vec4 sph = vec4(30.0*sin(sin(time)), 0.0, 60.0-30.0*cos(sin(time)), 10.0);
+
+        vec3 ps = p - sph.xyz;                  //p - s
+        float b = 2.0 * dot(ps, d);
+        float c = dot(ps, ps) - sph.w*sph.w;    //sph.w is the radius of the sphere
+        float h = b*b - 4.0*c;                  //h the radicand to test
+        if ( h<0.0) return -1.0;                //-1 represents no intersection
+        float l = (-b - sqrt(h))/2.0;
+        return l;
+    }
+
+</code></pre>
+</div>
+
+<div id="middlecontent">
+<p>With just that we could determine if the cast ray intersects the sphere or not by inspecting whether $\color{ache} t$ is positive or negative.  Negative indicates the ray missed the sphere and shot out into infinity.  That's enough to determine a pixel should or should be trying to draw a sphere.</p>
+</div>
+<div class="interactive" id="raytrace4"></div><script src='js/raytrace4.js'></script>
+
+<div id="middlecontent">
+<p>But when $\color{ache} t$ is positive, not only do we know that the cast ray does intersect the sphere, we can get around to figuring out where the cast ray intersects the sphere by plugging $\color{ache} t$ back into</p>
+<p style='text-align:center'>$\vec x = \color{pspice}{\color{pspice}\vec o} \color{white} + \color{cyan}\vec d \color{ache}t$</p>
+<p>With the location known we can do a lot.  We could determine which way the surface of the sphere was facing at that location, and how that compares to some pretend lights.</p>
+</div>
+
+<div class="interactive" id="whatnormals"></div><script src='js/whatnormals.js'></script>
+<div id="middlecontent">
+<p>Traditional rendering with polygons figures out which way each triangle is facing, and stores them for looking up later.  The triangles facing directly at the light vector get lit up brightly, and those that face away not so much.  The result depicted is called flatshading -- you can easily make out the edges of the polygons that make up the surface.  There are tricks for fudging and smoothing these directions so that it looks better, but with raytracing we're not going to need any of those.</p>
+<p>Because the ray could hit the sphere anywhere, we need a way of getting the exact direction anywhere on the surface.</p>
+</div>
+
+<div class="interactive" id="howlight"></div><script src='js/howlight.js'></script>
+
+<div id="middlecontent">
+<p>These "surface directions" are often called normal vectors, $\vec{n}$, we can just subtract the center of the sphere, $\vec{s}$ from the point on the surface $\vec{x}$.  And because we're only attempting to represent direction we normalize it -- make sure that the length of $\vec{n}$ is really exactly perfectly 1 for math happys.</p>
+<pre><code>
+    vec3 n = normalize( x - s );
+
+</code></pre>
+<p>Mathematically, we need some kind of function or trick that communicates how closely one things points at another.</p>
+
+<pre><code>
+    float litness = theOppositeOf howAlikeAreTheseDirections( surfaceDirection, lightDirection );
+
+</code></pre>
+
+<p>Thankfully, the mathists of beforetimes defined just such a function, the dot product, and then nice graphics hardware specification specifiers decided to include this dot product as built-in function for shader code.  It's like they knew what we would want before we did!</p>
+
+<pre><code>
+    float litness = - dot( n, l );
+
+</code></pre>
+
+<p>Above we had already normalized the normal vector, $\color{black}{\vec n}$, so it definitely had a length of 1.  If we're careful to define the light as vector of length 1, then the dot product will max out at 1 if they're pointing in exactly the same direction, and bottom out at -1 if they're pointing completely opposite, with 0 representing perpendicular vectors.  We negate that value because we're more interested in when the two vectors are pointing at each other.</p>
+</div>
+
+<div class="interactive" id="dotdot"></div><script src='js/dotdot.js'></script>
+
+<div class="interactive" id="raytrace5"></div><script src='js/raytrace5.js'></script>
+
+<div id="middlecontent" style="margin-bottom: 400px;">
+    <pre class="onehalf"><code>
+  void main(){
+    vec4 sph = vec4(
+      30.0*sin(sin(time)), 
+      0.0, 
+      60.0-30.0*cos(sin(time)), 10.0);
+
+    vec3 light = normalize( vec3(1.0, 0.0, 0.0));
+    vec3 d = normalize( surfPos - camPos );
+    float t = intersectSphere( camPos, d, sph );
+    vec4 col = vec4( 0.1, 0.1, 0.1, 1.0 );
+
+    if ( t > 0.0 ) { 
+      col = vec4(0.3, 0.6, .7, 1.0); 
+      vec3 x = camPos + t*rd;
+      vec3 nor = normalize(x - sph.xyz);
+      float dif = clamp(-dot(nor, light), 0.0, 1.0);
+      col = vec4(0.3, 0.6, .7, 1.0)*dif;
+    }
+    gl_FragColor = col;
+
+  }   
+
+    </code></pre>
+    <pre class="onehalf"><code>
+  void main(){
+    vec4 sph = vec4(
+      30.0*sin(sin(time)), 
+      0.0, 
+      60.0-30.0*cos(sin(time)), 10.0);
+ 
+
+    vec3 d = normalize(surfPos - camPos);
+    float t = intersectSphere( camPos, d, sph );
+    vec4 col = vec4( 0.1, 0.1, 0.1, 1.0 );
+
+    if ( t > 0.0 ) { 
+      col = vec4(0.3, 0.6, .7, 1.0); 
+    }
+    gl_FragColor = col;
+  }   
+    </code></pre>
+
+</div>
+
+<div id="middlecontent">
+<p>Spheres are a good start, but what about something more complicated?</p>    
+</div>
+
+<div class="interactive" id="isosurface" style="margin: 0 auto; width:400px; height:400px; display: inline;">
+    <canvas id='canvasiso'></canvas>
+</div><script src='js/isosurface.js'></script>
+
+<div id="middlecontent">
+<p>The above hyperboloid and ellipsoid combo are rendered at a lower resolution because the raytracing techniques required are a bit heavier.  Where we could find the distance to a point on the spheres with a single function call, these more interesting shapes are defined a bit differently.  Instead each ray fumble along, like a person stumbling in the dark, until they bump into one of the shapes.  Each ray could take hundreds of steps, where the sphere definitely only took one!  Plus, the way shaders work, even if a ray is going to bumble just a few steps before it hits a shape we don't really see any time saved.  The gpu has to coordinate a lot of the these ray-shader programs to run at once, predicting how long each will take before running them, so it assumes the worst.</p>
+</div>
+
+<!-- <div class='interactive' id='pointfield'></div><script src='js/pointfield.js'></script> -->
+
+</body>
+</html>

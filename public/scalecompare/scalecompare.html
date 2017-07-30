@@ -1,0 +1,364 @@
+<!doctype html>
+<html>
+	<head>
+		<title> </title>
+		<link rel='stylesheet' href='css/main.css'>
+		<link rel="SHORTCUT ICON" href="monogon.ico" type="image/x-icon" />
+		<link rel="ICON" href="monogon.ico" type="image/ico" />
+	</head>
+	
+	<body>
+		<header>
+			<nav>
+				<h1><a href='index.html'>Monogon</a></h1>
+				<ul>
+					<!--<li><a href='eightQueen'>Eight Queens</a></li>
+					<li><a href='#'>Threexp</a></li> -->
+				</ul>
+			</nav>
+		</header>
+
+	<div id='canvas'>
+		<script src="js/three.min.js"></script>
+		<!-- <script src="js/jsonLoader.js"></script> -->
+		<script src="js/THREEx.FullScreen.js"></script>
+		<script src="js/THREEx.WindowResize.js"></script>
+		<script src="js/OrbitControls.js"></script>
+		<script src="js/TrackballControls.js"></script>
+		<script src="fonts/droid_sans_bold.typeface.js"></script>
+		<script>
+
+			/////////// GLOBALS
+			var NEAR = 1e-6, FAR = 1e27;
+			var knight;
+			var scene = new THREE.Scene();
+			var time = 0;
+			//fov, aspect ratio, near plane, far plane
+			var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, NEAR, FAR);
+			var renderer = new THREE.WebGLRenderer({antialias:true, logarithmicDepthBuffer: true});
+
+			/////////// INIT
+			var clock = new THREE.Clock();
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			//renderer.shadowMapEnabled = true;
+			//renderer.shadowMapType = THREE.PCFSoftShadowMap;
+			//renderer.shadowMapType = THREE.BasicShadowMap;
+			renderer.setClearColor( 0x000000 );
+			//add's a canvas element
+			var rndr = document.body.appendChild(renderer.domElement);
+
+			scene.add(new THREE.AmbientLight(0x060606));
+			//var light = new THREE.SpotLight( 0xffffff, 1.5);
+			//light.position.set( 500, 500, 0);
+			//light.castShadow = true;
+			//light.shadowCameraVisible = false;
+			//light.shadowCameraNear = .1;
+			//light.shadowCameraFar = camera.far;
+			//light.shadowCameraFov = 50;
+			//light.shadowBias = -0.00022;
+			//light.shadowDarkness = 0.3;
+			//light.shadowMapWidth = 2048;
+			//light.shadowMapHeight = 2048;
+			//scene.add(light);
+
+			var dirLight = new THREE.DirectionalLight( 0xffffff, 1.0);
+			dirLight.position.set(1,0,1);
+			scene.add(dirLight);
+
+			//so we move the camera
+			camera.rotation.set(-.629,0.049, 0.66,"XYZ")
+			camera.position.z = 725;
+			camera.position.y = 3512;
+			camera.position.x = 10063;
+
+			//camera.up = new THREE.Vector3(0,1,0)
+			camera.lookAt(new THREE.Vector3(0,2,0))
+			//camera.up = new THREE.Vector3(0,0,1);
+
+			var mouse = new THREE.Vector2();
+			var jsonLoader = new THREE.JSONLoader();
+
+			// automatically resize renderer
+			THREEx.WindowResize(renderer, camera);
+			// toggle full-screen on given key press
+			THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
+
+			controls = new THREE.OrbitControls(camera);
+			controls.rotateLeft(Math.PI/2)
+			/////////////// FUNCTIONS
+
+			function plopText(txt, pos, rot){
+
+				var materialFront = new THREE.MeshBasicMaterial( { color: 0xffffff } );
+				var materialSide = new THREE.MeshBasicMaterial( { color: 0x000000 } );
+				var materialArray = [ materialFront, materialSide ];
+				var textGeom = new THREE.TextGeometry( txt, 
+				{
+					size: 1, height: 1.5, curveSegments: 4,
+					weight: "bold", style: "normal",
+					font: "droid sans",
+					bevelThickness: .1, bevelSize: .01, bevelEnabled: true,
+					material: 0, extrudeMaterial: 1
+				});
+				// font: helvetiker, gentilis, droid sans, droid serif, optimer
+				// weight: normal, bold
+				
+				var textMaterial = new THREE.MeshFaceMaterial(materialArray);
+				var textMesh = new THREE.Mesh(textGeom, textMaterial );
+				
+				textGeom.computeBoundingBox();
+				var textWidth = textGeom.boundingBox.max.x - textGeom.boundingBox.min.x;
+				
+				
+				textMesh.position.set( pos[0]-textWidth/2, pos[1], pos[2] );
+
+				textMesh.rotation.x = rot[0]; //-Math.PI / 4 + .6;
+				textMesh.rotation.y = rot[1];//.1
+				textMesh.rotation.z = rot[2]
+				//textMesh.lookAt(new THREE.Vector3(0,0,0))
+				//textMesh.rotation.y += .4;
+				textMesh.name = txt;
+				//words.push(textMesh)
+				scene.add(textMesh);
+				return textMesh;
+				}
+
+			//plopText("test bed", [-15, 2, -10], [-.2,.1,0])
+
+			//lets try adding a simple box exported from blender, and messing with a "shapekey"
+
+			/*
+			jsonLoader.load("file:///C:/monogon/models/box.json", function(geometry){
+			var material = new THREE.MeshLambertMaterial( {color:0x444444, shading:THREE.FlatShading, opacity:.2, transparent:false} );
+			var object = new THREE.Mesh( geometry, material);
+			object.scale.set(1,1,1);
+			object.position.set(0,0,0)
+			object.name = "box";
+			object.isPiece = true;
+			//object.castShadow = true;
+			//object.receiveShadow = true;
+			//console.log(object)
+			scene.add(object);
+			})*/
+
+			jsonLoader.load("models/knight4.json", function(geometry){
+			var material = new THREE.MeshLambertMaterial( {color:0x444444, shading:THREE.FlatShading, opacity:.2, transparent:false} );
+			material.skinning = true;
+			object = new THREE.SkinnedMesh( geometry, material);
+			object.scale.set(1,1,1);
+			object.position.set(3,0,0)
+			object.name = "knight2";
+			console.log(object)
+			scene.add(object);
+			return object;
+			})
+
+			//load and scale a halo ring of radius 100000km, 22.8 depth, 
+			/*
+			jsonLoader.load("file:///C:/monogon/models/halo.json", function(geometry, materials){
+				console.log("mats:", materials)
+				halomat = new THREE.MeshLambertMaterial({color:0x882222, shading:THREE.FlatShading})
+				halo = new THREE.Mesh(geometry, halomat);
+				halo.scale.set(10000,10000,10000);
+				halo.position.set(0,0,0);
+				halo.rotation.set(Math.PI/2, 0, Math.PI/2, "XYZ")
+				halo.name = "haloring";
+				scene.add(halo);
+			})*/
+
+			//load a 16th of the halo interior, 16 times rotating as we go
+			//var halo;
+			haloGroup = new THREE.Group();
+			jsonLoader.load("models/haloIntEighth.json", function(geometry, materials){
+				console.log("mats:", materials)
+				var haloIntTexture = new THREE.ImageUtils.loadTexture( 'images/haloInt.jpg' );
+				haloIntTexture.minFilter = THREE.NearestFilter;
+				var haloIntMaterial = new THREE.MeshLambertMaterial( { map: haloIntTexture } );
+				halomat = new THREE.MeshLambertMaterial({color:0x44ff22, shading:THREE.FlatShading})
+				for (i = 0; i < 8; i++){
+					halo = new THREE.Mesh(geometry, haloIntMaterial);
+					halo.scale.set(10000,10000,10000);
+					//halo.position.set(-12756,12756,0);
+					halo.rotation.y += i*Math.PI/4;
+					halo.name = "halo";
+					//scene.add(halo);
+					haloGroup.add(halo)
+			}})
+
+			jsonLoader.load("models/haloExtEighth.json", function(geometry, materials){
+				console.log("mats:", materials)
+				var haloExtTexture = new THREE.ImageUtils.loadTexture( 'images/haloExtDbl.jpg');
+				haloExtTexture.minFilter = THREE.NearestFilter;
+				var haloIntMaterial = new THREE.MeshLambertMaterial( { map: haloExtTexture } );
+				halomat = new THREE.MeshLambertMaterial({color:0x44ff22, shading:THREE.FlatShading})
+				for (i = 0; i < 32; i++){
+					halo = new THREE.Mesh(geometry, haloIntMaterial);
+					halo.scale.set(10000,10000,10000);
+					//halo.position.set(-12756,12756,0);
+					halo.rotation.y += i*Math.PI/16;
+					halo.name = "halo";
+					haloGroup.add(halo)
+					//scene.add(halo);
+			}})
+
+			scene.add(haloGroup)
+			haloGroup.rotation.z = Math.PI/2;
+			//set the halo at the L5 Lagrange pt, not taking into account I moved the earth an earth radius "left"
+			//haloGroup.position.set(384400*Math.cos(Math.PI/3),0,384400*Math.sin(Math.PI/3));
+
+			for (i = 0; i<scene.children.length; i++){
+				if (scene.children[i].name =="halo") console.log("halo ring part found")
+			}
+
+			//EARTH
+			// radius, segmentsWidth, segmentsHeight
+			var sphereGeom =  new THREE.SphereGeometry( 1, 64, 32 ); 
+			//earth's radius is 12756km
+			//moon's radius is 3475km, 384400km from Earth
+			var earthTexture = new THREE.ImageUtils.loadTexture('images/earthmap.jpg');
+			earthTexture.minFilter = THREE.NearestFilter;
+			var earthMaterial = new THREE.MeshLambertMaterial({map:earthTexture});
+			var earthBall = new THREE.Mesh( sphereGeom.clone(), earthMaterial);
+			earthBall.position.set(-12756,0,0);
+			earthBall.scale.set(12756,12756,12756);
+			earthBall.rotation.y = (Math.PI/2)
+			scene.add(earthBall);
+
+			var moonTexture = new THREE.ImageUtils.loadTexture('images/moonmap.jpg');
+			moonTexture.minFilter = THREE.NearestFilter;
+			var moonMaterial = new THREE.MeshLambertMaterial({map:moonTexture});
+			var moonBall = new THREE.Mesh( sphereGeom.clone(), moonMaterial);
+			moonBall.position.set(384400-12756,0,0);
+			moonBall.scale.set(3475,3475,3475)
+			scene.add(moonBall);
+	
+			//now let's try adding a skybox of stars and whatnot
+
+			var imagePrefix = "images/nightSkyBox/GalaxyTex_";
+			var directions  = ["PositiveX", "NegativeX", "PositiveY", "NegativeY", "PositiveZ", "NegativeZ"];
+			var imageSuffix = ".png";
+			var skyGeometry = new THREE.CubeGeometry( 100000000, 100000000, 100000000 );	
+			var materialArray = [];
+			for (var i = 0; i < 6; i++)
+				materialArray.push( new THREE.MeshBasicMaterial({
+					map: THREE.ImageUtils.loadTexture( imagePrefix + directions[i] + imageSuffix ),
+					side: THREE.BackSide
+				}));
+			var skyMaterial = new THREE.MeshFaceMaterial( materialArray );
+			var skyBox = new THREE.Mesh( skyGeometry, skyMaterial );
+			scene.add( skyBox );
+
+
+
+			//console.log(scene)
+
+			var earthSpinRate = 2*Math.PI/(24*60*60)
+			var haloSpinRate = 19.25*2*Math.PI/(24*60*60)
+
+			/////////////// RENDER LOOP //////////////////////
+			//main render loop, better than setInterval for performance reasons, etc.
+			var render = function () {
+				time +=1;
+				var dt = clock.getDelta();
+				
+				requestAnimationFrame(render);
+
+				//light.position.set( 25*Math.cos(time/400), 25, 25*Math.sin(time/400));
+				//light.position.set( 15, 15, 0);
+
+				//set the sky box to center on the camera, so stars don't move at all
+				skyBox.position.set(camera.position.x,camera.position.y,camera.position.z,"XYZ")
+				renderer.render(scene, camera);
+				controls.update();
+				earthBall.rotation.y += dt*earthSpinRate;
+				haloGroup.rotation.x += dt*haloSpinRate;
+
+			}
+			render();
+
+			function onMouseMove( event){
+				//event.preventDefault();
+
+				mouse.x =  ((event.clientX - renderer.domElement.offsetLeft) / window.innerWidth)*2 -1;
+				mouse.y = -((event.clientY - renderer.domElement.offsetTop) / window.innerHeight)*2+1;
+			
+				return false;
+			}
+
+			function onMouseDown(event){
+				event.preventDefault();
+				//figure out where the mouse clicked in the canvas, offset by where the canvas lives in the browser
+				mouse.x =  ((event.clientX - renderer.domElement.offsetLeft) / window.innerWidth)*2 -1;
+				mouse.y = -((event.clientY - renderer.domElement.offsetTop) / window.innerHeight)*2+1;
+
+				//figure out what all that could have clicked, I believe sorted by distance from camera
+				var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 ).unproject( camera );
+				var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );				
+				var intersects = raycaster.intersectObjects(scene.children);
+
+				
+				if (intersects.length>0) {
+					console.log(intersects[0])
+				
+				}
+
+				for (var c in scene.children) {
+					//console.log(scene.children[c])
+					if (scene.children[c].name == "knight2"){
+						knight = scene.children[c];
+						//console.log(knight)
+						//console.log(scene.children[c].geometry.bones[0])
+						
+					}
+				}
+
+				return false
+
+			}
+
+			function onMouseUp(event){
+				event.preventDefault();
+				
+				return false;
+				//controls.enabled = true;
+			}
+
+			function onKeyDown(event){
+				if (event.keyCode == 32){
+					//spacebar
+					//console.log(scene)
+				}
+				else if (event.keyCode == 82){
+					console.log(controls)
+					//r
+					
+				}
+				else if (event.keyCode == 66){
+					
+					if (knight){
+						//console.log("bone0 bef", knight.skeleton.bones[2].position)
+						//knight.skeleton.bones[2].rotation.set(2,3,4,"XYZ");
+						//knight.skeleton.bones[2].position.x += .2;
+						knight.skeleton.bones[1].rotation.x += Math.PI / 4;
+						
+						//knight.geometry.verticesNeedUpdate = true;
+						//knight.geometry.normalsNeedUpdate = true;
+
+					}
+					
+				}
+
+				else console.log(event.keyCode)
+			}
+
+			window.addEventListener('mousemove', onMouseMove, false);
+			window.addEventListener('mousedown', onMouseDown, true);
+			window.addEventListener('mouseup', onMouseUp, false);
+			window.addEventListener('keydown', onKeyDown, false);
+
+		</script>
+
+	</div>
+
+	</body>
+</html>

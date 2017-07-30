@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title> Tycho </title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+
+<script src="js/three.min.js"></script>
+<script src="js/Detector.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/THREEx.KeyboardState.js"></script>
+<script src="js/THREEx.FullScreen.js"></script>
+<script src="js/THREEx.WindowResize.js"></script>
+<script type='text/javascript' src='js/DAT.GUI.min.js'></script>
+
+<div id="ThreeJS" style="overflow:hidden; position: absolute; left:0px; top:0px; width:100%; height:100%"></div>
+
+<script>
+// MAIN
+
+// standard global variables
+var container, scene, camera, renderer, controls, stats;
+var keyboard = new THREEx.KeyboardState();
+var clock = new THREE.Clock();
+var deeno
+var helper
+var tycho, hven, newton;
+
+	var parameters = {
+		'show model':true,
+		'show skeleton':true
+
+	}
+
+// custom global variables
+var cube;
+var N;
+
+init();
+animate();
+
+// FUNCTIONS 		
+function init() 
+{
+	// SCENE
+	scene = new THREE.Scene();
+	// CAMERA
+	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 200000;
+	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR );
+	scene.add(camera);
+	camera.position.set(100,100,200);
+	// camera.lookAt(scene.position);	
+	// camera.lookAt( new THREE.Vector3( 100,35,95 ) ) 
+	// RENDERER
+	if ( Detector.webgl )
+		renderer = new THREE.WebGLRenderer( {antialias:true} );
+	else
+		renderer = new THREE.CanvasRenderer(); 
+	renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+	container = document.getElementById( 'ThreeJS' );
+	container.appendChild( renderer.domElement );
+	// EVENTS
+	THREEx.WindowResize(renderer, camera);
+	THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
+	// CONTROLS
+	controls = new THREE.OrbitControls( camera, renderer.domElement );
+	controls.target = new THREE.Vector3(10,33,95);
+	// LIGHT
+	/*
+	var light = new THREE.PointLight(0xffffff);
+	light.position.set(0,250,0);
+	scene.add(light);
+	var light2 = new THREE.PointLight(0xffffdd);
+	light2.position.set(0,-250,0);
+	scene.add(light2);
+	var dirLight = new THREE.DirectionalLight(0xffffff);
+	dirLight.position.set(1,0,0);
+	scene.add(dirLight);
+		var dirLight = new THREE.DirectionalLight(0xffffff);
+	dirLight.position.set(0,0,-1);
+	scene.add(dirLight);
+		var dirLight = new THREE.DirectionalLight(0x777777);
+	dirLight.position.set(-1,0,0);
+	scene.add(dirLight);
+		var dirLight = new THREE.DirectionalLight(0x332211);
+	dirLight.position.set(-1,-1,0);
+	scene.add(dirLight);
+	*/
+	// FLOOR
+	/*
+	var floorTexture = new THREE.ImageUtils.loadTexture( 'images/checkerboardgrey.jpg' );
+	floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping; 
+	floorTexture.repeat.set( 10, 10 );
+	var floorMaterial = new THREE.MeshBasicMaterial( { map: floorTexture, side: THREE.DoubleSide } );
+	var floorGeometry = new THREE.PlaneGeometry(1000, 1000, 10, 10);
+	var floor = new THREE.Mesh(floorGeometry, floorMaterial);
+	floor.position.y = -0.5;
+	floor.rotation.x = Math.PI / 2;
+	scene.add(floor);
+	*/
+	// SKYBOX/FOG
+	var skyBoxGeometry = new THREE.BoxGeometry( 10000, 10000, 10000 );
+	var skyBoxMaterial = new THREE.MeshBasicMaterial( { color: 0x9999ff, side: THREE.BackSide } );
+	var skyBox = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
+	// scene.add(skyBox);
+	//scene.fog = new THREE.FogExp2( 0x9999ff, 0.00025 );
+	var jsonLoader = new THREE.JSONLoader();
+	
+	////////////
+	// CUSTOM //
+	////////////
+
+	jsonLoader.load("models/tychov.json", function(geometry, colors){
+	var material = new THREE.MeshBasicMaterial( {color:0xffffff, emissive:0x050505, shading:THREE.SmoothShading, opacity:0,  
+		vertexColors: THREE.VertexColors,side: THREE.DoubleSide} );
+	//material.skinning = true;
+	geometry.computeFaceNormals();
+	geometry.computeVertexNormals();
+	material.skinning = true;
+	tycho = new THREE.SkinnedMesh( geometry, material);
+	tycho.scale.set(1, 1, 1);
+	tycho.position.set(0,33,95);
+	scene.add(tycho);
+	})
+
+	jsonLoader.load("models/newton.json", function(geometry, colors){
+	var material = new THREE.MeshBasicMaterial( {color:0xffffff, emissive:0x050505, shading:THREE.SmoothShading, opacity:0,  
+		vertexColors: THREE.VertexColors, side: THREE.DoubleSide} );
+	//material.skinning = true;
+	geometry.computeFaceNormals();
+	geometry.computeVertexNormals();
+	material.skinning = true;
+	newton = new THREE.SkinnedMesh( geometry, material);
+	newton.scale.set(1.2, 1.2, 1.2);
+	newton.position.set(-20,32,95);
+	scene.add(newton);
+	})	
+
+	jsonLoader.load("models/kepler.json", function(geometry, colors){
+	var material = new THREE.MeshBasicMaterial( {color:0xffffff, emissive:0x050505, shading:THREE.SmoothShading, opacity:0,  
+		vertexColors: THREE.VertexColors, side: THREE.DoubleSide} );
+	//material.skinning = true;
+	geometry.computeFaceNormals();
+	geometry.computeVertexNormals();
+	material.skinning = true;
+	kepler = new THREE.SkinnedMesh( geometry, material);
+	kepler.scale.set(.7, .7, .7);
+	kepler.position.set(20,33,95);
+	scene.add(kepler);
+	})	
+
+	jsonLoader.load("models/moose.json", function(geometry, colors){
+	var material = new THREE.MeshBasicMaterial( {color:0xffffff, emissive:0x050505, shading:THREE.SmoothShading, opacity:0,  
+		vertexColors: THREE.VertexColors, side: THREE.DoubleSide} );
+	//material.skinning = true;
+	geometry.computeFaceNormals();
+	geometry.computeVertexNormals();
+	material.skinning = true;
+	moose = new THREE.SkinnedMesh( geometry, material);
+	moose.scale.set(2.7, 2.7, 2.7);
+	moose.position.set(10,33,95);
+	scene.add(moose);
+	})	
+
+	jsonLoader.load("models/earthhven.json", function(geometry, colors){
+	var material = new THREE.MeshBasicMaterial( {color:0xffffff, emissive:0x050505, shading:THREE.SmoothShading, opacity:0,  
+		vertexColors: THREE.VertexColors,
+		side: THREE.DoubleSide} );
+	hven = new THREE.SkinnedMesh( geometry, material);
+	hven.scale.set(10, 10, 10);
+	scene.add(hven);
+	});	
+}
+
+function animate() 
+{
+  requestAnimationFrame( animate );
+	render();		
+	update();
+}
+
+function update()
+{
+	if ( keyboard.pressed("z") ) 
+	controls.update();
+}
+
+function render() 
+{
+	renderer.render( scene, camera );
+}
+
+</script>
+
+</body>
+</html>

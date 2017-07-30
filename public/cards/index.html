@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title> Flipcards </title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+
+<script src="js/chance.js"></script>
+<script src="js/three.min.js"></script>
+<script src="js/Detector.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/THREEx.KeyboardState.js"></script>
+<script src="js/THREEx.FullScreen.js"></script>
+<script src="js/THREEx.WindowResize.js"></script>
+<script src="js/tween.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+<script src="js/BokehShader2.js"></script>
+<script src='js/dat.gui.min.js'></script>
+<!-- <script src="/socket.io/socket.io.js"></script> -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
+<div id="ThreeJS" style="overflow: hidden; position: absolute; left:0px; top:0px;  width:100%; height:100%"></div>
+<script>
+// MAIN
+
+// standard global variables
+var container, scene, camera, renderer, controls, stats, material_depth;
+var keyboard = new THREEx.KeyboardState();
+var clock = new THREE.Clock();
+var INTERSECTED, raycaster;
+var mouse = new THREE.Vector2()
+
+// custom global variables
+var cube, N;
+var getted = false; putted = false;
+var freeToClick = true;
+var cards = [];
+var allCards = [];
+var selectedCards = []; var selectedNums = [];
+var unselectedCards = []; var unselectedNums = [];
+var shuffleSequence = []; var faceups = [];
+var images = [];
+var mode = "notplayingyet";
+
+var effectController;
+var distance = 100;
+var target = new THREE.Vector3( 0, 0, 0 );
+var height = window.innerHeight;
+var socket;
+
+init();
+animate();
+
+// FUNCTIONS 		
+function init() 
+{
+	var cardFactory = new CardFactory();
+	// SCENE
+	scene = new THREE.Scene();
+	// CAMERA
+	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 1.0, FAR = 1000;
+	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
+	scene.add(camera);
+	camera.position.set(18, 70, 118);
+	camera.lookAt(scene.position);	
+	// RENDERER
+	if ( Detector.webgl ) renderer = new THREE.WebGLRenderer( {antialias:true} );
+	else renderer = new THREE.CanvasRenderer(); 
+
+
+	renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+	renderer.setClearColor( 0x6688aa, 1);
+	renderer.autoClear = false;
+	container = document.getElementById( 'ThreeJS' );
+	container.appendChild( renderer.domElement );
+	// EVENTS
+	//THREEx.WindowResize(renderer, camera);
+	//THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
+	// CONTROLS
+	controls = new THREE.OrbitControls( camera, renderer.domElement );
+	controls.enabled = false;
+	// LIGHT
+	var light = new THREE.PointLight(0xffffff);
+	light.position.set(0,250,0);
+	//scene.add(light);
+	var dirLight = new THREE.DirectionalLight(0x555555);
+	dirLight.position.set(1,0,1);
+	//scene.add(dirLight);
+	var dirLight2 = new THREE.DirectionalLight(0xaaaaaa);
+	dirLight2.position.set(1,3,2);
+	scene.add(dirLight2);
+	var dirLight3 = new THREE.DirectionalLight(0x775555);
+	dirLight3.position.set(.1,-1,-.1).normalize();
+	scene.add(dirLight3);
+
+	raycaster = new THREE.Raycaster();
+	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+	window.addEventListener( 'resize', onWindowResize, false );
+	document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+	
+	var folder = "images/rws/";
+
+	$.ajax({
+	    url : folder,
+	    success: function (data) {
+        $(data).find("a").attr("href", function (i, val) {
+            if( val.match(/\.jpg|\.png|\.gif/) ) { 
+            	var pos = seq2pos(i-3);
+            	var mycard = cardFactory.createCard({
+								cardType: "Card", filepath: val, num:i-4,
+								chosen: false, width : 10, height : 20,
+								x : pos.x, // 11* ( ((i-1)%13)-6), 
+								y : pos.y, // 0,
+								z : pos.z // 21* (Math.floor((i-1)/13) - 3)
+								
+							});
+							selectedCards.push(mycard); allCards.push(mycard);
+            }
+            else{
+            	console.log("non image in rws:", val)
+            }
+        });
+	    }//success
+	}).then( function(){ 
+		console.log("found", selectedCards.length, " images.");
+		setTimeout( setupSockets, 5000);
+	} );	
+	//skybox
+	var texture = THREE.ImageUtils.loadTexture( 'images/shackblurry.jpg', THREE.UVMapping, function () {
+		var mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: texture } ) );
+		mesh.scale.x = -1;
+		scene.add( mesh );
+	} );
+
+}// init
+
+//////////////////////////////////////////////////////////////////////////////
+//         GAME LOGIC
+//////////////////////////////////////////////////////////////////////////////
+
+function seq2pos(i){
+	return {
+		x: 11*(((i-1)%13)-6) + 1.0*(Math.random()-.5),
+		y: 0,
+		z: 21* (Math.floor((i-1)/13) - 3) + 1.0*(Math.random()-.5)
+	}
+}
+
+function seq2posRandom(i){
+	return {
+		x: 100*(Math.random()-.5),
+		y: 0,
+		z: 100*(Math.random()-.5)
+	}
+}
+
+function seq2posSpiral(i){
+	var t = 20*Math.log(.25*i);
+	var radius = t*1.0
+	return {x:radius*Math.cos(t), y:0, z:radius*Math.sin(t), r:t+Math.PI/2}
+}
+
+function onWindowResize() {
+	camera.left = window.innerWidth / - 2;
+	camera.right = window.innerWidth / 2;
+	camera.top = window.innerHeight / 2;
+	camera.bottom = window.innerHeight / - 2;
+	camera.updateProjectionMatrix();
+	renderer.setSize( window.innerWidth, window.innerHeight );
+}
+
+function onDocumentMouseMove( event ) {
+	//event.preventDefault();
+	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+function onDocumentMouseDown( event ) {
+
+	mouse.x = ( event.clientX / renderer.domElement.width ) * 2 - 1;
+	mouse.y = - ( event.clientY / renderer.domElement.height ) * 2 + 1;
+	raycaster.setFromCamera( mouse, camera );
+	var intersects = raycaster.intersectObjects( scene.children, true );
+
+	if ( intersects.length === 0 ) return;
+	INTERSECTED = intersects[ 0 ].object.parent;
+
+	if ( mode === "playing" ) {
+		if ( INTERSECTED.state === "facedown" && freeToClick){
+			freeToClick = false
+			flipCardFaceUp(INTERSECTED);
+		 	faceups.push(INTERSECTED.num);
+		 	takeNote(); 
+		 	console.log("I think I'm telling the server I did this?");
+			
+		} else if (INTERSECTED.state === "faceup" && freeToClick){
+			freeToClick = false;
+			presentSingleCard(INTERSECTED);
+
+		} else if (INTERSECTED.state === "presented"){
+			freeToClick = false;
+			unpresentSingleCard(INTERSECTED);
+		}
+	} else if (mode === "selecting"){  
+		console.log("selecting mode: ", INTERSECTED)
+		if (INTERSECTED.children[1].material.color.getHex() === 0xffffff) {
+			INTERSECTED.selected = false;
+			INTERSECTED.children[1].material.color.setHex(0x999999)
+		}
+		else {
+			INTERSECTED.selected = true;
+			INTERSECTED.children[1].material.color.setHex(0xffffff)
+		}
+	} else {
+		//clicked nowhere
+		console.log("mode: " + mode);
+		if ( INTERSECTED ) console.log("pass");
+		INTERSECTED = null;
+	}
+}
+
+function tossCard(c, pos, dur, facing){
+	facing = facing || "facedown";
+	pos.r = Math.PI//pos.r || Math.PI;
+	//slide sideways
+	new TWEEN.Tween( c.position ).to(
+		{x:pos.x, z:pos.z}, dur)
+	.start();
+	//popup
+	new TWEEN.Tween( c.position ).to(
+		{y:70+50*Math.random()}, dur*.3)
+		.easing(TWEEN.Easing.Quadratic.In)
+		.onComplete(
+			//falldown
+			function(){new TWEEN.Tween( c.position ).to(
+			{y:pos.y}, dur*.7).delay(dur*.3)
+			.easing(TWEEN.Easing.Bounce.Out).start();}
+
+		).start();
+	//flipitaround
+	new TWEEN.Tween( c.rotation ).to(
+		{y:2*Math.PI*Math.floor(Math.random()*4-2), z:pos.r, x:Math.PI/2}, dur).easing(TWEEN.Easing.Circular.Out)
+	.onComplete(function(){ 
+		if (facing === "facedown"){
+			c.rotation.y=0
+			c.rotation.z = pos.r + .15*(Math.random()-.5)
+			c.state = "facedown"	
+		}
+		else{ // if (facing === "dontwork")
+			console.log("faceup!")
+			c.rotation.y=Math.PI;
+			c.state = "faceup";
+		}
+		
+		freeToClick = true;
+		 } )//otherwise flipping after is crazy spins
+	.start();
+
+}
+
+function flipCardFaceUp(cardToFlip){
+	cardToFlip.state = "inmotion"
+	new TWEEN.Tween( cardToFlip.rotation).to({y:-Math.PI},
+	 1000)
+	.easing( TWEEN.Easing.Elastic.Out)
+	.onComplete(function(){
+		cardToFlip.state = "faceup";
+		freeToClick = true;
+	})
+	.start();
+}
+
+function unpresentSingleCard(cardToPresent){
+	cardToPresent.state = "inmotion"
+	var durDown =500; var qt =new THREE.Quaternion();
+		//point back up
+	new TWEEN.Tween( {t:0} ).to({ t:1 }, durDown)
+		.onUpdate(function(){
+			THREE.Quaternion.slerp(cardToPresent.qb, cardToPresent.qa, qt, this.t);
+			cardToPresent.quaternion.set(qt.x, qt.y, qt.z, qt.w);})
+		.delay( 1 )
+		.onComplete( function(){
+			cardToPresent.state = "presented" 
+			//pop rotations back to euler
+	    //fixes the issue of quat rotation screwing up shuffle flips later
+				cardToPresent.rotation.x = Math.PI/2;
+				cardToPresent.rotation.z = Math.PI;
+				cardToPresent.rotation.y = Math.PI;
+				cardToPresent.position = cardToPresent.pa;
+			})
+		.start();
+
+
+			//send it back home
+	new TWEEN.Tween(cardToPresent.position)
+		.delay( 1)
+		.to( { x:cardToPresent.pa.x, y:cardToPresent.pa.y, z:cardToPresent.pa.z}, durDown)
+		.onComplete(function(){
+			cardToPresent.state = "faceup";
+			freeToClick = true
+		})
+		.start();
+}
+
+function presentSingleCard(cardToPresent){
+	cardToPresent.state = "inmotion"
+	var durUp = 800; var durDown = 100; var durPresent = 2000;
+	
+	var pa =new THREE.Vector3().copy(cardToPresent.position);
+	var qa =new THREE.Quaternion().copy(cardToPresent.quaternion);
+	var qb =new THREE.Quaternion().copy(camera.quaternion);
+	var qt =new THREE.Quaternion();
+	cardToPresent.pa = pa;
+	cardToPresent.qa = qa;
+	cardToPresent.qb = qb;
+	cardToPresent.qt = qt;
+	
+	var cambot = new THREE.Object3D();
+	var vec = new THREE.Vector3( 0, 0, 100 );
+	vec.applyQuaternion( camera.quaternion );
+	cambot.position.copy( vec );
+
+	//point at camera
+	new TWEEN.Tween( {t:0} ).to({ t:1 }, durUp)
+		.easing( TWEEN.Easing.Quartic.InOut)
+		.onUpdate(function(){
+			THREE.Quaternion.slerp(qa, qb, qt, this.t);
+			cardToPresent.quaternion.set(qt.x, qt.y, qt.z, qt.w);
+		}).onComplete(function(){ cardToPresent.state="presented"; })
+		.start();
+
+		//move to be easy for camera to see
+	new TWEEN.Tween(cardToPresent.position)
+		.to({x: cambot.position.x, y: cambot.position.y, z: cambot.position.z}, durUp)
+		.easing( TWEEN.Easing.Quartic.InOut)
+		.start();
+}
+
+function shuffle(){
+	//for use by the player in control the of game only, updates the server state
+	//generate a shuffled sequence of length selectedCards.length
+	shuffleSequence = []; faceups = [];
+	selectedCards = []; unselectedCards = []; selectedNums = []; unselectedNums = [];
+	console.log("SHUFFLE: ", allCards.length);
+	for (var i = 0; i < allCards.length; i++){
+		console.log(i, allCards[i].obj.num, allCards[i].obj.selected);
+		if (allCards[i].obj.selected) {
+			selectedCards.push(allCards[i])
+			selectedNums.push(i);
+		}
+		else {
+			unselectedCards.push(allCards[i])
+			unselectedNums.push(i)
+		}
+		allCards[i].obj.state = "facedown";
+	}
+	console.log("selected: ", selectedCards.length, " unselected: ", unselectedCards.length)
+	for (var i = 0; i < selectedCards.length; i++) shuffleSequence.push(i+1)
+	shuffleSequence = chance.shuffle(shuffleSequence);
+	
+	for (var i = 0; i < selectedCards.length; i++){
+		var newpos = seq2pos(shuffleSequence[i])
+		//ref card by selectedCards[i].obj
+		//tween card to xy of sequence's equiv xy
+		//tween card to toss up into air and back down
+		tossCard(selectedCards[i].obj, newpos, 1200);
+	}
+	for (var i = 0; i < unselectedCards.length; i++){
+		tossCard(unselectedCards[i].obj, {x: -90, y: 1000, z: -40, r: (Math.random()-.5) }, 1200)
+	}
+	console.log("shuffleSequence: ", shuffleSequence);
+	console.log("selectedNums: ", selectedNums);
+	console.log("unselectedNums: ", unselectedNums);
+	takeNote();
+}
+
+function shuffleToMatch( serverState ){
+	console.log("we noticed the server was shuffled differently, shuffling to match");
+	shuffleSequence = []; faceups = [];
+	selectedCards = []; unselectedCards = []; selectedNums = []; unselectedNums = [];
+	for (var i = 0; i < allCards.length; i++){
+		//console.log(i, allCards[i].obj.num, allCards[i].obj.selected);
+		if ( serverState.selected.indexOf(i) !== -1 ){ //server thinks i should be selected
+			allCards[i].obj.selected = true;
+			selectedCards.push(allCards[i])
+			selectedNums.push(i);
+		}
+		else {
+			allCards[i].obj.selected = false;
+			unselectedCards.push(allCards[i])
+			unselectedNums.push(i)
+		}
+	}
+	shuffleSequence = serverState.shuffle;
+	
+	for (var i = 0; i < selectedCards.length; i++){
+		var newpos = seq2pos(shuffleSequence[i])
+		var facing = "facedown";
+		if ( serverState.whichAreFaceUp.indexOf(i) !== -1 ) facing = "faceup";
+		tossCard(selectedCards[i].obj, newpos, 1200, facing);
+	}
+	for (var i = 0; i < unselectedCards.length; i++){
+		tossCard(unselectedCards[i].obj, {x: -90, y: 1000, z: -40, r:0}, 1200)
+	}
+	//flipTheRightCards( serverState )
+}
+
+function animate() 
+{
+	requestAnimationFrame( animate );
+	render();		
+	update();
+}
+
+function popToSelectingMode(){
+	camera.position.set(0, 200, 0);
+	//selectedCards = allCards;
+	console.log(" selecting mode ")
+	for (var i = 0; i < allCards.length; i++) {
+		var newpos = seq2pos(i+1);
+		//tossCard(selectedCards[i].obj, newpos, 1200);
+		allCards[i].obj.position.set( newpos.x, newpos.y, newpos.z )
+		flipCardFaceUp( allCards[i].obj )	
+	}
+	mode = "selecting"
+}
+
+function popToPlayingMode(){
+	camera.position.set(18, 70, 118);
+	//for (var i = 0; i < selectedCards.length; i++) flipCardFaceUp( selectedCards[i].obj )
+	mode = "playing"
+	shuffle()
+}
+
+function packageLocalState(){
+	return {
+		"state":{
+			"selected":selectedNums,
+			"shuffle":shuffleSequence,
+			"whichAreFaceUp": faceups
+		}
+	}
+}
+
+function flipTheRightCards( serverState ){
+	var localState = packageLocalState();
+	localState = localState.state;
+	console.log(serverState, localState);
+	
+	console.log( "hasn't been shuffled, but there's a difference in which cards are face up")	
+	console.log( serverState.whichAreFaceUp.length, localState.whichAreFaceUp.length )
+	serverState.whichAreFaceUp.forEach( function( faceUpindex ){
+		if ( localState.whichAreFaceUp.indexOf( faceUpindex ) == -1 ){
+			console.log(" flipping ", faceUpindex, " to match server");
+			flipCardFaceUp( allCards[faceUpindex].obj );
+			faceups.push( faceUpindex );
+		}
+	} )
+}
+
+function makeMineLikeYours( serverState, localState ){
+	console.log("makeMineLikeYours");
+	// since both states don't match completely, figure out what the diff is 
+	// and animate the client to match the server
+	
+	//things that could've happened:
+	//SHUFFLE
+	//if shuffleSeq differs, shuffleToMatch(state);
+	//FLIP
+	//if faceUps differs, flipCardFaceUp( allCards[differi] )
+	// console.log(localState);
+	if ( !compareObjects( serverState.shuffle, localState.shuffle ) ){
+		shuffleToMatch( serverState );
+	}
+	else if ( !compareObjects( serverState.whichAreFaceUp, localState.whichAreFaceUp ) ){
+		flipTheRightCards( serverState );
+	}
+}
+
+function compareObjects(a, b){
+	return (JSON.stringify(a) === JSON.stringify(b));
+}
+
+function whatsUp(){
+	if (mode==="playing" && getted === false ){
+		getted = true;
+		freeToClick = false;
+		console.log("GETTING...")
+		$.ajax({
+			type:"GET",
+			contentType: "application/json",
+			dataType: 'json',
+			url:"https://gwj-tarot-jrbeeman.c9users.io/api/v1/board/2",
+			success: function(data){
+				console.log("GoT!");
+				var localBoard = packageLocalState();
+				//console.log( data.board.state );
+				//console.log( localBoard.state );
+				if ( compareObjects( data.board.state, localBoard.state ) ){
+					console.log( "client and server were already sync'd" );
+				}
+				else{
+					console.log( "client and server not in sync, make mine like yours!" );
+					makeMineLikeYours( data.board.state, localBoard.state );	
+				}
+				return data;
+			},
+			error: function(e){
+				console.log("oh that GET didn't get: ", e) },
+			complete: function(data){ 
+				getted = false;
+				freeToClick = true;
+			}
+		});
+	}
+}
+
+function takeNote(){
+	console.log("take Note!")
+	putted = true;
+	//var dataToSend = JSON.stringify( packageLocalState() );
+	var dataToSend = packageLocalState() ;
+	
+	socket.emit('take note', dataToSend);
+	
+	/*
+	$.ajax({
+		type:"PUT", contentType: "application/json", dataType: 'json',
+		url:"https://gwj-tarot-jrbeeman.c9users.io/api/v1/board/2",
+		data: dataToSend,//'{"state":{"wat":"yup"}}',
+		success:function(data, status){
+			console.log("putted", data, status)},
+		error:function(e){console.log("failed to put ", e)},
+		complete:function(d){putted = false;}
+	})
+	*/
+}
+
+function setupSockets(){
+	console.log("setting up socket for client-server relations")	
+	// socket = io();
+	socket = io.connect('/cards')
+	socket.on('take note', function( serverSentString ){
+		//do stuff!@
+		var localBoard = packageLocalState();
+		//var serverSent = JSON.parse(serverSentString);
+		var serverSent = serverSentString;
+		console.log("I was told to take note by the server")
+		console.table(serverSent)
+		console.log(serverSent.hasOwnProperty("state")  	)
+		if ( serverSent.hasOwnProperty("state")  ){
+			if ( compareObjects( serverSent.state, localBoard.state ) ){
+				console.log( "client and server were already sync'd" );
+			}
+			else{
+				console.log( "client and server not in sync, make mine like yours!" );
+				//console.log(serverSent.state, localBoard.state);
+				makeMineLikeYours( serverSent.state, localBoard.state );	
+			}
+		}
+		else{
+			console.log( "serverSent did not have own prop 'state'" )
+			takeNote();
+		}
+			
+		
+		getted = false;
+		freeToClick = true;
+	});	
+	mode = "playing";	
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+//                         UPDATE
+///////////////////////////////////////////////////////////////////////////////
+
+function update()
+{
+	if ( keyboard.pressed("z") ){ console.log( packageLocalState() );}
+	if ( keyboard.pressed("a") ){ 
+		console.log()
+	}
+	if (keyboard.pressed("s") && mode === "playing" ){
+		if (freeToClick){
+			freeToClick = false;
+			shuffle()
+		} 
+	}
+	if (freeToClick && keyboard.pressed("d") && mode === "playing"){
+		popToSelectingMode()
+	}
+			
+	if (freeToClick && keyboard.pressed("c") && mode === "selecting"){
+		popToPlayingMode()
+	}
+	if ( keyboard.pressed("g") && (getted === false) ){
+		whatsUp();
+	}
+	if (keyboard.pressed("p") && (putted===false)){
+		takeNote();
+	}
+	controls.update();
+	TWEEN.update();
+}
+
+function Card( options ){
+	//defaults
+	var that = this;
+	this.filepath = options.filepath || "Cups09.jpg";
+	this.chosen = options.chosen || false;
+	this.width = options.width || 10;
+	this.height = options.height || 20;
+	this.x = options.x || 0;
+	this.y = options.y || 0;
+	this.z = options.z || 0;
+	this.obj = new THREE.Object3D();
+	this.obj.state = "facedown"; this.obj.num = options.num; this.obj.selected = true;
+
+	var geometry = new THREE.PlaneGeometry( this.width, this.height, 10 );
+	// images/rws/
+	that.tex = new THREE.ImageUtils.loadTexture( ""+that.filepath, null, function(){
+		that.tex.minFilter = THREE.LinearFilter;
+		that.tex.wrapS = THREE.ClampToEdgeWrapping;
+		that.tex.wrapT = THREE.ClampToEdgeWrapping;
+		var cardfront = new THREE.Mesh(geometry,
+			new THREE.MeshPhongMaterial({
+				color: 0xffffff, map: that.tex, side: THREE.DoubleSide//, emissive: 0x333333
+			}));
+		var cardbacking = new THREE.Mesh(geometry,
+			new THREE.MeshPhongMaterial({
+				color: 0xcc6677, side: THREE.DoubleSide
+			}));
+			cardbacking.rotation.x = Math.PI;
+		cardbacking.position.z = -.1;	
+		that.obj.rotation.x = Math.PI/2;
+		that.obj.rotation.z = Math.PI;
+		that.obj.position.x = that.x;
+		that.obj.position.y = that.y;
+		that.obj.position.z = that.z;
+		that.obj.add(cardbacking);
+		that.obj.add(cardfront);
+		cards.push(that); //.obj?
+		scene.add(that.obj);
+	});
+}
+
+function CardFactory(){} //skeleton card factory
+//define prototypes and utilities for the factory
+CardFactory.prototype.cardClass = Card;
+
+// factory method for creating a new card instance
+CardFactory.prototype.createCard = function ( options ){
+	if (options.cardType === null || options.cardType == "Card"){
+		this.cardType = Card;
+	}
+	return new this.cardType( options );
+}
+
+function render() {
+
+	//var time = Date.now() * 0.00015;
+	var r = 150.;
+	var theta = mouse.x/9.0 + 5*Math.PI/2.;
+	var phi = mouse.y/10.0 + Math.PI/6.;
+	camera.position.x = Math.cos(theta) * r;
+	camera.position.z = Math.sin(theta) * r;
+	camera.position.y = Math.sin(phi) * r;
+	camera.lookAt( target );
+	camera.updateMatrixWorld();
+	// scene.overrideMaterial = null;
+	// renderer.clear();
+	renderer.render( scene, camera );
+
+	//}
+
+}
+
+</script>
+</body>
+</html>

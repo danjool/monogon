@@ -1,0 +1,651 @@
+<!doctype html>
+<html>
+	<head>
+		<!--
+		<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+		<meta content="utf-8" http-equiv="encoding">
+		-->
+		<title> Comparison of Scales </title>
+		<!-- <link rel='stylesheet' href='styles/main.css'>  -->
+		<link rel="SHORTCUT ICON" href="monogon.ico" type="image/x-icon" />
+		<link rel="ICON" href="monogon.ico" type="image/ico" />
+		<link href="css/bootstrap.min.css" rel="stylesheet">
+  	<link href="css/infooverlay.css", rel="stylesheet">
+	</head>
+	
+<style>
+body{
+	overflow:hidden;
+}
+</style>
+
+	<body>
+
+	<div class="overlay">
+	  <div class="info">
+	    <h1> Scale Compare </h1>
+	    <p>Originally just a comparison of the ringworld Halo from the game series of the same name, afterwards a few scifi relics were throne in for further comparison.   <a href='http://www.monogon.net/scalecomparehi.html'>A version without Larry Niven's ringworld </a>is also an option, in case the procedurally generated terrain is too much of a strain on your system.  It was only in building this project that I can fully appreciate how ludicrous the original Ringworld is.  It's too big.  The idea of continents and seas become silly.  Artistic renditions go for landmasses, something like what is presented here.  Really it ought to look more like a mishmash of color.</p>
+	    <p>The Halo ring has the opposite problem, although to a lesser degree.  What appears to be continent-like landmasses are more like what we would consider islands.</p>
+	    <a href='http://www.monogon.net'><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>  More projects on Monogon.net</a>
+	  </div>
+
+	  <a class="hover-area"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></a>
+	</div>
+
+	<div id='canvas' style='position:absolute; left:0px; top:0px; overflow:hidden'>
+		<script src="js/three.min.js"></script>
+		<!-- <script src="js/jsonLoader.js"></script> -->
+		<script src="js/Detector.js"></script>
+		<script src="js/THREEx.FullScreen.js"></script>
+		<script src="js/THREEx.WindowResize.js"></script>
+		<script src="js/OrbitControls.js"></script>
+		<script src="js/TrackballControls.js"></script>
+		<script src="js/FlyControls.js"></script>
+		<script src="fonts/droid_sans_bold.typeface.js"></script>
+		<script type='text/javascript' src='js/DAT.GUI.min.js'></script>
+		<script src="js/jquery-1.9.1.js"></script>
+		<script src="js/jquery-ui.js"></script>
+
+<script type="x-shader/x-vertex" id="vshader">
+varying vec4 pos;
+varying vec2 vUv;
+uniform float time;
+#define LOG2 1.442695
+#define EPSILON 1e-6
+
+#ifdef USE_LOGDEPTHBUF
+
+	#ifdef USE_LOGDEPTHBUF_EXT
+
+		varying float vFragDepth;
+
+	#endif
+
+	uniform float logDepthBufFC;
+
+#endif
+
+void main(){
+		vUv = uv;
+	  pos = vec4(position, 1.0);
+		gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+
+#ifdef USE_LOGDEPTHBUF
+
+	gl_Position.z = log2(max( EPSILON, gl_Position.w + 1.0 )) * logDepthBufFC;
+
+	#ifdef USE_LOGDEPTHBUF_EXT
+
+		vFragDepth = 1.0 + gl_Position.w;
+
+	#else
+
+		gl_Position.z = (gl_Position.z - 1.0) * gl_Position.w;
+
+	#endif
+
+#endif
+}
+
+</script>
+
+<script type="x-shader/x-vertex" id="fshader">
+uniform float time;
+
+#ifdef USE_LOGDEPTHBUF
+
+	uniform float logDepthBufFC;
+
+	#ifdef USE_LOGDEPTHBUF_EXT
+
+		#extension GL_EXT_frag_depth : enable
+		varying float vFragDepth;
+
+	#endif
+
+#endif
+
+float rand(vec2 c){
+    return fract(sin(dot(c.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+float noise(vec2 p, float freq ){
+    float unit = 1.0/freq;
+    vec2 ij = floor(p/unit);
+    vec2 xy = mod(p,unit)/unit;
+    //xy = 3.*xy*xy-2.*xy*xy*xy;
+    xy = .5*(1.-cos(3.14159*xy));
+    float a = rand((ij+vec2(0.,0.)));
+    float b = rand((ij+vec2(1.,0.)));
+    float c = rand((ij+vec2(0.,1.)));
+    float d = rand((ij+vec2(1.,1.)));
+    float x1 = mix(a, b, xy.x);
+    float x2 = mix(c, d, xy.x);
+    return mix(x1, x2, xy.y);
+}
+
+float pNoise(vec2 p, int res){
+    float persistance = .5;
+    float n = 0.;
+    float normK = 0.;
+    float f = 4.;
+    float amp = 1.;
+    int iCount = 0;
+    for (int i = 0; i<50; i++){
+        n+=amp*noise(p, f);
+        f*=2.;
+        normK+=amp;
+        amp*=persistance;
+        if (iCount == res) break;
+        iCount++;
+    }
+    float nf = n/normK;
+    return nf*nf*nf*nf;
+}
+
+vec3 hash3( vec2 p ){
+    vec3 q = vec3( dot(p,vec2(127.1,311.7)), 
+                   dot(p,vec2(269.5,183.3)), 
+                   dot(p,vec2(419.2,371.9)) );
+    vec3 ret = vec3(sin(q.x)*43758.5453,cos(q.y)*43758.5453,sin(q.z)*8.5453);
+    return fract(ret);
+    //return fract(cos(q)*43758.5453);
+}
+
+float vnoise( in vec2 x, float u, float v ){
+    vec2 p = floor(x);
+    vec2 f = fract(x);
+
+    float k = 1.0+63.0*pow(1.0-v,4.0);
+
+    float va = 0.0;
+    float wt = 0.0;
+    for( int j=-2; j<=2; j++ )
+    for( int i=-2; i<=2; i++ )
+    {
+        vec2 g = vec2( float(i),float(j) );
+        vec3 o = hash3( p + g )*vec3(u,u,1.0);
+        vec2 r = g - f + o.xy;
+        float d = dot(r,r);
+        float ww = pow( 1.0-smoothstep(0.0,1.414,sqrt(d)), k );
+        
+        va += o.z*ww;
+        wt += ww;
+    }
+
+    return va/wt;
+}
+
+varying vec4 pos;
+varying vec2 vUv;
+
+void main(){	
+	#if defined(USE_LOGDEPTHBUF) && defined(USE_LOGDEPTHBUF_EXT)
+
+	gl_FragDepthEXT = log2(vFragDepth) * logDepthBufFC * 0.5;
+
+	#endif
+
+  float theta = atan(pos.x, pos.z);
+  
+  vec2 cyl = vec2( 1500.0 * theta + time/20.0 , 0.00001 * pos.y );
+  vec2 cyl2 = vec2( 1500.0 * theta + 0.5 + time/23.0 , 0.00001 * pos.y );
+  //vec2 cyl3 = vec2( 9000.0 * (theta)+1.1+time/1.0 , 0.0002 * pos.y );
+    float persistance = 0.3;
+    float c = 0.0;
+    float c2 = 0.0;
+    float n = 0.;
+    float normK = 0.;
+    float f = 1.;
+    float amp = 1.;
+    int iCount = 0;
+    for (int i = 0; i<3; i++){
+        c += 0.8*amp*vnoise(cyl2, 1.0, 1.0);
+        //c2 += amp*vnoise(cyl3, 1.0, 1.0);
+        n += amp*vnoise(cyl, 1.0, 1.0);
+        //f*=2.;
+        cyl/=persistance;
+        cyl2/=persistance*0.8;
+        normK+=amp;
+        amp*=persistance;
+    }
+    float nf = n/normK;
+    nf = 2.0*nf-0.5;
+    nf = nf*nf;
+    nf = clamp(nf, 0.0, 1.1);
+  vec3 water = vec3(0.01, 0.01, 0.3);
+  vec3 shallow = vec3(0.3, 0.4, .8);
+  vec3 land = vec3(0.7, .55, .4);
+  vec3 grass3 = vec3(.278, .451, .24);
+  vec3 grass2 = vec3(.478, .551, .14);
+  vec3 grass = vec3(.08, .235, .07);
+  vec3 brown = vec3(.5, .3, .3);
+  vec3 grey = vec3(.2, .2, .2);
+  vec3 cloud = vec3(0.9, 0.9, 0.9);
+  vec3 white = vec3(1.0, 1.0, 1.0);
+  vec3 black = vec3(0.0, 0.0, 0.0);
+  vec3 col = vec3(0.0);
+	
+  //col += water * (0.7+max( 0.3, nf));
+  //col += land * (clamp(nf, 0.5, 1.0));
+  col = mix(water, shallow, smoothstep(0.0, 0.25, nf));
+  col = mix(col, land, smoothstep(0.2, 0.22, nf));
+  col = mix(col, grass2, smoothstep(0.1, 0.2, nf));  
+  col = mix(col, grass3, smoothstep(0.2, 0.4, nf));  
+  col = mix(col, grass, smoothstep(0.2, 0.6, nf));
+  col = mix(col, brown, smoothstep(0.5, 1.0, nf));
+  col = mix(col, grey, smoothstep(0.6, 0.8, nf));
+  col = mix(col, cloud, smoothstep(0.7, 1.0, nf));
+  
+  //c = mix(c, c2, smoothstep(0.0, 0.9, c2));
+    
+  col = mix(col, white, smoothstep(0.47+0.1*sin(time/10.0+theta*1100.0) , 1.0, c));
+    
+  //shadow
+  //col = mix(col, black, smoothstep( 0.1, 0.9, mod(20.0*shadow, 2.0)));
+  float shadow = -time/100000.0 + theta/6.28;
+  col *= floor(mod(20.0*shadow, 2.0))+0.03;
+  
+    
+	gl_FragColor = vec4(nf, nf, nf, 1.0);
+  gl_FragColor = vec4(col, 1.0);
+
+}
+
+</script>
+
+		<script>
+
+			/////////// GLOBALS
+			var NEAR = 1e-6, FAR = 1e27;
+			var knight;
+			var scene = new THREE.Scene();
+			var time = 0;
+			//fov, aspect ratio, near plane, far plane
+			var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, NEAR, FAR);
+			//var renderer = new THREE.WebGLRenderer({antialias:true, logarithmicDepthBuffer: true});
+			if ( Detector.webgl ) {
+				renderer = new THREE.WebGLRenderer( {antialias:true, logarithmicDepthBuffer: true} );
+			}
+			else {
+				renderer = new THREE.CanvasRenderer(); 
+				$("a").append(" - webgl did not initiate")
+			}
+
+			/////////// INIT
+			var clock = new THREE.Clock();
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			//renderer.shadowMapEnabled = true;
+			//renderer.shadowMapType = THREE.PCFSoftShadowMap;
+			//renderer.shadowMapType = THREE.BasicShadowMap;
+			renderer.setClearColor( 0x000000 );
+			//add's a canvas element
+			var rndr = document.body.appendChild(renderer.domElement);
+
+			scene.add(new THREE.AmbientLight(0x060606));
+			//var light = new THREE.SpotLight( 0xffffff, 1.5);
+			//light.position.set( 500, 500, 0);
+			//light.castShadow = true;
+			//light.shadowCameraVisible = false;
+			//light.shadowCameraNear = .1;
+			//light.shadowCameraFar = camera.far;
+			//light.shadowCameraFov = 50;
+			//light.shadowBias = -0.00022;
+			//light.shadowDarkness = 0.3;
+			//light.shadowMapWidth = 2048;
+			//light.shadowMapHeight = 2048;
+			//scene.add(light);
+
+			var dirLight = new THREE.DirectionalLight( 0xffffff, 1.0);
+			dirLight.position.set(1,0,0);
+			scene.add(dirLight);
+
+			//so we move the camera
+			//camera.rotation.set(-.629,0.049, 0.66,"XYZ")
+			//camera.rotation.set(-.629,-.629, 0.66,"XYZ")
+			camera.position.z = -7780;
+			camera.position.y = -10000+3900;
+			camera.position.x = 0;
+
+			//camera.up = new THREE.Vector3(0,1,0)
+			camera.lookAt(new THREE.Vector3(0,-10000+3900,-7800))
+			//camera.up = new THREE.Vector3(0,0,1);
+
+			var mouse = new THREE.Vector2();
+			var jsonLoader = new THREE.JSONLoader();
+
+			// automatically resize renderer
+			THREEx.WindowResize(renderer, camera);
+			// toggle full-screen on given key press
+			THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
+
+			/*
+			var controls = new THREE.TrackballControls(camera);
+
+			controls.movementSpeed = 15;
+			controls.domElement = rndr;
+			controls.rollSpeed = Math.PI / 6;
+			controls.autoForward = false;
+			controls.dragToLook = true;
+			*/
+			
+
+			controls = new THREE.OrbitControls(camera)
+			controls.target = new THREE.Vector3(0,-10000+90,0);
+			//controls.rotateLeft(Math.PI/2)
+			//controls.rotateUp(-Math.PI/4+.1)
+			//controls.pan(100,100)
+			controls.target = new THREE.Vector3(0,-10000+3900,-7800)
+
+			//1.6km imperator star destroyer (not the biggest)
+			jsonLoader.load("models/stardestroyer.json", function(geometry){
+			var material = new THREE.MeshLambertMaterial( {color:0x5555558, shading:THREE.FlatShading, opacity:0, transparent:false} );
+			//material.skinning = true;
+			object = new THREE.Mesh( geometry, material);
+			object.scale.set(1.6,1.6,1.6);
+			object.position.set(0,-10000+3900,-7800)
+			object.name = "stardestroyer";
+			scene.add(object);
+			//return object;
+			})
+
+			jsonLoader.load("models/deathstar.json", function(geometry){
+			var material = new THREE.MeshLambertMaterial( {color:0x5555558, shading:THREE.FlatShading , opacity:0, transparent:false} );
+			//material.skinning = true;
+			object = new THREE.Mesh( geometry, material);
+			object.scale.set(60,60,60);
+			object.position.set(0-100,-10000+3900,-7800)
+			object.name = "stardestroyer";
+			//scene.add(object);
+			//return object;
+			})
+
+			//642m enterprise D (TNG)
+			jsonLoader.load("models/enterpriseTNG.json", function(geometry){
+			var material = new THREE.MeshLambertMaterial( {color:0x444444, emissive:0x050505, shading:THREE.FlatShading, opacity:0, transparent:false} );
+			//material.skinning = true;
+			geometry.computeFaceNormals();
+			geometry.computeVertexNormals();
+			object = new THREE.Mesh( geometry, material);
+			object.scale.set(.642, .642, .642);
+			object.position.set(2,-10000+3900,-7800)
+			object.rotation.x = Math.PI
+			object.name = "enterpriseTNG";
+
+			scene.add(object);
+			//return object;
+			})
+
+			//load a 16th of the halo interior, 16 times rotating as we go
+			//var halo;
+			haloGroup = new THREE.Group();
+			jsonLoader.load("models/haloIntEighth.json", function(geometry, materials){
+				//console.log("mats:", materials)
+				var haloIntTexture = new THREE.ImageUtils.loadTexture( 'images/haloInt.jpg' );
+				haloIntTexture.minFilter = THREE.NearestFilter;
+				var haloIntMaterial = new THREE.MeshLambertMaterial( { map: haloIntTexture } );
+				halomat = new THREE.MeshLambertMaterial({color:0x44ff22, shading:THREE.FlatShading})
+				for (i = 0; i < 8; i++){
+					halo = new THREE.Mesh(geometry, haloIntMaterial);
+					halo.frustumCulled = false;
+					halo.scale.set(10000,10000,10000);
+					//halo.position.set(-12756,12756,0);
+					halo.rotation.y += i*Math.PI/4;
+					halo.name = "halo";
+					//scene.add(halo);
+					haloGroup.add(halo)
+			}})
+
+			jsonLoader.load("models/haloExtEighth.json", function(geometry, materials){
+				var haloExtTexture = new THREE.ImageUtils.loadTexture( 'images/haloExtDbl.jpg');
+				haloExtTexture.minFilter = THREE.NearestFilter;
+				var haloIntMaterial = new THREE.MeshLambertMaterial( { map: haloExtTexture } );
+				halomat = new THREE.MeshLambertMaterial({color:0x44ff22, shading:THREE.FlatShading})
+				for (i = 0; i < 32; i++){
+					halo = new THREE.Mesh(geometry, haloIntMaterial);
+					halo.scale.set(10000,10000,10000);
+					//halo.position.set(-12756,12756,0);
+					halo.rotation.y += i*Math.PI/16;
+					halo.name = "halo";
+					haloGroup.add(halo)
+					//scene.add(halo);
+			}})
+
+			scene.add(haloGroup)
+			haloGroup.rotation.z = Math.PI/2;
+			haloGroup.rotation.y = Math.PI/2;
+			//set the halo at the L5 Lagrange pt, not taking into account I moved the earth an earth radius "left"
+			//haloGroup.position.set(-384400*Math.cos(Math.PI/3),0,-384400*Math.sin(Math.PI/3));
+			haloGroup.position.set(0,0,-384400/20);
+
+			for (i = 0; i<scene.children.length; i++){
+				if (scene.children[i].name =="halo") console.log("halo ring part found")
+			}
+
+			var cubeGeom = new THREE.BoxGeometry(1,1,1);
+			//borg cube, 3.04 km
+			jsonLoader.load("models/borgcube.json", function(geometry, materials){
+				var borgBump = new THREE.ImageUtils.loadTexture('images/BorgCubeBumpMap.png')
+				borgBump.format = THREE.RGBFormat;
+				var borgNorm = new THREE.ImageUtils.loadTexture('images/BorgCubeNormalMap.png')
+				var borgAO = new THREE.ImageUtils.loadTexture('images/BorgCubeAOMap.png')
+				var borgMat = new THREE.MeshPhongMaterial({
+					shininess: 25, specular: 0x0f0f0f,
+					color: 0x777777,
+					bumpMap: borgNorm,
+					bumpScale: 9,
+					//normalMap: borgNorm,
+					//normalScale: new THREE.Vector2(2.8, 2.8)
+				})
+				var borgCube = new THREE.Mesh( geometry, borgMat);
+				borgCube.scale.set(3.04, 3.04, 3.04);
+				borgCube.position.set(-5,-10000+3900,-7800)
+				scene.add(borgCube)				
+			})
+
+			//EARTH
+			// radius, segmentsWidth, segmentsHeight
+			var sphereGeom =  new THREE.SphereGeometry( 1, 64, 32 ); 
+			//earth's radius is 12756km
+			//moon's radius is 3475km, 384400km from Earth
+			var earthTexture = new THREE.ImageUtils.loadTexture('images/Color Map Half.jpg');
+			var earthBump = new THREE.ImageUtils.loadTexture('images/Bump.jpg')
+			var earthSpec = new THREE.ImageUtils.loadTexture('images/Spec Mask Inv.png')
+			earthTexture.minFilter = THREE.NearestFilter;
+			var earthMaterial = new THREE.MeshPhongMaterial({
+				color: 0xdddddd,
+				specular: 0x222222,
+				shininess: 45,
+				map:earthTexture,
+				normalmap: earthBump,
+				normalScale: new THREE.Vector2( 22.8, 22.8 ),
+				specularMap: earthSpec
+			});
+			//cloadmats
+			var skyTexture = new THREE.ImageUtils.loadTexture('images/Clouds.png');
+			var skyMat = new THREE.MeshPhongMaterial({
+				shininess: 0,
+				color: 0xffffff,
+				transparent: true,
+				alphaMap: skyTexture,
+			  });
+
+			var earthBall = new THREE.Mesh( sphereGeom.clone(), earthMaterial);
+			earthBall.position.set(-12756,0,0);
+			earthBall.scale.set(12756,12756,12756);
+			earthBall.rotation.y = (Math.PI/2-.5)
+			scene.add(earthBall);
+			var skyBall = new THREE.Mesh( sphereGeom.clone(), skyMat);
+			skyBall.position.set(-12756,0,0);
+			skyBall.scale.set(12800,12800,12800);
+			skyBall.rotation.y = (Math.PI/2-.5)
+			scene.add(skyBall);
+
+			var moonTexture = new THREE.ImageUtils.loadTexture('images/moonmap.jpg');
+			moonTexture.minFilter = THREE.NearestFilter;
+			var moonMaterial = new THREE.MeshLambertMaterial({map:moonTexture});
+			var moonBall = new THREE.Mesh( sphereGeom.clone(), moonMaterial);
+			moonBall.position.set(-12756,0, -384400);
+			moonBall.scale.set(3475,3475,3475)
+			scene.add(moonBall);
+
+			//death star 1, 60km radius
+			//death star 2, 80km radius
+			/*
+			var deathstarball = new THREE.Mesh(sphereGeom.clone(), new THREE.MeshLambertMaterial({color:0x555555, shading:THREE.SmoothShading}));
+			deathstarball.scale.set(60, 60, 60);
+			deathstarball.position.set(-200,-10000+100,0);
+			scene.add(deathstarball)
+			*/
+			var uniforms = {
+				time : {type: "f", value: 1.0}
+			}
+
+			var ringShaderMat = new THREE.ShaderMaterial({
+			uniforms: uniforms, attributes: {},
+			vertexShader: document.getElementById( 'vshader' ).textContent,
+			fragmentShader: document.getElementById( 'fshader' ).textContent
+			, depthTest: true, transparent: false
+			})//blending: THREE.NormalBlending
+			
+			var ringworld = new THREE.Mesh(
+				new THREE.CylinderGeometry(150000000, 150000000, 1600000, 256, 1, true ), 
+				//new THREE.MeshLambertMaterial({color:0x2299ff, emissive:0x000000}) );
+				ringShaderMat);
+			ringworld.position.x = 149000000;
+			console.log(ringworld)
+			ringworld.material.side = THREE.DoubleSide
+			ringworld.geometry.computeBoundingSphere()
+			ringworld.frustumCulled = false;
+			scene.add( ringworld );
+
+			var outerRW = new THREE.Mesh(
+				new THREE.CylinderGeometry( 150010000, 150010000, 1600000, 256, 1, true ),
+				new THREE.MeshLambertMaterial({color:0x2299ff, emissive:0x000000}) );
+			outerRW.position.x = 149000000;
+			scene.add(outerRW);
+
+	
+			//now let's try adding a skybox of stars and whatnot
+
+			var imagePrefix = "images/nightSkyBox/GalaxyTex_";
+			var directions  = ["PositiveX", "NegativeX", "PositiveY", "NegativeY", "PositiveZ", "NegativeZ"];
+			var imageSuffix = ".png";
+			var skyGeometry = new THREE.CubeGeometry( 1000000000, 1000000000, 1000000000 );	
+			var materialArray = [];
+			for (var i = 0; i < 6; i++)
+				materialArray.push( new THREE.MeshBasicMaterial({
+					map: THREE.ImageUtils.loadTexture( imagePrefix + directions[i] + imageSuffix ),
+					side: THREE.BackSide
+				}));
+			var skyMaterial = new THREE.MeshFaceMaterial( materialArray );
+			var skyBox = new THREE.Mesh( skyGeometry, skyMaterial );
+			scene.add( skyBox );
+
+			var earthSpinRate = 2*Math.PI/(24*60*60)
+			var haloSpinRate = 19.25*2*Math.PI/(24*60*60)
+			/////////////// RENDER LOOP //////////////////////
+			//main render loop, better than setInterval for performance reasons, etc.
+			var render = function () {
+				
+				var dt = clock.getDelta();
+				time +=dt;
+				this.uniforms.time.value = time;
+				
+				requestAnimationFrame(render);
+
+				//light.position.set( 25*Math.cos(time/400), 25, 25*Math.sin(time/400));
+				//light.position.set( 15, 15, 0);
+
+				//set the sky box to center on the camera, so stars don't move at all
+				skyBox.position.set(camera.position.x,camera.position.y,camera.position.z,"XYZ")
+				renderer.render(scene, camera);
+				controls.update(dt);
+				earthBall.rotation.y += dt*earthSpinRate;
+				skyBall.rotation.y += dt*earthSpinRate;
+				haloGroup.rotation.z += dt*haloSpinRate;
+
+			}
+			render();
+
+			function onMouseMove( event){
+				//event.preventDefault();
+
+				mouse.x =  ((event.clientX - renderer.domElement.offsetLeft) / window.innerWidth)*2 -1;
+				mouse.y = -((event.clientY - renderer.domElement.offsetTop) / window.innerHeight)*2+1;
+			
+				return false;
+			}
+
+			function onMouseDown(event){
+				event.preventDefault();
+				//figure out where the mouse clicked in the canvas, offset by where the canvas lives in the browser
+				mouse.x =  ((event.clientX - renderer.domElement.offsetLeft) / window.innerWidth)*2 -1;
+				mouse.y = -((event.clientY - renderer.domElement.offsetTop) / window.innerHeight)*2+1;
+
+				//figure out what all that could have clicked, I believe sorted by distance from camera
+				var vector = new THREE.Vector3( mouse.x, mouse.y, 0.5 ).unproject( camera );
+				var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );				
+				var intersects = raycaster.intersectObjects(scene.children);
+
+				
+				if (intersects.length>0) {
+					//console.log(intersects[0])
+				
+				}
+
+				for (var c in scene.children) {
+					//console.log(scene.children[c])
+					if (scene.children[c].name == "knight2"){
+						knight = scene.children[c];
+						//console.log(knight)
+						//console.log(scene.children[c].geometry.bones[0])
+						
+					}
+				}
+
+				return false
+
+			}
+
+			function onMouseUp(event){
+				event.preventDefault();
+				
+				return false;
+				//controls.enabled = true;
+			}
+
+			function onKeyDown(event){
+				if (event.keyCode == 32){
+					//spacebar
+					//console.log(scene)
+				}
+				else if (event.keyCode == 82){
+					//r
+					console.log(controls)
+				}
+				else if (event.keyCode == 65){
+					//a
+					//earthBall.rotation.y += .1;
+					//skyBall.rotation.y += .1;
+				}
+				else if (event.keyCode == 68){
+					//d
+					//earthBall.rotation.y -= .1;
+					//skyBall.rotation.y -= .1;
+				}
+
+				else console.log(event.keyCode)
+			}
+
+			window.addEventListener('mousemove', onMouseMove, false);
+			window.addEventListener('mousedown', onMouseDown, true);
+			window.addEventListener('mouseup', onMouseUp, false);
+			window.addEventListener('keydown', onKeyDown, false);
+
+		</script>
+
+	</div>
+
+	</body>
+</html>

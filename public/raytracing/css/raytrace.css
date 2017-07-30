@@ -1,0 +1,128 @@
+body{
+	margin:0;
+	font-family: arial;
+	background-color: #272822;
+	overflow-x:hidden;
+}
+
+header {
+	background: #999;
+	color: white;
+	margin: 0;
+	padding: 5px 15px 0 15px;
+	overflow:hidden;
+}
+
+
+
+a:link{
+	color:white;
+}
+
+p {
+	color: white;
+}
+
+#middlecontent{
+	width: 800px; 
+	text-align: justify; 
+	margin-left: auto; 
+	margin-right: auto;
+}
+
+.interactive{
+	cursor:all-scroll;
+	overflow:hidden;
+}
+
+.onehalf{
+	display: inline-block;
+	width: 390px;
+	margin: 5px;
+	float:left;
+}
+
+canvas{
+	border:1px 1px 0px 1px solid #FFF; 
+	border-bottom-width: 1px;
+	margin-left: auto; margin-right: auto;
+	padding-left: 0;
+  padding-right: 0;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+  overflow:hidden;
+  /*width: 800px;*/
+}
+
+nav ul{
+	margin: 0;
+	padding: 0 0 0 15px;
+	display: inline;
+	border-radius: 5px 0px 0px 0px;
+}
+
+nav ul li {
+	border-radius: 5px 5px 0 0;
+	box-shadow: 2px 0px 5px #999;
+	display: inline-block;
+	list-style-type:none;
+	background: white;
+	color: #555;
+	padding: 2px 15px;
+	margin: 0;
+}
+
+nav ul li:hover {
+	border-radius: 5px 5px 0 0;
+	box-shadow: 0px 0px 15px white;
+	display: inline-block;
+	list-style-type:none;
+	background: black;
+	color: white;
+	padding: 2px 15px;
+	margin: 0;
+}
+
+nav ul li a {
+	color: #999;
+	text-decoration: none;
+}
+
+.row{
+	
+}
+
+.row:after {
+	content: " ";
+	display: table;
+	clear:both;
+}
+
+.col {
+	border-radius: 5px;
+	padding: 2px .5% 2px .5%;
+	background: #333;
+	margin: 1%;
+	float: left;
+	width:30%;
+}
+
+footer{
+	font-size: 5;
+	clear:both;
+}
+
+code{
+	color: #66CCB3;
+}
+
+pre{
+	background-color: #3E3D32;
+	white-space: pre-wrap;       /* CSS 3 */
+  white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+  white-space: -pre-wrap;      /* Opera 4-6 */
+  white-space: -o-pre-wrap;    /* Opera 7 */
+  word-wrap: break-word;       /* Internet Explorer 5.5+ */
+  
+}

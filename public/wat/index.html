@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title> Wat </title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+
+<script src="js/three.min.js"></script>
+<script src="js/Detector.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/THREEx.KeyboardState.js"></script>
+<script src="js/THREEx.FullScreen.js"></script>
+<script src="js/THREEx.WindowResize.js"></script>
+<script src='js/DAT.GUI.min.js'></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
+<script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+<script src='js/three-text2d.min.js'></script>
+<script src='js/simplex-noise.min.js'></script>
+<script src="js/Tween.js"></script>
+
+<script src="js/Player.js"></script>
+
+<style>
+	p{ margin:1px; }
+</style>
+
+<div id="ThreeJS" style="overflow: hidden; position: absolute; left:0px; top:0px;  width:100%; height:100%"></div>
+
+<div class="login" style="position:absolute; font-family:monospace; color: white; left:40%; z-index:10;">
+	<div class="form">
+		<fieldset>
+			<legend> Login </legend>
+			<h3 class="title">Name:</h3>
+	    <input class="nameInput" type="text" maxlength="32" />
+	    <h3 class="title">Pass:</h3>
+	    <input class="passwordInput" type="text" maxlength="32" />
+    </fieldset>
+	</div>
+	<div>
+		<h>v0.1.3</h>
+		<ul>
+			<li>refactor player</li>
+			<li>better floor lighting on player</li>
+		</ul>
+		<h>todo</h>
+		<ul>
+			<li>flying</li>
+			<li>conversations (persistent in world) </li>
+			<li>image removal</li>
+			<li>even better image placement</li>
+		</ul>
+	</div>
+</div>
+
+<div class="input" style="overflow:hidden; position:absolute; font-family:monospace; color: white; bottom: 5%; left:5%; width:90%; z-index:10;">
+	<div class="form">
+    <input class="textInput" type="text" maxlength="200" style="width:90%; visibility:hidden" />
+	</div>
+</div>
+
+<div id="chatbox" style="overflow:none; position:absolute; width:40%; height:50%; bottom:10%; pointer-events: none;">
+<div id="chatlog" style="position:absolute; font-family:monospace; color: white; width:100%; left:5%; z-index:10; margin:1px; background-color:rgba(0,0,0,.3); display:none">
+	<p>Chatlog (t)</p>
+</div>
+</div>
+
+<script id="Vert" type="x-shader/x-vertex">
+/*Generic Vertex Shader*/
+varying vec2 vUv;
+varying vec4 myPos;
+void main(){
+    vUv = uv;
+    myPos = modelMatrix * vec4( position, 1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+}
+</script>
+<script id="terrainFrag" type="x-shader/x-fragment">
+/*Frag shader for the greed edges of the block terrain, with waves of darkness from the center of the world*/
+varying vec2 vUv;
+varying vec4 myPos;
+uniform float time;
+void main(){
+  
+  //float d = floor( ( 1.02+cos(time + myPos.x+myPos.y+myPos.z )/50. )*max( abs(vUv.x-.5), abs(vUv.y-.5) )+.5); //wavy
+  
+  float d = floor( 1.02*max( abs( vUv.x-.5), abs(vUv.y-.5) )+.5); //waves of dark 
+  //float d = floor(1.1 - min( min( mod(myPos.x, 2.0), mod(myPos.y, 2.0)), mod(myPos.z, 2.0) ) );
+  d *= ceil(sin(time*1.0+length(myPos.xyz)/30.0 )/2.0 )+ .7;
+	gl_FragColor = vec4(d/10., d, d/10., 1.0);
+}
+</script>
+
+<script id="skyFrag" type="x-shader/x-fragment">
+/*Frag Shader for a sky the color of television, tuned to a dead channel*/
+varying vec2 vUv;
+varying vec4 myPos;
+uniform float time;
+float snoise( in vec2 co ){return fract(sin(dot(co.xy, vec2( 12.9898,78.233 ))) * 43758.5453);}
+void main(){
+	float n = snoise(vec2(vUv.x*cos(time),vUv.y*sin(time)))/8.0+ myPos.y/2000. - .15; 
+  n += sin(myPos.y/10. + time*30.)/40.;
+	gl_FragColor = vec4(n, n, n, 1.0 );
+}
+</script>
+
+<script>
+$(window).keydown(function (event) { /*global $*/
+    if (event.which === 13) {
+      if ( player.hasOwnProperty('name')) {
+      	var msg = $('.textInput').val();
+				$('.textInput').css("visibility", "hidden");
+				if (player.mode === "typing"){
+					console.log('yelled!', msg);
+					tryToYell(msg);
+				} else if ( player.mode === "posting" ){
+					console.log("posted!", msg);
+					tryToPost(msg);
+				}
+				player.mode = "not typing";
+      } else {
+      	console.log("hit enter at name input");
+        var name = $('.nameInput').val();
+        var password = $('.passwordInput').val();
+        
+        tryToLogin( name, password );
+        
+        $('.login').fadeOut();
+    	}
+  	}
+});
+$(window).keyup(function(event){
+  	if (event.which === 222){ // '
+		
+	  	if (player.mode !== "typing" && player.mode !=="posting"){
+	  		
+	  		if (keyboard.pressed("shift") ){ // "
+	  			player.mode = "posting";
+	  		} else { player.mode ="typing"; }
+	  		
+		  	$('.textInput').css("visibility", "visible").focus();
+		  	$('.textInput').val('');
+	  	}
+  		
+  }	
+});
+
+//$('.textInput').focus(function(){ player.mode = "typing"; });
+$('.textInput').blur(function(){ player.mode = "not typing";});
+
+$( document ).ready(function() {
+  $( ".nameInput" ).focus();
+});
+
+var Text2D = THREE_Text.Text2D;  /*global THREE_Text*/
+var SpriteText2D = THREE_Text.SpriteText2D;
+var textAlign = THREE_Text.textAlign;
+
+// standard global variables
+var container, scene, camera, renderer, controls, dodecSun, dirLight, floorLight;
+var socket;
+
+var moveLeft = false, moveRight = false, moveForward = false, moveBackward = false;
+var canJump = false, feetDriver = 0;
+
+var radius = 100;
+var keyboard = new THREEx.KeyboardState();
+var clock = new THREE.Clock(); console.log(clock);
+var jsonLoader = new THREE.JSONLoader();
+var manager = new THREE.LoadingManager();
+var imageLoader = new THREE.TextureLoader( manager );
+imageLoader.setCrossOrigin('');
+
+var player = { loggedin:false };
+var otherPlayers = {}, allSprites = [], allPosts = [];
+
+var terrainUniforms;
+var terrain = [], terrainBig = []; //terrainBigger = [];
+var terrainWidth = 16;
+var skyBox;
+var raycaster = new THREE.Raycaster(), mouse = new THREE.Vector2();
+
+var seed = 1123;
+function random() {
+    var x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+}
+
+var simplex = new SimplexNoise(random); /*global SimplexNoise*/
+
+init();
+animate();
+
+// FUNCTIONS 		
+function init() 
+{
+	// SCENE
+	scene = new THREE.Scene(); /*global THREE*/
+	// CAMERA
+	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 20000;
+	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
+	scene.add(camera);
+	camera.position.set(0,0,400);
+	camera.lookAt(scene.position);	
+	// RENDERER
+	if ( Detector.webgl ) renderer = new THREE.WebGLRenderer( {antialias:true} ); /*global Detector*/
+	else renderer = new THREE.CanvasRenderer(); 
+	renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+	renderer.setClearColor( 0x000000, 1); //0x002244
+	scene.fog = new THREE.FogExp2( 0x000000, 0.005 );
+	container = document.getElementById( 'ThreeJS' );
+	container.appendChild( renderer.domElement );
+	// EVENTS
+	THREEx.WindowResize(renderer, camera); /*global THREEx*/
+	// CONTROLS
+	controls = new THREE.OrbitControls( camera, renderer.domElement );
+	camera.enableZoom = false; camera.enablePan = false;
+	//LIGHTS
+	dirLight = new THREE.DirectionalLight(0xffffff, .7);
+	dirLight.position.set(0, 1 ,0);
+	scene.add(dirLight);
+	
+	
+	var onKeyDown = function ( event ) {
+		// console.log(event.keyCode);
+		if (player.mode !== "typing" && player.mode !== "posting"){
+			switch ( event.keyCode ) {
+				case 38: // up
+				case 87: // w
+					moveForward = true;
+					break;
+				case 37: // left
+				case 65: // a
+					moveLeft = true; break;
+				case 40: // down
+				case 83: // s
+					moveBackward = true;
+					break;
+				case 39: // right
+				case 68: // d
+					moveRight = true;
+					break;
+				case 32: // space
+					if ( canJump === true ) player.velocity.y += 0.9;
+					canJump = false;
+					break;
+				case 84:
+					if (player.loggedin) $("#chatlog").toggle();
+					break;
+			}
+		}
+	};
+	var onKeyUp = function ( event ) {
+		if (player.mode !== "typing" && player.mode !== "posting"){
+			switch( event.keyCode ) {
+				case 38: // up
+				case 87: // w
+					moveForward = false;
+					break;
+				case 37: // left
+				case 65: // a
+					moveLeft = false;
+					break;
+				case 40: // down
+				case 83: // s
+					moveBackward = false;
+					break;
+				case 39: // right
+				case 68: // d
+					moveRight = false;
+					break;
+			}
+		}
+	};
+	
+	document.addEventListener( 'keydown', onKeyDown, false );
+	document.addEventListener( 'keyup', onKeyUp, false );
+	
+	
+	var wfMat = new THREE.MeshBasicMaterial({color: 0x003300, wireframe: true});
+	var flatMat = new THREE.MeshPhongMaterial({
+		wireframe: false, 
+		shading:THREE.FlatShading
+	});
+	var phongMat = new THREE.MeshPhongMaterial({
+					color: 0x156289,
+					emissive: 0x072534,
+					side: THREE.DoubleSide,
+					shading: THREE.FlatShading
+				});
+	var sunMat = new THREE.MeshBasicMaterial({color: 0xFFFF99, wireframe: true});
+	
+	var groundPlane = new THREE.Mesh( new THREE.PlaneGeometry( 1000, 1000, 1, 1 ), sunMat );
+	groundPlane.rotation.x = Math.PI/2;
+	//scene.add( groundPlane );
+	var gridHelper = new THREE.GridHelper( 1000, 10 );
+	gridHelper.setColors( 0xFF00FF, 0x003300);
+  scene.add( gridHelper );
+	
+	//SKY BOX TV
+	terrainUniforms = {	time: {type: "f", value: 1.0} };
+	var skyGeom = new THREE.IcosahedronGeometry(2000, 2);
+	var skyMaterial = new THREE.ShaderMaterial({
+		uniforms: terrainUniforms,
+		vertexShader: document.getElementById('Vert').textContent,
+		fragmentShader: document.getElementById('skyFrag').textContent,
+		side: THREE.BackSide
+	});
+	
+	skyBox = new THREE.Mesh( skyGeom, skyMaterial);
+	scene.add(skyBox);
+	
+	//PRAISE THE SUN!
+	// dodecSun = new THREE.Mesh( new THREE.IcosahedronGeometry( 10, 0), sunMat );
+	// scene.add(dodecSun);
+	
+	var terrainMaterial = new THREE.ShaderMaterial({
+		uniforms: terrainUniforms,
+		vertexShader: document.getElementById('Vert').textContent,
+		fragmentShader: document.getElementById('terrainFrag').textContent,
+		side: THREE.DoubleSide
+	});
+	
+	var terrCube = new THREE.Mesh( new THREE.BoxGeometry(1,1,1), terrainMaterial );
+	terrCube.scale.set(10,10,10);
+	
+	for (var i = 0; i< terrainWidth; i++){
+		for (var j = 0; j< terrainWidth; j++){
+			var block = terrCube.clone();
+			var x = 10*i-5;
+			var z = 10*j-5;
+			block.position.set( x, terrainFunc( x, z ), z );	
+			terrain.push( block );
+			scene.add(block);
+		}
+	}
+	
+	for (var i = 0; i< 2*terrainWidth; i++){
+		for (var j = 0; j< 2*terrainWidth; j++){
+			var x = 20*(i - terrainWidth) +10;
+			var z = 20*(j - terrainWidth) +10;
+			if ( Math.abs(x) >= 10*terrainWidth/2  || Math.abs(z) >= 10*terrainWidth/2 ) {
+				var block = terrCube.clone();
+				block.scale.set(20,20,20);
+				block.x = x; block.z = z;
+				block.position.set( x, terrainFunc( x, z ), z );	
+				terrainBig.push( block );
+				scene.add( block );
+			}
+		}
+	}
+	setupSockets();
+	
+	var colorSeed = 1234; var rand = 0;
+	var icosGeom = new THREE.IcosahedronGeometry( 3, 0 );
+	for (var i = 0; i < 360; i ++){
+		var c = new THREE.Color(); c.setHSL( i/360.0, 1.0, 0.5 );
+		var cMesh = new THREE.Mesh( icosGeom.clone(),
+			new THREE.MeshPhongMaterial( { color: c.getHex(), specular: 0xffffff, shininess: 30, shading: THREE.FlatShading } )
+			);
+		
+		rand = Math.sin(colorSeed++) * 10000; rand = rand - Math.floor(rand);
+    var x = Math.floor(5000*rand) - 2505; 
+    rand = Math.sin(colorSeed++) * 10000; rand = rand - Math.floor(rand);
+    var z = Math.floor(5000*rand) - 2505; 
+		cMesh.position.set( x, terrainDiscrete(x,z)+4, z );
+		cMesh.name = "colorPicker";
+		scene.add(cMesh);
+	}
+	
+	window.addEventListener( 'mousemove', onMouseMove, false );
+	window.addEventListener( 'mousedown', onMouseDown, false );
+	
+}//endinit
+
+function onMouseMove( event ) {
+	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;		
+}
+
+function onMouseDown( event ) {
+	if (event.button === 2){
+		castRay();
+	}
+}
+
+function castRay(){
+	raycaster.setFromCamera( mouse, camera );	
+	var intersects = raycaster.intersectObjects( scene.children );
+	console.log( intersects[ 0 ] );
+	
+	if ( intersects[0].object.hasOwnProperty('name') && intersects[0].object.name === "colorPicker" ){
+		console.log("colorPicker: ", intersects[0].object.material.color );
+		var c = intersects[0].object.material.color.clone();
+		player.color = c.getHex();
+		player.material.color = c;
+		
+	}else if ( intersects[0].object.hasOwnProperty('material') && intersects[0].object.material.hasOwnProperty('color') ){
+ 		var tween = new TWEEN.Tween( intersects[ 0 ].object.material.color ).to( { r: 0, g: 0.1, b: 0.45 }, 500 )
+ 			.easing(TWEEN.Easing.Quartic.InOut).onComplete(function(){
+ 		 		// intersects[ 0 ].object.material.color = oldColor;
+ 		 		intersects[ 0 ].object.material.color = {r:1,g:1, b:1}
+ 			}).start();
+	}
+	
+}
+
+function terrainFunc( x,z ){
+	var h = 0;
+	var t = 0;clock.getElapsedTime(); //makes a decent digi ocean
+	t *=5;
+	h+=    160*Math.exp( .2*simplex.noise2D( (x+t)/800., z/800.) );
+	h+=     160*Math.exp( .2*simplex.noise2D( x/400., (z + t)/400.) );
+	h+=     40*Math.exp( .2*simplex.noise2D( (x + t)/200., (z+t)/200.) );
+	h+= 		20*Math.exp( .2*simplex.noise2D( x/100., z/100.) );
+	return h;
+}
+
+function terrainDiscrete( x,z ){
+	return terrainFunc( Math.floor(x/10)*10 + 5, Math.floor(z/10)*10 + 5 );
+}
+
+function updateTerrain( playerx, playerz ){
+	for (var i in terrain ){
+		var block = terrain[i];
+		var x = Math.floor(i/terrainWidth) + playerx +playerx%2 +1- terrainWidth/2;
+		var z = i%terrainWidth + playerz + playerz%2 +1 - terrainWidth/2;
+		x = 10*x +5;
+		z = 10*z +5;
+		var h = terrainFunc(x,z);
+		block.position.set( x, h-5, z );
+	}
+	
+	for (var i in terrainBig){
+		var block = terrainBig[i];
+		var x = block.x + 10*( playerx + playerx%2 +1 );
+		var z = block.z + 10*( playerz + playerz%2 +1 );
+		var h = terrainFunc(x,z);
+		block.position.set( x, h-10, z );
+	}
+}
+
+function addSprite( s ){
+	var sprite = new SpriteText2D(s.text, { align: textAlign.center,  font: '20px Arial', fillStyle: s.color , antialias: false });
+	sprite.material.alphaTest = 0.1;
+	sprite.position.set(s.position.x, s.position.y, s.position.z);
+	sprite.scale.set(.02,.02,.02);
+	sprite.name = s.text+'nametag';
+	scene.add(sprite)
+	return sprite;
+}
+
+function addText( s ){
+	var sprite = new Text2D(s.text, { align: textAlign.center,  font: '20px Arial', fillStyle: s.color , antialias: false });
+	sprite.material.alphaTest = 0.1;
+	sprite.position.set(s.position.x, s.position.y, s.position.z);
+	sprite.scale.set(.02,.02,.02);
+	sprite.name = s.text+'nametag';
+	//scene.add(sprite)
+	return sprite;
+}
+
+function addPic ( url, x, z, theta ){
+	if ( url.indexOf("http://") > -1) url = url.replace("http://", "https://");
+	imageLoader.load( url, function(image){
+		image.minFilter =THREE.LinearFilter;
+		var picMat = new THREE.MeshBasicMaterial({ map: image, side: THREE.DoubleSide });
+	  var ratio = image.image.height/image.image.width;
+	  var width = Math.min( 20, image.image.width );
+		var picGeom = new THREE.PlaneGeometry( width,width*ratio,1,1 );
+		var mesh = new THREE.Mesh(picGeom, picMat);
+		mesh.position.set(x, width*ratio/2.0 + terrainDiscrete(x,z), z);
+		mesh.rotation.set( 0, theta, 0, "XYZ" );
+		scene.add(mesh);	
+		},
+		// Function called when download progresses
+		function ( xhr ) { console.log( (xhr.loaded / xhr.total * 100) + '% loaded' ); },
+		// Function called when download errors
+		function ( xhr ) {console.log( 'An error happened' ); }
+	);
+}
+
+function tryToYell(msg){
+	if (msg === '') {} //do nothing
+	else if (msg.indexOf('imgur.com') > -1 ){
+		//attempt to load the image
+		imageLoader.load( msg, 
+		function(image){
+			//if success, send up to server
+			console.log("was a valid image", msg);
+			var rot = new THREE.Euler().setFromRotationMatrix( player.matrix ,"XYZ");
+			socket.emit('a new image', { 
+				url:msg, 
+				poster:player.name,
+				x: player.position.x, 
+				y: player.position.y,
+				z:player.position.z, 
+				theta: rot.y + Math.PI/1.0 } );
+		}, 
+		function(xhr){},
+		function(xhr){ console.log("wasn't a valid image", msg) }
+		);
+		
+	}
+	else{
+		var payload = {
+			text:msg, 
+			yeller:player.name,
+			position:{
+			x:player.position.x,
+			y:player.position.y + 6,
+			z:player.position.z
+		}, color:'#FFFFFF'};
+		socket.emit('a new yell', payload);
+	}
+}
+
+function tryToPost(msg){
+	if (msg === ''){}//do nothing
+	else {
+		var payload = {text:msg, position:{
+			x:player.position.x,
+			y:player.position.y + 6,
+			z:player.position.z
+		}, color:'#FFFFFF', poster:player.username};
+		socket.emit('a new post', payload);	
+	}
+}
+
+function tryToLogin( user, pass ){
+	socket.emit('try to login', {name: user, password: pass} );
+}
+
+
+
+function setupSockets(){ //for incoming messages from the server
+	// socket = io(); /*global io*/
+	socket = io.connect('/wat')
+
+	var host = window.location.hostname; 
+	// var socket = io.connect('http://' + host);
+	
+	socket.on("not a valid password", function(){
+		console.log('not a valid password');
+		$('.login').fadeIn();
+	});
+	
+	//tell the server about me, plus got a payload of others already on server
+	socket.on("successful login", function( allOthers, myself ){
+		
+		Object.keys(allOthers).forEach(function( name ){
+			var other = allOthers[name];
+			console.log( "you should meet", name, other);
+			otherPlayers[ name ] = new OtherPlayer( allOthers[name] );
+		});
+		
+		player = myself;
+		console.log(player);
+		setupPlayer( myself );
+		socket.emit('gimme all the images');
+		socket.emit('gimme all the posts');
+	});
+	
+	//server tell me about another player:
+	socket.on("new player", function( other ){
+		if ( other.name !== player.name){
+			console.log(" ! new player ! ", other.name );
+			otherPlayers[other.name] = new OtherPlayer( other );
+		}
+	} );
+	
+	socket.on("a player changed", function( other ){  //let me know about others' changes
+	  if ( other.name !== player.name){
+			if ( otherPlayers.hasOwnProperty(other.name) ) otherPlayers[other.name].update( other );
+			else {
+				console.log("I didn't know about", other.name, otherPlayers, other );
+				//otherPlayers[other.name] = new OtherPlayer( other );
+			}
+	  }
+	});
+	
+	socket.on("kill player", function(deadname){
+		var obj = scene.getObjectByName(deadname);
+		var objnametag = scene.getObjectByName(deadname+'nametag');
+		console.log(obj, objnametag);
+		console.log(otherPlayers);
+		scene.remove( obj );
+		delete otherPlayers[deadname];
+		console.log("killed ", deadname, scene);
+		console.log(otherPlayers);
+	});
+	
+	//db stuff
+	socket.on('here are all the images', function( im ){
+		console.log("got", im.length, "images to add");
+		for( var i in im){
+		  addPic(im[i].url, im[i].x, im[i].z, im[i].theta);	
+		}
+	});
+	
+	socket.on('a new image', function(im){
+		addPic(im.url, im.x, im.z, im.theta);	
+	});
+	
+	socket.on('a new yell', function(msg){
+		allSprites.push( addSprite(msg) );
+		console.log("I heard", msg)
+		$("#chatlog").append( "<p>"+ msg.yeller +": "+msg.text+"</p>" )
+		$('#chatbox').scrollTop($('#chatlog')[0].scrollHeight);
+		console.log(allSprites);
+	});
+	
+	socket.on('a new post', function(msg){ //receive a new message server
+		allPosts.push( addSprite(msg) );
+		console.log("got a new post", msg.text);
+	})
+	
+	socket.on('here are all the posts', function(msgs){ //receive a new message server
+		for (var i in msgs){
+			allPosts.push( addSprite(msgs[i]));
+		}
+		console.log("here is all the posts", msgs.length );
+	})
+}
+
+function updateServer(){
+	//package up client player info to send
+	var rot = new THREE.Euler().setFromRotationMatrix( player.matrix ,"XYZ"); 
+	var me = {
+		name: player.name,
+		position: {
+			x: player.position.x, 
+			y: player.position.y, 
+			z: player.position.z
+		},
+		rotation: {
+			x: rot.x, y: rot.y, z: rot.z
+		},
+		color: player.color
+	}
+	socket.emit("look at me", me);
+}
+
+function animate( time ) 
+{
+  requestAnimationFrame( animate );
+	render();		
+	update();
+	TWEEN.update(time); /*global TWEEN*/
+}
+
+function update()
+{
+	var t = clock.getElapsedTime();
+	terrainUniforms.time.value = t;
+	var delta = clock.getDelta();
+	if (player.loggedin === true) {
+		updatePlayer(delta);
+		skyBox.position.set( player.position.x, player.position.y, player.position.z );
+	}
+	if ( keyboard.pressed("z") ) 
+	{ 
+		player.rotation.x = 0; //cause sometimes the rotation gets borked and saved to the server
+		player.rotation.z = 0;
+		console.log(player);
+		console.log(scene);
+		console.log(camera);
+	}
+	if (keyboard.pressed("x")){
+
+	}
+	
+	for (var i in allSprites){ 
+		allSprites[i].position.y += .01;//allSprites[i].position.y/500; 		//arise!
+		if (allSprites[i].position.y > 800){ //die!
+			scene.remove( scene.getObjectByName( allSprites[i].name ) );
+			delete allSprites[i];
+		}
+	}
+	
+	controls.update();
+}
+
+function render() 
+{
+	renderer.render( scene, camera );
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title>Asteroid  </title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link href="css/nouislider.css" rel="stylesheet">
+	  <link href="css/bootstrap.min.css" rel="stylesheet">
+	<link href="css/infooverlay.css", rel="stylesheet">
+	<link href='http://fonts.googleapis.com/css?family=Quicksand' rel='stylesheet' type='text/css'>
+</head>
+<body>
+
+<script src="js/three.js"></script>
+<script src="js/papaparse.min.js"></script>
+<script src="js/Detector.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/THREEx.KeyboardState.js"></script>
+<script src="js/THREEx.FullScreen.js"></script>
+<script src="js/THREEx.WindowResize.js"></script>
+<script src="js/tween.min.js"></script>
+<script type='text/javascript' src='js/DAT.GUI.min.js'></script>
+
+<script src="js/jquery-1.9.1.js"></script>
+<script src="js/jquery-ui.js"></script>
+<script src="js/nouislider.js"></script>
+
+<div class="overlay">
+  <div class="info">
+    <h1>Asteroids</h1>
+    <p>Each point represents a real asteroid.  More asteroids become visible as the timeline reaches the date that they were first observed, starting with Ceres in 1801.</p><p>Orbital positions are calculated every frame by approximately solving <a href='https://en.wikipedia.org/wiki/Kepler%27s_equation'>Kepler's Equation</a> on the GPU.</p>
+    <p>Depending upon the oomph of your machine, displaying less asteroids may be preferable.  This can be chosen by passing the desired max number of asteroids as a url parameter:</p>
+    <a href='asteroid.html#10000' onclick='location.reload()'>10,000 Asteroids</a> | 
+    <a href='asteroid.html#50000' onclick='location.reload()'>50,000 Asteroids</a> | 
+    <a href='asteroid.html#200000' onclick='location.reload()'>200,000 Asteroids</a> | 
+    <a href='asteroid.html#1000000' onclick='location.reload()'>688,804 Asteroids</a>
+    <br>
+    <a href='http://www.monogon.net'><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>  More projects on Monogon.net</a>
+  </div>
+  <a class="hover-area"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></a>
+</div>
+
+<div id="ThreeJS" style="overflow:hidden; position: absolute; left:0px; top:0px; width:100%; height:100%"></div>
+
+<style type="text/css">
+	body{
+		-webkit-user-select: all;
+     -moz-user-select: all;
+      -ms-user-select: all;
+          user-select: all;
+		font-family: 'Quicksand', sans-serif;
+    background: -webkit-canvas(threejscanvas);
+    background-attachment: fixed;
+    }
+
+	.sliders .noUi-target{
+		    position: absolute;
+    		bottom: 0px;
+    		width: 90%;
+    		left: 5%;
+	}
+	.sliders .noUi-connect {background-color: #88a;}
+
+  .sliders .noUi-base {
+    width: 80%;
+    height: 100px;
+    position: absolute;
+    top: 10px; left: 10%;
+    background:transparent;
+    background-size: 100%;
+    background-repeat: no-repeat;
+	  background-image: url(images/timeline1850_2050.png);}
+
+	.sliders .noUi-background{background:transparent;}
+
+  .sliders .noUi-handle {
+    display: block;
+    border: 3px solid #eee;
+    background: transparent;
+    width: 15px;
+    height: 50px;
+   transform: translateX(-50%); -webkit-transform: translateX(-50%); -moz-transform: translateX(-50%); -o-transform: translateX(-50%);}
+
+  #timerate  .noUi-base {
+  	bottom: 10%;
+  	left:90%;
+    margin-top: 0%;
+    position: absolute;
+    background-size: auto 100%;
+    background-repeat: no-repeat;
+    background-image: url(images/throttle.png);
+  }
+  #timerate .noUi-handle{
+  	width:50px; height: 15px; background: transparent; border: 3px solid #eee; display: block; left: 0px; top:0px;
+  }
+
+
+
+  </style>
+  
+<div class="sliders" id="time" style="z-index:1; position: absolute; left: 10%; bottom:10%; width:80%; height:40px; border: 0px; outline-style: none; box-shadow: none"></div>
+
+<div class="sliders" id="timerate" style="z-index:1; position: absolute; left: 90%; bottom:10%; width:40px; height:100px; border: 0px; outline-style: none; box-shadow: none"></div>
+
+
+<div id="yeardisplay" style="color:white;z-index:999; position: absolute; left: 5%; bottom:10%; width:40px; height:40px; border: 0px; outline-style: none; box-shadow: none; 
+font-family: Impact, Charcoal, sans-serif;
+ font-size:200%;">1980</div>
+
+<div id="percentloaded" style="color:white;z-index:999; position: absolute; left: 5%; bottom:5%; width:40px; height:40px; border: 0px; outline-style: none; box-shadow: none">loaded: 0</div>
+<div id="timeratedisplay" style="color:white;z-index:999; position: absolute; left: 90%; bottom:5%; width:100px; height:40px; border: 0px; outline-style: none; box-shadow: none">wk/s</div>
+
+<!____________________>
+<script type="x-shader/x-vertex" id="astvshader">
+	uniform float size;
+	varying vec2 vUv;
+	varying vec3 pos;
+	varying float sz;
+	varying vec3 vNormal;
+
+	float rand(vec2 co){return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);}
+	float rand(float n){return fract(sin(n) * 43758.5453123);}
+
+	void main(){
+		sz = size;
+		vUv = uv;
+		vNormal = normal;
+		vec4 modelpos = modelMatrix*vec4(position,1.0);
+		pos = position;
+		float r = length(position);
+		r = 1.0;
+		vec4 modPos = vec4(position.x*r, position.y*r, position.z*r, 1.0);
+
+		float sz2 = sz;
+		for (int i = 0; i < 128; i++){
+			float x = 2.0*rand(sz2)-1.0;
+  		float y = 2.0*rand(sz2*2.0)-1.0;
+  		float z = 2.0*rand(sz2*3.0)-1.0;
+  		vec3 sph = (0.5+rand(sz2*11.1)) * normalize(vec3(x,y,z));
+  		sz2 += 3.0;
+
+			x = 2.0*rand(sz2)-1.0;
+  		y = 2.0*rand(sz2*2.0)-1.0;
+  		z = 2.0*rand(sz2*3.0)-1.0;
+  		sph = (0.5+rand(sz2*11.1)) * normalize(vec3(x,y,z));
+
+  		float shift = -1.5+3.0*rand(sz2*5.0)*max(0.0, 1.0 - 0.5*length(2.0*(normalize(pos) - sph)));
+
+  		modPos = modPos + vec4(sph.x*shift, sph.y*shift, sph.z*shift , 0.0);
+		}
+
+		gl_Position = projectionMatrix*modelViewMatrix*modPos;
+	}</script>
+
+<!____________________>
+<script type="x-shader/x-fragment" id="astfshader">
+	varying float sz;
+	varying vec2 vUv;
+	varying vec3 pos;
+	uniform float size;
+	varying vec3 vNormal;
+
+	float rand(float n){return fract(sin(n) * 43758.5453123);}
+
+	float sz2 = size;
+
+  void main() {
+  	float r = 1.0;
+  	float c = 1.0;
+  	for(int i = 0; i < 16; i++){
+  		
+  		float x = 2.0*rand(sz2)-1.0;
+  		float y = 2.0*rand(sz2*2.0)-1.0;
+  		float z = 2.0*rand(sz2*3.0)-1.0;
+  		vec3 sph = normalize(vec3(x,y,z));
+ 
+  		c = c - 1.0*max(0.0, (1.0-1.5*pow(abs(1.0-length( (pos) - sph)), 1.0 )));
+  		sz2 += 3.0;
+  	}
+  	c = max(0.0, c);
+
+  	vec3 testvec = vec3(1.0, 0.0, 0.0);
+  	testvec = vec3(0.707, 0.707, 0.0);
+ 
+  	float x = 2.0*rand(sz2)-1.0;
+  	float y = 2.0*rand(2.0)-1.0;
+  	float z = 2.0*rand(222.0023984)-1.0;
+  	testvec = normalize(vec3(x,y,z));
+
+  	vec3 light = normalize(vec3(1.0, 0.0, 0.0));
+  	float dProd = max(0.0, dot(vNormal, light));
+
+  	gl_FragColor = vec4(dProd*r,dProd*c,dProd*c, 1.0);
+
+  }</script>
+
+<script type="x-shader/x-vertex" id="vshader">
+    attribute float size;
+    attribute float a;
+    attribute float e;
+    attribute float i;
+    attribute float w;
+    attribute float M;
+    attribute float N;
+    attribute float epoch;
+    attribute float dob;
+    attribute float moid;
+
+    uniform float burst;
+    uniform float time;
+    varying vec3 vColor;
+    varying float vAlpha;
+
+// vec3 hsv2rgb(vec3 c)
+// {
+//     vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+//     vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+//     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+// }
+
+    void main() {
+			float GMsun = 1.32712440018;//*pow(10.0,20.0); //note this invalidates the rate of time passing so far
+			GMsun = 0.01720209895;
+			float mu = 1.0;
+			float MA = M+GMsun*(time-epoch)*sqrt( 1.0/(a*a*a));
+
+			//solve Kepler's equation, 10 iterations tends to do it, 20 to be safe
+			float EA1 = 2.0;
+			float EA0= 0.0;
+			float EAtemp=0.0;
+			for (int j = 0; j < 20; j++){
+				EAtemp = EA1;
+				EA1 = MA + e*sin(EA0);
+				EA0 = EAtemp;
+			}
+			float EA = EA1;
+			//true anomoly
+			float f = 2.0*atan(sqrt((1.0+e)/(1.0-e))*tan(EA/2.0), 1.0);
+
+			float r = 100.0*a*(1.0-e*cos(EA));
+			float apoapse = a*(1.0 - e);
+			float x = r*(cos(N)*cos(w+f)-sin(N)*sin(w+f)*cos(i));
+			float z = r*(sin(N)*cos(w+f)+cos(N)*sin(w+f)*cos(i));
+			float y = r*(sin(i)*sin(w+f));
+
+			float red = min(1.0, (1.0-moid));
+      vColor = vec3(1.0, 1.0-red, 1.0-red); 
+      vAlpha = min(1.0,10000.0*abs(a-2.0))* min(1.0, ceil((time-dob)/abs(dob)));
+      vec3 shiftedpos = vec3(x,y,z);
+      vec4 mvPosition = modelViewMatrix * vec4( shiftedpos, 1.0 );
+
+      //vColor = vec3(hsv2rgb(vec3( min(apoapse/3., 1.) , 1.0, 1.0)));
+
+      //adjusts size based on distance from camera
+      gl_PointSize = max(2.0, size * (0.1+20.0 / length( mvPosition.xyz ) ) ) * (1.0+burst*10.0*(time-dob)*exp(1.0-(time-dob)));
+      gl_Position = projectionMatrix * mvPosition;
+    }</script>
+
+<script type="x-shader/x-fragment" id="fshader">
+    uniform sampler2D texture;
+    varying vec3 vColor;
+    varying float vAlpha;
+
+    void main() {
+    	vec4 c = texture2D( texture, gl_PointCoord );
+    	gl_FragColor = vec4(c.x*vColor.x, c.y*vColor.y, c.z*vColor.z, vAlpha);
+    }</script>
+
+<!______________________________________________>
+
+<script>
+var maxParticles = 50000; //439820; //max max particles: 688800
+var t= 0, currentDate; var timefactor = 10;
+var container, scene, camera, renderer, controls, stats;
+var keyboard = new THREEx.KeyboardState();
+var clock = new THREE.Clock();
+var hp = Math.PI/2;
+var pi = Math.PI;
+var frames = 0;
+var skybox, constBox;
+var stardata = [];
+var planets = [], planetlines = [], finishedLoading = false;
+var aoline;
+var cube;
+var time = 0.0;
+var d2r = Math.PI/180.0;
+var raycaster, intersects, mouse, INTERSECTED;
+var particleSystem, asteroidMesh;
+var focus = -1;
+var slider, sliderrate, slidertime, slidertimerate;
+var astuniforms
+
+var parameters, gui, autoCam = false, currentlyTweeningCamera=false;
+
+//in the asteroids.csv file there are 439830 rows, and no epochs
+//asteroiddatesreduced.csv has 688804 lines, including the header
+/*
+																			arg peri 		node asc 		mean ano
+full_name,a,				e,				i,			w,					om,					ma,				H,		epoch_mjd,	first_obs,		moid
+1 Ceres,	2.76751,	0.07582,	10.593,	72.52203,		80.32927,		95.98918,	3.34,	57000,			1830-04-18,		1.59
+2 Pallas,	2.77161,	0.23127,	34.841,	309.93033,	173.09625,	78.22870,	4.13,	57000,			1825-03-23,		1.23
+3 Juno,2.	67070,		0.25545,	12.982,	248.40997,	169.87118,	33.07715,	5.33,	57000,			1824-04-18,		1.04
+*/
+
+//Name              Epoch      a          e        i         w        Node        M 
+//Ceres             57000  2.7675059 0.07582277  10.59339  72.52203  80.32927  95.9891758
+var astinfo = [
+ ["Ceres", 57000, 2.7675059, 0.07582277, 10.59339, 72.52203, 80.32927, 95.9891758, 3.34, 0.12],
+ ["Pallas", 57000, 2.7716061, 0.23127363,  34.84100, 309.93033, 173.09625,  78.2287037,  4.13, 0.11],
+ ["Juno", 57000, 2.6707002, 0.25544826,  12.98166, 248.40997, 9.87118, 33.0771533, 5.33, 0.32],
+ ["Vesta", 57000, 2.3617932, 0.08874017, 7.14043, 151.19853, 103.85137, 20.8638415,  3.20, 0.32],
+ ["Astraea", 57000, 2.5738090, 0.19113549, 5.36852, 358.92898, 141.59556, 260.1895421, 6.85, 0.15],
+ ["Hebe", 57000, 2.4253513, 0.20144904, 14.74816, 239.40793, 138.70362,  29.2142421,  5.71, 0.24],
+ ["Iris", 57000, 2.3866599, 0.23079447, 5.52270, 145.46126, 259.62075, 72.1486487,  5.51, 0.15],
+ ["Flora", 57000, 2.2019581, 0.15633714, 5.88777, 285.46691, 110.92233, 71.8387340,  6.49, 0.28],
+ ["Metis", 57000, 2.3864347, 0.12229014, 5.57444, 5.86880,  68.94475, 209.6856520,  6.28, 0.17],
+ ["Hygiea", 57000, 3.1394365, 0.11527806, 3.84106, 312.45815, 283.42118, 228.7037092, 5.43, 0.15]]
+
+//actually used, unlike astinfo, which has been replaced with a big csv file(s)
+var planetsinfo = [
+	["Mercury", 0.387, 0.2056, 7.005, 77.456, 48.331, 252.25, 0xff0000,0.000032613],
+	["Venus", 0.723, 0.0068, 3.3947, 131.53298, 76.68069, 181.97973, 0xffffff, 0.0000809],
+	["Earth", 1.0, 0.01671123, 0.00005, 102.94719, -11.26064, 358.617, 0x0088ff, 0.00008517],
+	["Mars", 1.52, 0.09341233, 1.85061, 336.04084,  49.57854, 355.453, 0xff0000, 0.00004531],
+	["Jupiter", 5.20336301, 0.04839, 1.30530, 14.75385, 100.55615, -114+34.4, 0xffbbbb, 0.000934639, -0.00012452, 0.06064060, -0.35635438, 38.35125],
+	["Saturn", 9.553667594, 0.05386179, 2.48599187, 92.59887831, 113.66242448, 49.95424423 - 113-93, 0xbb8866, 0.000402866697]]
+
+function cos(theta){ return Math.cos(theta);}
+function sin(theta){ return Math.sin(theta);}
+function rrange(mn, mx){return Math.floor((Math.random() * mx) + mn)}
+function floor(x){return Math.floor(x)}
+function date2mjd(year, month, day){
+	var a = floor((14-month)/12);
+	var y = year +4800 - a;
+	var m = month + 12*a - 3;
+	var jd = day + floor((153*m + 2)/5) + 365*y + floor(y/4) - 32083;
+	var mjd = jd - 2400000;
+	return mjd;}
+
+function MJDtoYMD (mjd_in){
+    var year, month, day, hour, jd, jdi, jdf, l, n;
+    // Julian day
+    jd = Math.floor (mjd_in) + 2400000.5;
+    // Integer Julian day
+    jdi = Math.floor (jd);
+    // Fractional part of day
+    jdf = jd - jdi + 0.5;    
+    // Really the next calendar day?
+    if (jdf >= 1.0) {
+       jdf = jdf - 1.0;
+       jdi  = jdi + 1;
+    }
+
+    hour = jdf * 24.0;    
+    l = jdi + 68569;
+    n = Math.floor (4 * l / 146097);
+    l = Math.floor (l) - Math.floor ((146097 * n + 3) / 4);
+    year = Math.floor (4000 * (l + 1) / 1461001);
+    l = l - (Math.floor (1461 * year / 4)) + 31;
+    month = Math.floor (80 * l / 2447);
+    day = l - Math.floor (2447 * month / 80);
+    l = Math.floor (month / 11);
+    
+    month = Math.floor (month + 2 - 12 * l);
+    year = Math.floor (100 * (n - 49) + year + l);
+
+    if (month < 10)
+       month = "0" + month;
+    if (day < 10)
+       day = "0" + day;
+    return (new Array (year, month, day));}
+
+function targetAsteroid(){
+	//picks a random asteroid and locks the camera to it
+		focus = rrange(0, maxParticles)
+		for (l = 0; l < aoline.geometry.vertices.length; l++){
+			var lpos = getPositionRough(
+			stardata[focus][1],
+			stardata[focus][2],
+			stardata[focus][3]*d2r,
+			stardata[focus][4]*d2r,
+			stardata[focus][5]*d2r,
+			stardata[focus][6]*d2r - l*pi/24,
+		  0,t)
+			aoline.geometry.vertices[l] = new THREE.Vector3(lpos.x, lpos.y, lpos.z);
+		}
+		aoline.geometry.verticesNeedUpdate = true;
+		console.log(focus)
+		asteroidMesh.visible = true;
+		controls.maxDistance = 30.0;
+
+		asteroidMesh.material.uniforms.size.value = stardata[focus][7];
+	}
+
+init();
+animate();
+
+///////////////////////////////////////////
+//             INIT                      //
+///////////////////////////////////////////
+function init() 
+{
+	// SCENE
+	scene = new THREE.Scene();
+	// CAMERA
+	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 200000;
+	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
+	scene.add(camera);
+	camera.position.set(0,150,400);
+	camera.lookAt(scene.position);	
+	camera.target = {x:0,y:0,z:0}
+	// RENDERER
+	if ( Detector.webgl )
+		renderer = new THREE.WebGLRenderer( {antialias:true} );
+	else
+		renderer = new THREE.CanvasRenderer(); 
+		renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+	renderer.setClearColor(0x000000, 1);
+	container = document.getElementById( 'ThreeJS' );
+	container.appendChild( renderer.domElement );
+	// EVENTS
+	THREEx.WindowResize(renderer, camera);
+	THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
+	// CONTROLS
+	controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+	var a = window.location.toString();
+	var maxpparam = a.substring(a.indexOf("#")+1);
+	console.log("window location: ", a, " sub: ", maxpparam)
+	if(maxpparam > 1){maxParticles = Math.min(maxpparam, 688800);}
+	console.log("loading: ", maxParticles, " asteroids...")
+
+	// SKYBOX/FOG			
+	var imagePrefix = "images/nightSkyBox/GalaxyTex_";
+
+	var directions  = ["PositiveX", "NegativeX", "PositiveY", "NegativeY", "PositiveZ", "NegativeZ"];
+	var imageSuffix = ".png";
+	var skyGeometry = new THREE.BoxGeometry( 100000, 100000, 100000 );	
+	var materialArray = [];
+	for (var i = 0; i < 6; i++)
+		materialArray.push( new THREE.MeshBasicMaterial({
+			map: THREE.ImageUtils.loadTexture( imagePrefix + directions[i] + imageSuffix ),
+			side: THREE.BackSide
+		}));
+	var skyMaterial = new THREE.MeshFaceMaterial( materialArray );
+	skyBox = new THREE.Mesh( skyGeometry, skyMaterial );
+	skyBox.hidden = true;
+	scene.add( skyBox );
+	skyBox.visible = false;
+
+	uniforms = 
+	{
+		burst: {type: "f", value: 1.0},
+		time: {type: "f", value: 1.0},
+		texture:   { type: "t", value: THREE.ImageUtils.loadTexture( "images/particle32.png" ) }
+	};
+
+	attributes = {
+		size: {type: "f", value: []},
+		a: {type: "f", value: []}, // semimajor axis
+		e: {type: "f", value: []}, // eccentricity
+		i: {type: "f", value: []}, // inclination
+		w: {type: "f", value: []}, // argument of perihelion
+		N: {type: "f", value: []}, // Node of ascension
+		M: {type: "f", value: []}, // Mean anomaly at epoch
+		epoch: {type: "f", value: []},
+		dob: {type: "f", value: []},
+		moid: {type: "f", value: []}
+	};
+for (i=0; i<maxParticles; i++){
+		attributes.size.value[i] = 1.0;
+		attributes.a.value[i] = 2.0; //semimajor of 2.0 indicates to vertex shader to set alpha to 0.0
+		attributes.e.value[i] = 0.0;
+		attributes.i.value[i] = 0.0;
+		attributes.w.value[i] = pi*2*i/maxParticles; //sets asteroids in ring at 2 au, cool but invisible 
+		attributes.N.value[i] = 0.0;
+		attributes.M.value[i] = 0.0;
+		attributes.epoch.value[i] = 0.0;
+		attributes.dob.value[i] = 0.0;
+		attributes.moid.value[i] = 0.0;
+
+}
+	var material = new THREE.ShaderMaterial({
+		uniforms: uniforms, attributes: attributes,
+		vertexShader: document.getElementById( 'vshader' ).textContent,
+		fragmentShader: document.getElementById( 'fshader' ).textContent, 
+		blending: THREE.AdditiveBlending, depthTest: false, transparent: true
+	})
+	var particles = new THREE.Geometry()
+	
+	for (var p = 0; p < maxParticles; p++) {
+	  var particle = new THREE.Vector3(0, 0, 0);
+	  particles.vertices.push(particle);
+	}
+	particleSystem = new THREE.PointCloud(
+	    particles,
+	    material);
+	particleSystem.frustumCulled = false;
+	scene.add(particleSystem);
+
+	//sunSphere
+	var sun = new THREE.Mesh(new THREE.SphereGeometry(1.0, 8,8), new THREE.MeshBasicMaterial({color: 0xffff00}))
+	scene.add(sun)
+
+	//asteroidSphere
+	astuniforms = {size: {type: "f", value: 3.34}}
+	var astmaterial = new THREE.ShaderMaterial({
+	//attributes: astattributes,
+	uniforms: astuniforms,
+	vertexShader: document.getElementById( 'astvshader' ).textContent,
+	fragmentShader: document.getElementById( 'astfshader' ).textContent, 
+	blending: THREE.NormalBlending, depthTest: true, transparent: false
+	})
+	asteroidMesh = new THREE.Mesh(new THREE.SphereGeometry(1.5, 64,32), astmaterial)
+	asteroidMesh.visible = false;
+	scene.add(asteroidMesh)	
+
+	//PLANETS (position of jupiter+ needs more)
+	for (j=0; j<planetsinfo.length; j++){
+		var geometry = new THREE.SphereGeometry( 20000*planetsinfo[j][8], 8, 8 );
+		var material = new THREE.MeshBasicMaterial( {color: planetsinfo[j][7], opacity:1, transparent:false});
+		var sphere = new THREE.Mesh( geometry, material );
+		sphere.name = planetsinfo[j][0];
+		planets.push(sphere)
+		scene.add( sphere );
+
+	//PLANET ORBITS
+	//add some line trails for each planet
+	var material = new THREE.LineBasicMaterial({color: 0x777777});
+	var geometry = new THREE.Geometry();
+	for (k = 0; k < 51; k++){
+		var rpos = getPositionRough(
+		planetsinfo[j][1],
+		planetsinfo[j][2],
+		planetsinfo[j][3]*d2r,
+		planetsinfo[j][4]*d2r,
+		planetsinfo[j][5]*d2r,
+		planetsinfo[j][6]*d2r - k*pi/25,
+		2451545 - 2400000.5-55400, 0)
+		geometry.vertices.push(new THREE.Vector3(rpos.x, rpos.y, rpos.z));	
+	}
+	var line = new THREE.Line( geometry, material );
+	planetlines.push(line);
+	scene.add( line );
+	}	
+
+	//lines for asteroid if selected
+	var mat = new THREE.LineBasicMaterial({color: 0x888888});
+	var geom = new THREE.Geometry();
+	for (k = 0; k < 50; k++){
+		geom.vertices.push(new THREE.Vector3(0,0,0));
+	}
+	aoline = new THREE.Line(geom, mat);
+	aoline.frustumCulled = false
+	scene.add(aoline);
+
+//LOAD DATA FROM asteroids.csv
+Papa.SCRIPT_PATH = "js/papaparse.min.js"
+var count = 0;
+function parseData(url) {
+  Papa.parse(url, {
+		worker: true,
+    download: true,
+    preview: maxParticles,
+    dynamicTyping: true,
+    step: function(results){
+    	stardata.push(results.data[0])
+
+			attributes.a.value[count] = results.data[0][1];
+			attributes.e.value[count] = results.data[0][2];
+			attributes.i.value[count] = results.data[0][3]*d2r;
+			attributes.w.value[count] = results.data[0][4]*d2r;
+			attributes.N.value[count] = results.data[0][5]*d2r;
+			attributes.M.value[count] = results.data[0][6]*d2r;
+			attributes.size.value[count] = results.data[0][7];
+			attributes.epoch.value[count] = results.data[0][8];
+      if (!results.data[0][9]){console.log( "issue: " + count )}
+			var date = results.data[0][9].split("-")
+			var datemjd = date2mjd(Number(date[0]), Number(date[1]), Number(date[2]))
+			attributes.dob.value[count] = datemjd;
+			attributes.moid.value[count] = results.data[0][10];
+
+	    particleSystem.material.attributes.a.needsUpdate = true;
+			particleSystem.material.attributes.e.needsUpdate = true;
+			particleSystem.material.attributes.i.needsUpdate = true;
+			particleSystem.material.attributes.w.needsUpdate = true;
+			particleSystem.material.attributes.N.needsUpdate = true;
+			particleSystem.material.attributes.M.needsUpdate = true;
+			particleSystem.material.attributes.size.needsUpdate = true;
+			particleSystem.material.attributes.epoch.needsUpdate = true;
+			particleSystem.material.attributes.dob.needsUpdate = true;
+			particleSystem.material.attributes.moid.needsUpdate = true;
+		
+			count++;
+			var percentLoaded = document.getElementById("percentloaded");
+			//percentLoaded.innerHTML = "loading: ".concat(String(100*count/maxParticles)).concat(" asteroids");
+			percentLoaded.innerHTML = "loaded: ".concat(String(count));
+    },
+        
+    complete: function(results) {
+    	console.log("all done, loaded ", stardata.length)
+    	finishedLoading = true;
+    	document.getElementById("percentloaded").innerHTML = "";
+    }
+  });}
+parseData("../data/asteroiddatesreduced.csv");
+
+document.addEventListener( 'keypress', onDocumentKeyPress, false);
+document.addEventListener( 'mousedown', onDocumentMouseDown, false);
+
+parameters = {'timescale':1.0, 'showorbits':true, 'discoveryburst':true, 'time':0, 'jumptoyear': 1980, 'year':1800};
+
+var paramFunc = function(){
+	this.recenter = function(){
+		controls.target = new THREE.Vector3(0,0,0);
+		focus = -1;
+		controls.maxDistance = 100000;
+		asteroidMesh.visible = false;
+		aoline.visible = false;
+
+	}
+	this.targetAst = function(){targetAsteroid()}
+	this.toggleAutoCam = function(){
+		autoCam = !autoCam;
+		if (autoCam) startCamTween(10000);
+	}
+}
+var param = new paramFunc();
+
+gui = new dat.GUI();	
+gui.add(parameters, 'showorbits').onFinishChange(function(){
+	for (p=0; p<planetlines.length; p++){
+		planetlines[p].visible = parameters['showorbits']}
+}).name("Show Orbits")
+gui.add(parameters, 'discoveryburst').name('Burst on Discovery').onFinishChange(function(){
+	if (parameters['discoveryburst']){particleSystem.material.uniforms.burst.value = 1.0}
+	else{particleSystem.material.uniforms.burst.value = 0.0}
+		particleSystem.material.uniforms.burst.needsUpdate = true;
+})
+gui.add(param, 'recenter').name('Recenter Camera');
+gui.add(param, 'toggleAutoCam').name('Toggle AutoCam');
+
+gui.close();
+dat.GUI.toggleHide();
+
+slider = document.getElementById('time');
+noUiSlider.create(slider, {
+	start: 50,
+	//connect: true,
+	range: {
+		'min': -3261,
+		'max': 69789
+	}});
+
+sliderrate = document.getElementById('timerate');
+noUiSlider.create(sliderrate, {
+	start: 7, orientation: 'vertical',
+	step: .5,
+	snap: true,
+	direction: 'rtl',
+	range:{'min': -365,'20%':-30,'30%':-7,'40%':-1,'50%':0,'60%':1,'70%':7,'80%':30, 'max': 365}
+});
+
+}// END INIT
+
+function animate(){
+  requestAnimationFrame( animate );
+	render();		
+	update();
+}
+
+function getPosition(a,e,i,w,N,M,dt,t){
+	//takes a,e,i,w,N,M,dt
+	//epoch of planets: 2451545
+	//epoch of asteroids:  2400000.5+55400
+	//mean anomaly
+	var gmsun = 1.32712440018;
+	var gmsun = 0.01720209895;
+	var MA = M+gmsun*Math.sqrt((1)/(a*a*a))*(t-dt)//0 is T???
+
+	//eccentric anomaly
+	//MA = EA - e sin EA
+	//EA = MA + e sin EA
+	var iters = 0
+	var EA1 = 2;
+	var EA0 = 0;
+	var EAtemp = 0;
+	for(k = 0; k<20; k++)
+	{
+		iters++;
+		EAtemp = EA1;
+		EA1 = MA + e*Math.sin(EA0)
+		EA0 = EAtemp;
+	}
+	var EA = EA1;
+
+	//true anomaly
+	var f=2*Math.atan(Math.sqrt((1+e)/(1-e))*Math.tan(EA/2.0),1.0);
+
+	//radius r
+	var r = 100.0*a*(1-e*Math.cos(EA));
+
+	var x = r*(cos(N)*cos(w+f)-sin(N)*sin(w+f)*cos(i));
+	var y = r*(sin(N)*cos(w+f)+cos(N)*sin(w+f)*cos(i));
+	var z = r*sin(i)*sin(w+f);
+	//var retpos = [x,y,z]
+	var retpos = new THREE.Vector3(x,z,y)
+	return retpos;
+}
+
+function getPos(p, dt, t){
+	var a = planetsinfo[p][1]
+	var e = planetsinfo[p][2]
+	var i = planetsinfo[p][3]*d2r
+	var w = planetsinfo[p][4]*d2r
+	var N = planetsinfo[p][5]*d2r
+	var M = planetsinfo[p][6]*d2r 
+	var b = 0, c = 0; s = 0, f = 0, T = 0;
+
+	var gmsun = 0.01720209895;
+	var MA = M+gmsun*Math.sqrt((1)/(a*a*a))*(t-dt)//0 is T???
+	if (planetsinfo[p].length > 9){
+		f = planetsinfo[p][9]
+		b = planetsinfo[p][10]
+		c = planetsinfo[p][11]
+		s = planetsinfo[p][12]
+		T = (t - 2451545 + 2400000)/36525
+	}
+	var iters = 0
+	var EA1 = 2;
+	var EA0 = 0;
+	var EAtemp = 0;
+	for(k = 0; k<20; k++)
+	{
+		iters++;
+		EAtemp = EA1;
+		EA1 = MA + e*Math.sin(EA0)
+		EA0 = EAtemp;
+	}
+	var EA = EA1;
+
+	//true anomaly
+	var f=2*Math.atan(Math.sqrt((1+e)/(1-e))*Math.tan(EA/2.0),1.0);
+
+	//radius r
+	var r = 100.0*a*(1-e*Math.cos(EA));
+
+	var x = r*(cos(N)*cos(w+f)-sin(N)*sin(w+f)*cos(i));
+	var y = r*(sin(N)*cos(w+f)+cos(N)*sin(w+f)*cos(i));
+	var z = r*sin(i)*sin(w+f);
+	var retpos = new THREE.Vector3(x,z,y)
+	return retpos;
+}
+
+function getPositionRough(a,e,i,w,N,M,dt,t){
+		var MA = M+Math.sqrt((1.32712440018)/(a*a*a))*(t+dt)//0 is T???
+		//eccentric anomaly gets skipped here
+		var EA = MA;
+		//true anomaly
+		var f=2*Math.atan(Math.sqrt((1+e)/(1-e))*Math.tan(EA/2.0),1.0);
+		//radius r
+		var r = 100.0*a*(1-e*Math.cos(EA));
+		var x = r*(cos(N)*cos(w+f)-sin(N)*sin(w+f)*cos(i));
+		var y = r*(sin(N)*cos(w+f)+cos(N)*sin(w+f)*cos(i));
+		var z = r*sin(i)*sin(w+f);
+		var retpos = new THREE.Vector3(x,z,y)
+		return retpos;}
+
+////////////////////////////////////////////////////////
+//                       UPDATE                       //
+////////////////////////////////////////////////////////
+
+function update()
+{
+	frames +=1;
+	var dt = clock.getDelta()*timefactor;
+	
+//////////////////
+	var slidertime = parseFloat(slider.noUiSlider.get());
+	var slidertimerate = parseFloat(sliderrate.noUiSlider.get());
+
+	slider.noUiSlider.set(slidertime + dt);
+	if (slidertime < 69789){
+		t = slidertime + dt;
+	}
+	else {
+		t += dt
+	}
+	currentDate = MJDtoYMD(t)[0];
+	var yeardiv = document.getElementById("yeardisplay");
+	yeardiv.innerHTML = currentDate;
+
+	//timefactor = Math.pow(10, slidertimerate);
+	timefactor = slidertimerate
+	particleSystem.material.uniforms.time.value = t;
+
+	var slidertimeratedisplay = document.getElementById('timeratedisplay');
+	slidertimeratedisplay.innerHTML = timefactor + '<br> days / sec';
+
+	//update the planets position
+	for (j = 0; j<planetsinfo.length; j++){
+		var pos = getPosition(
+		planetsinfo[j][1],
+		planetsinfo[j][2],
+		planetsinfo[j][3]*d2r,
+		planetsinfo[j][4]*d2r,
+		planetsinfo[j][5]*d2r,
+		planetsinfo[j][6]*d2r,
+		2451545 - 2400000,t) //- 2400000.5-55400
+
+
+		pos  = getPos(j, 2451545 - 2400000, t);
+		planets[j].position.set(pos.x, pos.y, pos.z) 
+	}
+	//shift focus of camera (controls) to what it needs to
+	//negative numbers for planets, -1 for sun, positive for asteroids
+	if (focus== -1){
+		//controls.target = new THREE.Vector3(0,0,0);
+	}
+	else{
+		//camera controls focusing on asteroid with index 'focus'
+		var pos = getPosition(
+		stardata[focus][1],
+		stardata[focus][2],
+		stardata[focus][3]*d2r,
+		stardata[focus][4]*d2r,
+		stardata[focus][5]*d2r,
+		stardata[focus][6]*d2r,
+	  0,t)
+	
+		controls.target = new THREE.Vector3(pos.x, pos.y, pos.z)
+		asteroidMesh.position.set(pos.x,pos.y,pos.z)
+		var diff = new THREE.Vector3; 
+		diff.subVectors(camera.position, pos);
+		var dist = diff.length();
+
+	}
+	controls.update();
+	if ((autoCam==true) & (currentlyTweeningCamera==false)) startCamTween(15000+20000*Math.random())
+	TWEEN.update();
+}
+
+//currently not used as raycasting is a wash
+function onDocumentMouseMove( event ) {
+	//event.preventDefault();
+	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+}
+
+function onDocumentMouseDown( event ) {
+	if (currentlyTweeningCamera == true) {
+		TWEEN.removeAll();
+		autoCam = false;
+	}
+}
+
+function startCamTween(duration){
+	TWEEN.removeAll();
+	currentlyTweeningCamera = true;
+	var cr = 3000;
+	var tr = cr/2.0;
+	var camTween = new TWEEN.Tween( camera.position ).to({
+			x: -cr/2.0+cr*Math.random(), y: -cr/4+cr/2*Math.random(), z: -cr/2+cr*Math.random()}
+			, duration )
+		.easing( TWEEN.Easing.Quadratic.InOut)
+
+	camTween.onUpdate(function () {camera.lookAt(camera.target);})
+	
+	var camTargetTween = new TWEEN.Tween( camera.target).to({
+		x: -tr/2+tr*Math.random(), y: -tr/4+tr/2*Math.random(), z: -tr/2+tr*Math.random()}
+			, duration ).easing( TWEEN.Easing.Quadratic.InOut).start()
+	
+
+	camTween.onComplete(	function(){
+		TWEEN.removeAll();
+		console.log("cam tween oncomplete", autoCam)
+		currentlyTweeningCamera = false;
+	})
+	camTween.start()
+
+}
+
+function onDocumentKeyPress( event ){
+	if (event.keyCode == '97'){//a
+		//pass
+	}
+	else if (event.keyCode == '113'){
+		console.log(controls)
+	}
+	else if (event.keyCode == '119'){
+		controls.dollyIn(10);
+	}
+	else if (event.keyCode == '114'){
+		console.log(planetlines)
+		console.log(frames)
+	}
+	else if (event.keyCode == '116'){//t 
+		console.log("days since Nov 17, 1858: ", t)
+		console.log("year: ", MJDtoYMD(t)[0])
+		console.log(gui);
+	}
+	else if (event.keyCode == '112'){//p 
+		console.log("maxParticles: ", maxParticles)
+	}
+	else if (event.keyCode == '45'){//- 
+		timefactor *= .1;
+		console.log("timefactor: ", timefactor)}
+	else if (event.keyCode == '61'){//+ 
+		timefactor *= 10;
+		console.log("timefactor: ", timefactor)}
+	else if (event.keyCode == '118'){//v
+		autoCam = !autoCam
+		if (autoCam) startCamTween(10000);
+	}
+	else{
+		console.log(event.keyCode)
+	}
+}
+
+function render() 
+{
+	if (skyBox.visible) skyBox.position.set(camera.position.x,camera.position.y,camera.position.z,"XYZ");
+	renderer.render( scene, camera );
+}
+
+</script>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-67709103-1', 'auto');
+  ga('send', 'pageview');
+</script>
+</body>
+</html>

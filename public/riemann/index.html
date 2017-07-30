@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title> Riemann</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link rel="stylesheet" href="jquery/jquery-ui.css">
+	<link rel="stylesheet" href="riemann.css">
+  <script src="jquery/external/jquery/jquery.js"></script>
+  <script src="jquery/jquery-ui.js"></script>
+  <script src="js/MM.js"></script>
+</head>
+<body>
+
+<script src="js/three.min.js"></script>
+<script src="../js/Detector.js"></script>
+<script src="../js/OrbitControls.js"></script>
+<script src="../js/THREEx.KeyboardState.js"></script>
+<script src="../js/THREEx.FullScreen.js"></script>
+<script src="../js/THREEx.WindowResize.js"></script>
+<script src='../js/DAT.GUI.min.js'></script>
+
+<div id="ThreeJS" style="overflow: hidden; position: absolute; left:0px; top:0px;  width:100%; height:100%; z-index: -1"></div>
+
+<input id="xmin" value="0"></input> 
+	<div id="slider-range"></div> 
+<input id="xmax" value="2"></input>
+<div id="slider-nslices"></div>
+<div class="rsum">Riemann Sum: 100</div>
+<div class="area">Actual Area: 100</div>
+
+
+<div class="dropdown functions">
+<button onclick="toggleDropDown('myDropdown')" class="dropbtn">Functions</button>
+  <div id="myDropdown" class="dropdown-content">
+  	<a onclick="switchFunctions(0)">Boring X</a>
+    <a onclick="switchFunctions(1)">Cubic Poly</a>
+    <a onclick="switchFunctions(2)">Witch of Agnesi</a>
+    <a onclick="switchFunctions(3)">DisconSinuity</a>
+    <a onclick="switchFunctions(4)">Parabola</a>
+    <a onclick="switchFunctions(5)">Roller Coaster</a>
+  </div>
+</div>
+
+<div class="dropdown align">
+<button onclick="toggleDropDown('alignments')" class="dropbtn">Alignments</button>
+  <div id="alignments" class="dropdown-content">
+  	<a onclick="switchAlignments(0)">Left</a>
+    <a onclick="switchAlignments(1)">Right</a>
+    <a onclick="switchAlignments(2)">Middle</a>
+    <a onclick="switchAlignments(3)">Random</a>
+    <a onclick="switchAlignments(4)">Minimum</a>
+    <a onclick="switchAlignments(5)">Maximum</a>
+  </div>
+  <script src="js/riemann.js"></script>
+</div>
+
+<!-- <a id="cc" rel="license" href="http://creativecommons.org/licenses/by-nc-nd/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-nd/4.0/80x15.png" /></a> -->
+
+</body>
+</html>

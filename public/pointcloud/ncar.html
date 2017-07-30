@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<title> NCAR Point Cloud </title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link href='http://fonts.googleapis.com/css?family=Quicksand' rel='stylesheet' type='text/css'>
+	<link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/infooverlay.css", rel="stylesheet"> 
+</head>
+<body>
+
+<script src="js/three.min.js"></script>
+<script src="js/Detector.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/THREEx.KeyboardState.js"></script>
+<script src="js/THREEx.FullScreen.js"></script>
+<script src="js/THREEx.WindowResize.js"></script>
+<script type='text/javascript' src='js/DAT.GUI.min.js'></script>
+
+<div class="overlay">
+    <div class="info">
+      <h1> NCAR </h1>
+      <p>The terrain is located in Boulder, CO, behind the National Center for Atmospheric Research.  Although the dataset was originally chosen from the Open Topography project because of my familiarity with the trails behind NCAR, it turns out that by coincidence NCAR was responsible for the first applications of LIDAR technology later used to gather this data.</p>
+      <p>The dataset did not include color data, but did include multiple elevations for vegetation (and some power lines).  The color here is generated based on the two datasets and relative elevation.</p>
+      <p>The dataset may be downsampled for machines without the gpu to handle the full set.</p>
+      <a href='ncar.html#1' onclick='location.reload()'>No Downsampling</a> | 
+      <a href='ncar.html#2' onclick='location.reload()'>One Half</a> | 
+      <a href='ncar.html#4' onclick='location.reload()'>One Fourth</a> | 
+      <a href='ncar.html#8' onclick='location.reload()'>One Eighth</a>
+      <br>
+      <a href='http://www.monogon.net'><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>  More projects on Monogon.net</a>
+    </div>
+
+    <a class="hover-area"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></a>
+</div>
+
+<style>
+body{
+	font-family: 'Quicksand', sans-serif;
+}
+a:link {
+    color: #FFFFFF;
+}
+a:visited {
+    color: #DDDDDD;
+}
+a:hover {
+    color: #FFDDDD;
+}
+a:active {
+    color: #DDFFFF;
+}
+
+</style>
+
+<!-- <div style="overflow: hidden; z-index:10; position:absolute; text-align:center; width:100%; color:white;">
+	Select Downsampling:  <span id="options"></span>
+</div> -->
+
+<div id="ThreeJS" style="overflow: hidden; position: absolute; left:0px; top:0px;  width:100%; height:100%; z-index:1;"></div>
+
+<script type="x-shader/x-vertex" id="vshader">
+uniform float scalar;
+uniform float time;
+uniform sampler2D oly;
+uniform vec2 res;
+attribute vec3 color;
+varying vec2 vUv;
+varying vec3 vCol;
+void main(){
+	vec2 dx = vec2(1.0, 0.0);
+	vec2 dy = vec2(0.0, 1.0);
+
+	vec2 east = position.xy + dx;
+	vec2 west = position.xy - dx;
+	vec2 nort = position.xy + dy;
+	vec2 sout = position.xy - dy;
+
+	float hereH = texture2D(oly, position.xy/res.xy +0.5).r;
+	float eastH = texture2D(oly, east/res.xy +0.5).r;
+	float westH = texture2D(oly, west/res.xy +0.5).r;
+	float nortH = texture2D(oly, nort/res.xy +0.5).r;
+	float soutH = texture2D(oly, sout/res.xy +0.5).r;
+
+	float secDiff = floor(1.0 + color.r - color.g)*256.0*max( 
+		min( abs(hereH - eastH), abs(hereH - westH) ),
+		min( abs(hereH - nortH), abs(hereH - soutH) )
+	);
+	secDiff = min(max(secDiff, 1.0),4.0);
+
+	// float dH = 64.0* max(abs(eastH - westH), abs(nortH - soutH));
+	// float dHPulse = max( (1.0+floor(sin(time/2.0)))*dH, 0.5);
+
+	vUv = position.xy/res.xy + 0.5;
+	
+  vec3 col = vec3(0.0);
+
+  vec3 b1 = vec3(140, 80, 40)/255.0;
+  vec3 b2 = vec3(240, 200, 140)/255.0;
+  vec3 b3 = vec3(160, 100, 60)/255.0;
+  vec3 b4 = vec3(220, 220, 220)/255.0;
+  vec3 b5 = vec3(255, 255, 255)/255.0;
+	
+  //col += water * (0.7+max( 0.3, nf));
+  //col += land * (clamp(nf, 0.5, 1.0));
+  float h = color.r;
+	col = mix(b1,  b2, smoothstep(0.0, 0.15, h));
+	col = mix(col, b3, smoothstep(0.10, 0.18, h));
+	col = mix(col, b2, smoothstep(0.35, 0.5, h));
+	col = mix(col, b4, smoothstep(0.8, 0.85, h));
+	col = mix(col, b5, smoothstep(0.95, 1.0, h));
+  // col = mix(water, shallow, smoothstep(0.0, 0.25, h));
+  // col = mix(col, land, smoothstep(0.2, 0.22, h));
+  // col = mix(col, grass2, smoothstep(0.1, 0.2, h));  
+  // col = mix(col, grass3, smoothstep(0.2, 0.4, h));  
+  // col = mix(col, grass, smoothstep(0.2, 0.6, h));
+  // col = mix(col, brown, smoothstep(0.5, 1.0, h));
+  // col = mix(col, grey, smoothstep(0.6, 0.8, h));
+  // col = mix(col, cloud, smoothstep(0.7, 1.0, h));
+
+	// vCol = color;
+
+	// vCol = vec3( 1.0, 1.0 - dH, 1.0 - dH);
+	// vCol = vec3( color.r, color.g - secDiff, color.b - dH /10.0);
+	// vCol = vec3(color.r) - vec3(0.0, secDiff, secDiff);
+
+	// vCol = col - (1.0+floor(cos(time/1.0))) * vec3(0.0 - secDiff, secDiff, secDiff);
+	vCol = color;
+	float dimmerEW = max(1.0 - 32.0*max(westH - eastH, 0.0), 0.1);
+	float dimmerNS = max(1.0 - 32.0*max(nortH - soutH, 0.0), 0.1);
+	vCol *= dimmerEW*dimmerNS;
+
+	vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+
+	gl_PointSize = scalar*2500.0*(secDiff/length(mvPos.xyz));
+	// gl_PointSize = scalar * 2500.0 * length(mvPos.xyz);
+	gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+
+</script>
+
+<!_____________>
+
+<script type="x-shader/x-fragment" id="fshader">
+uniform sampler2D oly;
+varying vec3 vCol;
+varying vec2 vUv;
+void main(){
+
+	// vec4 col = vec4(vUv.r, vUv.g, 0.5, 1.0);
+	// gl_FragColor = vec4(col, col, col,  1.0);
+	gl_FragColor = vec4(vCol, 1.0);  // using vertex colors pass as varying from vshader
+	// gl_FragColor = col;
+}
+</script>
+<!__________________________________>
+
+<script>
+// MAIN
+
+// standard global variables
+var container, scene, camera, renderer, controls, stats;
+var keyboard = new THREEx.KeyboardState();
+var clock = new THREE.Clock();
+
+// custom global variables
+var cube, plane, w, h, imgdata, scalar, particleSystem;
+var N;
+var time = 0.0;
+var matPtShader;
+
+init();
+
+
+	function change(n) {
+			location.hash = n;
+			location.reload();
+			console.log(n)
+			return false;
+		}
+
+// FUNCTIONS 		
+function init() 
+{
+	var hash = document.location.hash.substr( 1 );
+	if (hash){
+		hash = parseInt(hash, 0);	
+	}
+	else{
+		hash = 2;
+	}
+	console.log(hash);
+	// SCENE
+	scene = new THREE.Scene();
+	// CAMERA
+	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
+	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 200000;
+	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR);
+	scene.add(camera);
+	camera.position.set(440, 80, 440);
+	camera.lookAt(scene.position);	
+	// RENDERER
+	if ( Detector.webgl ) renderer = new THREE.WebGLRenderer( {antialias:true} );
+	else renderer = new THREE.CanvasRenderer(); 
+	renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+	renderer.setClearColor( 0x002244, 1);
+	container = document.getElementById( 'ThreeJS' );
+	container.appendChild( renderer.domElement );
+	// EVENTS
+	THREEx.WindowResize(renderer, camera);
+	THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
+	// CONTROLS
+	controls = new THREE.OrbitControls( camera, renderer.domElement );
+	// LIGHT
+	var light = new THREE.PointLight(0xffffff);
+	light.position.set(0,250,0);
+	scene.add(light);
+	var dirLight = new THREE.DirectionalLight(0xffffff);
+	dirLight.position.set(1,0,0);
+	scene.add(dirLight);
+
+  // plane
+  var groundt = THREE.ImageUtils.loadTexture( 'images/ncarbe.png', THREE.UVMapping, function(){
+  var texture = THREE.ImageUtils.loadTexture( 'images/ncarhh.png', THREE.UVMapping, function(){
+  	w = texture.image.width; //3840
+    h = texture.image.height; //3840
+    console.log("texture loaded: ", w, h);
+    imgdata = getImageData(texture.image);
+    grndata = getImageData(groundt.image);
+    console.log("pixel: ", getPixel(imgdata, 1000, 1000).r);
+    
+    scalar = 8;
+
+	  // points!
+	  var numpoints = 0;
+	  scalar = hash;
+	  uniforms = {
+	  	scalar:{type:"f", value: scalar},
+	  	time: {type: "f", value: time},
+	  	res: {type: "v2", value: new THREE.Vector2(w, h)},
+	  	oly : {type: "t", value: texture}
+	  };
+	  attributes = {};
+		matPtShader = new THREE.ShaderMaterial({
+			uniforms: uniforms, attributes: attributes,
+			vertexShader: document.getElementById( 'vshader' ).textContent,
+			fragmentShader: document.getElementById( 'fshader' ).textContent, 
+			blending: THREE.AdditiveBlending, depthTest: true, transparent: false
+		})
+
+
+		var material = new THREE.PointCloudMaterial( {color:0xffffff, vertexColors:THREE.VertexColors});
+		var particles = new THREE.Geometry()
+		
+		// now create the individual particles / particleCloud
+		
+		console.log( "set particles: ", (w/scalar+1)*(h/scalar) )
+		for (var p = 0; p < (w/scalar + 1)*(h/scalar); p++) {
+			var x  = scalar*(p%( w/scalar ));
+			var y = 1+scalar*Math.floor(p/( 1 + h/scalar ) );
+			var zf = getPixel(imgdata, x, h - y).r;  //foliage
+			var zg = getPixel(grndata, x, h - y).r;	 //ground
+			var z = 0.0;
+			var c;
+
+			if (zf !== 0 && zg !==0){
+				if ((zf - zg) > 2 && (zf - zg) < 40){
+					z = zf;
+					particles.colors.push( new THREE.Color( Math.floor((zf - zg)/50), (zf - zg)/25, Math.floor((zf - zg)/25) ) );	
+					var particle = new THREE.Vector3(x - w/2, y - h/2, z);
+					particles.vertices.push(particle);
+				}
+				
+				z = zg;
+				particles.colors.push( new THREE.Color( z/300,z/350, z/400 ) );	
+				var particle = new THREE.Vector3(x - w/2, y - h/2, z);
+				particles.vertices.push(particle);
+			}
+	  
+		}
+		particleSystem = new THREE.PointCloud(
+		    particles,
+		    matPtShader);
+		particleSystem.frustumCulled = false;
+		scene.add(particleSystem);
+		particleSystem.rotation.x = -Math.PI/2;	  	
+    animate();  
+	 });
+})
+
+}
+
+function animate() 
+{
+  requestAnimationFrame( animate );
+	render();		
+	update();
+}
+
+function update()
+{
+	time += clock.getDelta();
+	matPtShader.uniforms.time.value = time;
+	if ( keyboard.pressed("z") ) 
+	{ 
+		console.log(camera);
+	}
+	
+	controls.update();
+}
+
+function render() 
+{
+	renderer.render( scene, camera );
+}
+
+function getImageData( image ) {
+
+    var canvas = document.createElement( 'canvas' );
+    canvas.width = image.width;
+    canvas.height = image.height;
+
+    var context = canvas.getContext( '2d' );
+    context.drawImage( image, 0, 0 );
+
+    return context.getImageData( 0, 0, image.width, image.height );
+
+}
+
+function getPixel( imagedata, x, y ) {
+
+    var position = ( x + imagedata.width * y ) * 4, data = imagedata.data;
+    return { r: data[ position ], g: data[ position + 1 ], b: data[ position + 2 ], a: data[ position + 3 ] };
+
+}
+
+// Geospatial Data Abstraction Library
+// http://www.gdal.org/index.html
+
+// Mars Orbital Laser Altimeter
+// http://mola.gsfc.nasa.gov/
+
+// 3DEM
+// http://www.hangsim.com/3dem/
+
+// howto
+// http://blog.thematicmapping.org/2012/06/digital-terrain-modeling-and-mapping.html
+</script>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-67709103-1', 'auto');
+  ga('send', 'pageview');
+</script>
+</body>
+</html>
