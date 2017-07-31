@@ -1,0 +1,48 @@
+:root {
+	--rowNum: 4;
+	--colNum: 4;
+}
+
+body{
+	text-align:center;
+}
+
+.wrapper {
+	width: 800px;
+	height: 800px;
+	margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(var(--colNum), 1fr);
+  grid-template-rows: repeat(var(--rowNum), 1fr);
+  grid-gap: 1px;
+  background-color: #ccc;
+  color: #444;
+}
+
+.cell {
+	/*background-color: #666;*/
+	text-align: center;
+}
+
+#a {
+	background-color: #977;	
+}
+#b {
+	background-color: #A66;	
+}
+#c {
+	background-color: #B55;	
+}
+#d {
+	background-color: #C44;	
+}
+#e {
+	background-color: #D33;	
+}
+#f {
+	background-color: #E22;	
+}
+
+.queen {
+	background-color: #CC4;
+}
