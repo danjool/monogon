@@ -30,6 +30,14 @@ let init = function( n ){
 		newcell.className = "cell";
 		newcell.id = "";
 		newcell.dataset.val = "0"
+		newcell.dataset.n = ""+i
+		newcell.addEventListener('click', ()=>{
+			let j = parseInt( newcell.dataset.n, 10 ) 
+			let x = j % n
+			let y = Math.floor( j / n) 
+			console.log(newcell.dataset.n, x, y)
+			toggleQueen(x,y)
+		})
 		wrapper.appendChild( newcell )
 	}
 	cells = document.getElementsByClassName("cell")
@@ -69,11 +77,13 @@ let toggleQueen= function( x, y ){
 			incrementCell( hx, vy, incr )
 		//for all the cells diag /
 		b = y + x
-		dx = i - 1
-		dy = b - i + 1
+		dx = i 
+		dy = b - i 
 		if ( dx >= 0 && dx <= n && dy >= 0 && dy < n ) 
 			incrementCell( dx, dy, incr )
 	}
+	if ( b >=0 && b < n ){ incrementCell( 0, b, incr ) }
+
 }
 
 let incrementCell = function( x, y, amt ){
@@ -125,8 +135,8 @@ let moveAQueen = function(){
 	toggleQueen( newX, y )
 
 	steps += 1
-	// console.log(steps)
-	if (isDone()){
+	// console.log(steps, oldX, y, newX, y)
+	if ( isDone() ){
 		keepLooking = false
 		console.log('steps: ', steps)
 	} 
