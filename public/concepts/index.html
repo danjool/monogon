@@ -15,10 +15,10 @@
         <script>
     fetch('./data/concepts-nodes-links.json').then(res => res.json()).then(data => {
       const Graph = ForceGraph()
-      (document.getElementById('graph'))
+      (document.getElementById('3d-graph'))
         .graphData(data)
         .nodeId('id')
-        .nodeAutoColorBy('group')
+        .nodeAutoColorBy('id')
         .nodeCanvasObject((node, ctx, globalScale) => {
           const label = node.id;
           const fontSize = 12/globalScale;
