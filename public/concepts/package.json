@@ -1,0 +1,32 @@
+{
+  "name": "concepts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "script.js",
+  "scripts": {
+    "build": "webpack --config ./bundler/webpack.prod.js",
+    "dev": "webpack serve --config ./bundler/webpack.dev.js"
+  },
+  "dependencies": {
+    "3d-force-graph": "^1.70.5",
+    "d3": "^7.2.0",
+    "d3-force-3d": "^3.0.2",
+    "d3-octree": "^0.2.0",
+    "d3-timer": "^3.0.1",
+    "dat.gui": "^0.7.7",
+    "internal-ip": "^7.0.0",
+    "three": "^0.126.0",
+    "three-spritetext": "^1.6.3"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "copy-webpack-plugin": "^10.2.4",
+    "html-webpack-plugin": "^5.5.0",
+    "mini-css-extract-plugin": "^2.5.3",
+    "webpack": "^5.69.1",
+    "webpack-cli": "^4.9.2",
+    "webpack-dev-server": "^4.7.4",
+    "webpack-merge": "^5.8.0"
+  }
+}
