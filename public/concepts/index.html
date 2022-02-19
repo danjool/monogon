@@ -20,7 +20,7 @@
         .nodeId('id')
         .nodeAutoColorBy('id')
         .nodeCanvasObject((node, ctx, globalScale) => {
-          const label = node.id;
+          const label = node.label;
           const fontSize = 12/globalScale;
           ctx.font = `${fontSize}px Sans-Serif`;
           const textWidth = ctx.measureText(label).width;
