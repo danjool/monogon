@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset='utf-8'>
+	<meta name='viewport' content='width=device-width,initial-scale=1'>
+
+	<title>Cover My Meds Test</title>
+
+	<style>
+
+		body {
+			background-color: darkslateblue;
+		}
+
+		p {
+			font-size: 3em;
+			padding:  10px;
+			border-radius: 8px;
+		}
+
+		.wrapper{
+			display: flex;
+			justify-content: center;
+		}
+		.world {
+			display: inline-block;
+			justify-content: center;
+			background-color: black;
+			color: white;
+		}
+		.hello{
+			display: inline-block;
+			/*float: left;*/
+		}
+
+	</style>
+
+</head>
+
+<body>
+
+	<div class="wrapper">
+		<p class="hello">Hello, <span class="world">World</span></p>
+
+		
+	</div>
+
+	<div class="wrapper">
+		<div id="favorites-holder"></div>
+	</div>
+
+
+	<script>
+		let baseFavorites = [
+			{name: 'Ray', color:'red', bgColor: 'lightblue'},
+			{name: 'Oscar', color:'orange', bgColor: 'gray'},
+			{name: 'Gwen', color:'green', bgColor: 'beige'},
+			{name: 'Bob', color:'blue', bgColor: 'pink'},
+			{name: 'Marie', color: 'magenta', bgColor: 'aquamarine'}
+		];
+
+		let favorites = []
+		let originalArraySize = baseFavorites.length
+		for (let i = 0; i < originalArraySize; i++){
+			let randomIndex = Math.floor( (Math.random() * baseFavorites.length))
+			favorites.push( ...baseFavorites.splice( randomIndex, 1 ) )
+		}
+
+		let holder = document.getElementById("favorites-holder")
+		for (let i = 0; i < favorites.length; i++){
+
+			let fav = favorites[i]
+			let newParagraph = `<p style="color:` + fav.color +`;background-color:`+fav.bgColor+`"">`+fav.name+`</p>`
+			
+			holder.innerHTML += newParagraph
+		}
+		
+	</script>
+
+</body>
+
+</html>

@@ -1,0 +1,35 @@
+Render a robust simulation of an alternative cosmology.  
+
+Possible features:
+	extra physical dimensions
+	alt relationships between space and time
+	what if light accelerated?  decayed?  
+	what if light shot out of your eyes?
+	unexplained vertical cliff face?
+	inside a dyson sphere?
+	single flow of energy that everything is based off of?  multiple?
+	sea analog - fog?
+	if any cosmological idea is communicated to the player, it should be at least partially wrong (maybe even reality's valid explanation?)
+	is there a life or death?
+	can we just steal an old incorrect cosmology like Cavendish's or smush some together, what are they all?
+	allow possibility of finding or making a telescope, microscope equivalent
+	microscope could show alternative 'small cosmology', like a grid of activating cells
+	telescope could show moving civilization on other side of dyson sphere
+	an analog to telescope would just be a filtering a sun inside of a dyson sphere, so you could finally see the civ on the other side
+	let 'gravity' be inside out, pushing instead of pulling (like dark ernegy but smaller)
+	what if you could collect light to get a better image of something further away (like modern astronomy) but that technique was easier than telescopes
+	
+
+
+How are games already this?  Most games are simplified abstractions of reality, so it needs to be apparent to the player that the discrepancies between reality and simulation matter.
+
+Games featuring alt cosmologies:
+	Narrative: 
+		Disco Elysium
+		Planescape
+	Mechanical: 
+		A Slower Speed of Light
+		Outer Wilds
+
+Games where you get to creatively make stuff:
+	Banjo Kazooie Nuts and Bolts

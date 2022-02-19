@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+	<title>Rigid body - Physijs</title>
+	
+	<link rel="stylesheet" type="text/css" href="css/styles.css" />
+	
+	<!-- <script type="text/javascript" src="js/three.min.js"></script> -->
+	<script type="text/javascript" src="../three.min.js"></script>
+	<script type="text/javascript" src="js/stats.js"></script>
+	<script type="text/javascript" src="../physi.js"></script>
+	
+	<script type="text/javascript">
+	
+	Physijs.scripts.worker = '../physijs_worker.js';
+	Physijs.scripts.ammo = 'examples/js/ammo.js';
+
+	const groundRadius = 10
+	
+	let initScene, render, applyForce, setMousePosition, mouse_position, origin,
+		ground_material, box_material, loader, player,
+		renderer, render_stats, physics_stats, scene, ground, light, camera, activeCamera, playerCamera, box, boxes = [], balls = [];
+
+	let input = { direction: 0, power: 0 }
+	
+	initScene = function() {
+		origin = new THREE.Vector3(0,0,0)
+		renderer = new THREE.WebGLRenderer({ antialias: true });
+		renderer.setSize( window.innerWidth, window.innerHeight );
+		renderer.shadowMap.enabled = true;
+		renderer.shadowMapSoft = true;
+		document.getElementById( 'viewport' ).appendChild( renderer.domElement );
+		
+		render_stats = new Stats();
+		render_stats.domElement.style.position = 'absolute';
+		render_stats.domElement.style.top = '1px';
+		render_stats.domElement.style.zIndex = 100;
+		document.getElementById( 'viewport' ).appendChild( render_stats.domElement );
+
+		physics_stats = new Stats();
+		physics_stats.domElement.style.position = 'absolute';
+		physics_stats.domElement.style.top = '50px';
+		physics_stats.domElement.style.zIndex = 100;
+		document.getElementById( 'viewport' ).appendChild( physics_stats.domElement );
+		
+		scene = new Physijs.Scene;
+		scene.setGravity( new THREE.Vector3( 0, 0, 0 ) ); // null out the physijs engine's default gravity setting
+		scene.addEventListener(
+			'update',
+			function() {
+				applyForce();
+				scene.simulate( undefined, 1 );
+				physics_stats.update();
+			}
+		);
+		
+		camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 1000 );
+		playerCamera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, .1, 10 );
+		let sqrtGroundRadius = Math.sqrt(groundRadius)
+		camera.position.set( 12* sqrtGroundRadius, 10*sqrtGroundRadius, 12*sqrtGroundRadius );
+		camera.lookAt( scene.position );
+		scene.add( camera );
+		
+		// Light
+		light = new THREE.DirectionalLight( 0xFFFFFF );
+		light.position.set( 20, 40, -15 );
+		light.target.position.copy( scene.position );
+		light.castShadow = true;
+		light.shadowCameraLeft = -60;
+		light.shadowCameraTop = -60;
+		light.shadowCameraRight = 60;
+		light.shadowCameraBottom = 60;
+		light.shadowCameraNear = 20;
+		light.shadowCameraFar = 200;
+		light.shadowBias = -.0001
+		light.shadowMapWidth = light.shadowMapHeight = 2048;
+		light.shadowDarkness = .7;
+		scene.add( light );
+		let ambientLight = new THREE.AmbientLight( 0x222222 ); // soft white light
+		scene.add(  ambientLight );
+
+		// Loader
+		loader = new THREE.TextureLoader();
+		
+		// Materials
+		ground_material = Physijs.createMaterial(
+			new THREE.MeshLambertMaterial({ map: loader.load( 'images/rocks.jpg' ), side:THREE.DoubleSide }),
+			.99, // high friction
+			1.0 // low restitution
+		);
+		ground_material.map.wrapS = ground_material.map.wrapT = THREE.RepeatWrapping;
+		ground_material.map.repeat.set( 3, 3 );
+		
+		box_material = Physijs.createMaterial(
+			new THREE.MeshLambertMaterial({ map: loader.load( 'images/plywood.jpg' ) }),
+			.9, // friction 0-1
+			.6 // restitution(bounce) 0-1
+		);
+		box_material.map.wrapS = ground_material.map.wrapT = THREE.RepeatWrapping;
+		box_material.map.repeat.set( .25, .25 );
+		
+		// Ground
+		// ground = new Physijs.BoxMesh(
+		// 	new THREE.BoxGeometry(100, 1, 100),
+		// 	ground_material,
+		// 	0 // mass
+		// );
+		// ground.receiveShadow = true;
+		// scene.add( ground );
+
+		// Round Ground
+		ground = new Physijs.SphereMesh( new THREE.SphereGeometry( groundRadius, 64, 32), ground_material, 0 )
+		ground.receiveShadow = true;
+		scene.add( ground );
+		
+		// for ( var i = 0; i < 16; i++ ) {
+		// 	// box = new Physijs.BoxMesh(
+		// 	// 	new THREE.BoxGeometry( 4, 4, 4 ),
+		// 	// 	box_material
+		// 	// );
+		// 	box = new Physijs.SphereMesh( new THREE.SphereGeometry( 1, 64, 32 ), box_material)
+		// 	box.position.set(
+		// 		Math.random() * 50 - 25,
+		// 		10 + Math.random() * 5,
+		// 		Math.random() * 50 - 25
+		// 	);
+		// 	box.rotation.set(
+		// 		Math.random() * Math.PI * 2,
+		// 		Math.random() * Math.PI * 2,
+		// 		Math.random() * Math.PI * 2
+		// 	);
+		// 	// box.scale.set(
+		// 	// 	Math.random() * 1 + .5,
+		// 	// 	Math.random() * 1 + .5,
+		// 	// 	Math.random() * 1 + .5
+		// 	// );
+		// 	box.castShadow = true;
+		// 	scene.add( box );
+		// 	boxes.push( box );
+		// }
+
+		player = new Physijs.SphereMesh( new THREE.SphereGeometry( 1, 32, 16 ), box_material)
+		player.position.set(
+			Math.random() * 50 - 25,
+			10 + Math.random() * 5,
+			Math.random() * 50 - 25
+		);
+		player.castShadow = true;
+		scene.add(player)
+		axesHelper = new THREE.AxesHelper( 1.5 );
+		playerCamera.position.set(0,-4.5, -3.0)
+		axesHelper.add(playerCamera)
+		playerCameraHelper = new THREE.CameraHelper(playerCamera)
+		scene.add(playerCameraHelper)
+		scene.add(axesHelper)
+		// player.add(axesHelper)
+		
+		renderer.domElement.addEventListener( 'mousemove', setMousePosition );
+
+		document.addEventListener('keydown', function( ev ) {
+			console.log(player, input)
+			switch ( ev.keyCode ) {
+				case 37: // left
+					input.direction = 1;
+					break;
+				case 38: // forward
+					input.power = 1;
+					break;
+				case 39: // right
+					input.direction = -1;
+					break;
+				case 40: // back
+					input.power = -1;
+					break;
+				case 32: // space
+					console.log('wat')
+					let distance = player.position.length()
+					if( distance < groundRadius + 1.1 ){
+						player.applyImpulse( player.position.clone().normalize().multiplyScalar( 150 ), origin )
+					}
+					break;
+				case 67: // c
+					if (activeCamera === camera){ activeCamera = playerCamera }
+					else { activeCamera = camera }
+						break;
+			}
+		});
+		document.addEventListener('keyup', function( ev ) {
+			switch ( ev.keyCode ) {
+				case 37: // left
+					input.direction = 0;
+					break;
+				case 38: // forward
+					input.power = 0;
+					break;
+				case 39: // right
+					input.direction = 0;
+					break;
+				case 40: // back
+					input.power = 0;
+					console.log("axesHelper", axesHelper.position)
+					break;
+			}
+			console.log(ev.keyCode)
+		});
+
+		activeCamera = camera
+
+		requestAnimationFrame( render );
+		scene.simulate();
+	};
+	
+	render = function() {
+		requestAnimationFrame( render );
+		// playerCameraHelper.update()
+		renderer.render( scene, activeCamera );
+		render_stats.update();
+	};
+	
+	setMousePosition = function( evt ) {
+		// Find where mouse cursor intersects the ground plane
+		var vector = new THREE.Vector3(
+			( evt.clientX / renderer.domElement.clientWidth ) * 2 - 1,
+			-( ( evt.clientY / renderer.domElement.clientHeight ) * 2 - 1 ),
+			.5
+		);
+		vector.unproject( camera );
+		vector.sub( camera.position ).normalize();
+		
+		// var coefficient = (box.position.y - camera.position.y) / vector.y
+		// mouse_position = camera.position.clone().add( vector.multiplyScalar( coefficient ) );
+	};
+	
+	applyForce = function() {
+		// if (!mouse_position) return;
+		var strength = 35, distance, effect, offset, box;
+
+		let quat = player.quaternion.clone()
+		let playerDir = new THREE.Vector3(1,0,0).applyQuaternion(quat)
+		// let playerUp = new THREE.Vector3(0,0,1).applyQuaternion(quat)
+
+		//align the axis with the planet oriented normal, and forward pointing towards player vel vector proj onto planet normal plane
+		let v = player.getLinearVelocity().clone()
+		axesHelper.position.set( player.position.x, player.position.y, player.position.z )
+		axesHelper.up = player.position.clone().normalize()
+		let lookAt = v.projectOnPlane( player.position.clone().normalize() ).normalize()
+		axesHelper.lookAt(lookAt)
+		let axesQuat = axesHelper.quaternion.clone()
+		let axesForward = new THREE.Vector3(0,1,0).applyQuaternion(axesQuat)
+		let axesRight = new THREE.Vector3(1,0,0).applyQuaternion(axesQuat)
+		
+		for ( var i = 0; i < boxes.length; i++ ) {
+			box = boxes[i];
+			// attract to the origin:
+			distance = origin.distanceTo( box.position )
+			effect = origin.clone().sub( box.position ).normalize().multiplyScalar( 10000/(distance*distance) )
+			offset = origin;
+			box.applyImpulse( effect, offset )
+		}
+
+		// player.rotation.set( player.position.clone().negate().normalize() )
+		// player.setAngularVelocity(new THREE.Vector3(0, 0, 0));
+		// player.__dirtyRotation = true;
+
+		// GRAVITY
+		distance = origin.distanceTo( player.position )
+		effect = origin.clone().sub( player.position ).normalize().multiplyScalar( 1000/(distance*distance) )
+		offset = origin;
+		player.applyImpulse( effect, offset )
+
+		
+		// PLAYER INPUT
+		if( input.power && input.power !== 0 ){
+			effect = (new THREE.Vector3( 10, 0, 0 )).applyQuaternion( quat )
+			player.applyImpulse( axesForward.multiplyScalar(input.power), offset )
+		}
+		if( input.direction && input.direction !== 0 ){
+			effect = (new THREE.Vector3( 0, 10*input.direction, 0 )).applyQuaternion( quat )
+			player.applyImpulse( axesRight.multiplyScalar(input.direction*5.0), offset)	
+		}
+
+		// AIR FRICTION?
+		let vmag = player.getLinearVelocity().length()
+		if(vmag > 0.0001){
+			let friction = v.negate().normalize().multiplyScalar(vmag*vmag*.001)
+			player.applyImpulse(friction, origin)
+		}
+		
+		playerCamera.up = player.position.clone().normalize()
+		playerCamera.lookAt( axesHelper.position.clone() )
+
+	};
+	
+	window.onload = initScene;
+	
+	</script>
+</head>
+
+<body>
+<!-- 	<div id="heading">
+		<h1>Rigid Body + User Interaction</h1>
+		<p>Move your cursor near the boxes to push them.</p>
+	</div> -->
+	<div id="viewport"></div>
+</body>
+
+</html>
