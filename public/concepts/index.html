@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="//unpkg.com/force-graph"></script>
+    <script src="//unpkg.com/three"></script>
+    <script src="//unpkg.com/d3-force-3d"></script>
+    <script src="//unpkg.com/3d-force-graph"></script>
+    <script src="//unpkg.com/three-spritetext"></script>
+    
     <title>fdg - concepts</title>
 </head>
 <style>
@@ -60,36 +65,59 @@ h1 {
             <div id="3d-graph"></div>    
         </div>
 
-        <script>
+        <script type="module" >
+function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
+  if (!color) color = (n) => "white";
+  fGraph
+    .nodeThreeObject((node) => {
+      let label = node.label ? node.label : node.id;
+
+      const sprite = new SpriteText(label);
+      sprite.material.depthWrite = false; // make sprite background transparent
+      sprite.color = color(node);
+      sprite.textHeight = textHeight;
+      return sprite;
+    })
+    .linkDirectionalParticles(2)
+    .linkDirectionalParticleSpeed(0.025)
+    .linkDirectionalParticleWidth(2)
+    .linkDirectionalParticleColor("white")
+    .linkDirectionalParticleResolution(2);
+}
+
+
+
     fetch('./data/concepts-nodes-links.json').then(res => res.json()).then(data => {
-      const Graph = ForceGraph()
+      const fGraph = ForceGraph3D()
       (document.getElementById('3d-graph'))
         .graphData(data)
         .nodeId('id')
         .nodeAutoColorBy('id')
-        .nodeCanvasObject((node, ctx, globalScale) => {
-          const label = node.label;
-          const fontSize = 12/globalScale;
-          ctx.font = `${fontSize}px Sans-Serif`;
-          const textWidth = ctx.measureText(label).width;
-          const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2); // some padding
+        // .nodeCanvasObject((node, ctx, globalScale) => {
+        //   const label = node.label;
+        //   const fontSize = 12/globalScale;
+        //   ctx.font = `${fontSize}px Sans-Serif`;
+        //   const textWidth = ctx.measureText(label).width;
+        //   const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2); // some padding
 
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-          ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2, ...bckgDimensions);
+        //   ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        //   ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2, ...bckgDimensions);
 
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = node.color;
-          ctx.fillText(label, node.x, node.y);
+        //   ctx.textAlign = 'center';
+        //   ctx.textBaseline = 'middle';
+        //   ctx.fillStyle = node.color;
+        //   ctx.fillText(label, node.x, node.y);
 
-          node.__bckgDimensions = bckgDimensions; // to re-use in nodePointerAreaPaint
-        })
-        .nodePointerAreaPaint((node, color, ctx) => {
-          ctx.fillStyle = color;
-          const bckgDimensions = node.__bckgDimensions;
-          bckgDimensions && ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2, ...bckgDimensions);
-        });
+        //   node.__bckgDimensions = bckgDimensions; // to re-use in nodePointerAreaPaint
+        // })
+        // .nodePointerAreaPaint((node, color, ctx) => {
+        //   ctx.fillStyle = color;
+        //   const bckgDimensions = node.__bckgDimensions;
+        //   bckgDimensions && ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2, ...bckgDimensions);
+        // });
+        setNodeObjectsToSpriteLabels(fGraph,16,null)
     });
+    
   </script>
     
 </body>
