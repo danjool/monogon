@@ -59,6 +59,7 @@ h1 {
     overflow:hidden;
 }
 </style>
+
 <body>
     
         <div>
@@ -104,23 +105,59 @@ function setEdgeVisualsByAttributeMap(fGraph, attribute, valueMap) {
 	});
 }
 
-    fetch('./data/concepts-nodes-links.json').then(res => res.json()).then(data => {
-      const fGraph = ForceGraph3D()
-      (document.getElementById('3d-graph'))
-        .graphData(data)
-        .nodeId('id')
-        .nodeAutoColorBy('id')
-        setNodeObjectsToSpriteLabels(fGraph,16,null)
-        let relationToColorMap = {
-	        IsA: "cyan",
-	        Synonym: "blue",
-	        Antonym: "red",
-      	};
-      	setEdgeVisualsByAttributeMap(fGraph, "relation", relationToColorMap);
-      	setEdgeLabelByAttribute(fGraph, "relation");
-    });
+
+function pinNode(node) {
+  node.fx = node.x;
+  node.fy = node.y;
+  node.fz = node.z;
+}
+
+function unpinNode(node) {
+  node.fx = null;
+  node.fy = null;
+  node.fz = null;
+}
+
+function togglePinNode(node) {
+	console.log("togglePinNode", node)
+  if (node.fx !== null) unpinNode(node);
+  else pinNode(node);
+}
+
+function unpinAllNodes() {
+  fGraph.graphData().nodes.forEach(unpinNode);
+}
+
+
+fetch('./data/concepts-nodes-links.json').then(res => res.json()).then(data => {
+  const fGraph = ForceGraph3D({rendererConfig:{ antialias: true, alpha: true, clearColor: "black" } } )
+  (document.getElementById('3d-graph'))
+    .graphData(data)
+    .nodeId('id')
+    .nodeAutoColorBy('id')
+    .onNodeClick((node, event) => {
+  		console.log("!")
+	    togglePinNode(node);
+    })
+    .linkWidth(1.1)
+    .linkOpacity(.5)
+    .linkResolution(5)
+
+    setNodeObjectsToSpriteLabels( fGraph, 8, null )
+    let relationToColorMap = {
+        IsA: "cyan",
+        Synonym: "blue",
+        Antonym: "red",
+  	};
+  	setEdgeVisualsByAttributeMap(fGraph, "relation", relationToColorMap);
+  	setEdgeLabelByAttribute(fGraph, "relation");
+
+fGraph.scene().background = "red"
+  	console.log(fGraph.scene())
+
+});
     
-  </script>
+</script>
     
 </body>
 </html>
