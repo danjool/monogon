@@ -1,0 +1,16 @@
+{"nodes":[
+	{"id": "Number Theory", "branch":"Pure Mathematics", "image": "Spirale_Ulam_150.jpg"},
+	{"id": "Integers"},
+	{"id": "Integer Related Functions"},
+	{"id": "Arithmetic", "branch":"Mathematics", "image": "1024px-Arithmetic_symbols.svg.png"},
+	{"id": "Numbers", "branch":"Applied Mathematics", "image": "Nat_num.svg.png"},
+	{"id": "Count", "image": "external-content.duckduckgo.com.jpg" },
+	{"id": "Measure", "image":"800px-Measure_illustration_(Vector).svg.png" },
+	{"id": "Label", "image": "external-content.duckduckgo.com.png" }
+],"links":[
+	{"id":1, "relation":"About", "source":"Number Theory", "target":"Integers"},
+	{"id":2, "relation":"About", "source":"Number Theory", "target":"Integer Related Functions"},
+	{"id":3, "relation":"Used To", "source":"Numbers", "target":"Label"},
+	{"id":4, "relation":"Used To", "source":"Numbers", "target":"Count"},
+	{"id":5, "relation":"Used To", "source":"Numbers", "target":"Measure"}
+]}

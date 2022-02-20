@@ -67,17 +67,36 @@ h1 {
         </div>
 
         <script type="module" >
+        	const imagesFolder = 'images/'
+			const circleAlphaMap = new THREE.TextureLoader().load(imagesFolder + "orb.png");
+			const rectAlphaMap = new THREE.TextureLoader().load(imagesFolder + "cropped-rect-mask.jpg");
+
+
 function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
   if (!color) color = (n) => "white";
   fGraph
     .nodeThreeObject((node) => {
-      let label = node.label ? node.label : node.id;
+    	if (node.image) {
+		const imgTexture = new THREE.TextureLoader().load(
+		imagesFolder + node.image
+		);
+		const material = new THREE.SpriteMaterial({
+		map: imgTexture,
+		alphaMap: node.type === "event" ? rectAlphaMap : circleAlphaMap,
+		});
+		const sprite = new THREE.Sprite(material);
+		sprite.scale.set(node.type === "event" ? 24 : 12, 12);
+		return sprite;
+    } else {
+    	let label = node.label ? node.label : node.id;
 
       const sprite = new SpriteText(label);
       sprite.material.depthWrite = false; // make sprite background transparent
       sprite.color = color(node);
       sprite.textHeight = textHeight;
-      return sprite;
+      return sprite;	
+    }
+      
     })
     .linkDirectionalParticles(2)
     .linkDirectionalParticleSpeed(0.025)
@@ -127,6 +146,25 @@ function togglePinNode(node) {
 function unpinAllNodes() {
   fGraph.graphData().nodes.forEach(unpinNode);
 }
+
+
+// function setNodeObjectsToImageLabels() {
+// 	const imagesFolder = "./images/";
+// 	setNodesLabelByAttribute();
+// 	fGraph.nodeThreeObject((node) => {
+//     if (node.image) {
+// 		const imgTexture = new THREE.TextureLoader().load(
+// 		imagesFolder + node.image
+// 		);
+// 		const material = new THREE.SpriteMaterial({
+// 		map: imgTexture,
+// 		alphaMap: node.type === "event" ? rectAlphaMap : circleAlphaMap,
+// 		});
+// 		const sprite = new THREE.Sprite(material);
+// 		sprite.scale.set(node.type === "event" ? 24 : 12, 12);
+// 		return sprite;
+//     }
+// });
 
 
 fetch('./data/concepts-nodes-links.json').then(res => res.json()).then(data => {
