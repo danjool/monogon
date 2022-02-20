@@ -108,11 +108,15 @@ a, button, input, select {
 
 		<script type="module">
 
-			let camera, scene, renderer, stats;
+			let camera, scene, renderer, stats, lights;
 			const ParametricGeometries = THREE.ParametricGeometries
 			const ParametricGeometry = THREE.ParametricGeometry
 			const CurveExtras = THREE.CurveExtras
 			const Curves = THREE.Curves
+
+			const count = 500
+			let mesh
+			const dummy = new THREE.Object3D();
 
 			init();
 			animate();
@@ -121,18 +125,26 @@ a, button, input, select {
 
 				const container = document.getElementById( 'container' );
 
-				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 4000 );
 				camera.position.y = 400;
 
 				scene = new THREE.Scene();
 
 				//
 
-				const ambientLight = new THREE.AmbientLight( 0xcccccc, 0.1 );
+				const ambientLight = new THREE.AmbientLight( 0xffffff, .0 );
 				scene.add( ambientLight );
 
-				const pointLight = new THREE.PointLight( 0xffffff, 0.8 );
-				camera.add( pointLight );
+				lights = []
+				const sphere = new THREE.SphereGeometry( 1.0, 4, 4 );
+				for(let i = 0; i < 4; i++){
+					const pointLight = new THREE.PointLight( 0xffffff, 0.8 );
+					pointLight.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 0xffffff } ) ) )
+					lights.push( pointLight )
+					scene.add( pointLight );
+				}
+				
+
 				scene.add( camera );
 
 				//
@@ -144,8 +156,8 @@ a, button, input, select {
 				// const material = new THREE.MeshPhongMaterial( { map: map, side: THREE.DoubleSide } );
 				const material = new THREE.MeshStandardMaterial( {
 					color: 0xffee88,
-					metalness: 0.1,
-					roughness: 0.5 
+					metalness: 0.8,
+					roughness: 0 
 				} )
 
 				//
@@ -156,12 +168,12 @@ a, button, input, select {
 					const phi = u / 2.0;
 					const major = 2.25 + 0.4 * Math.sin(u*2.),
 						a = 0.5 + 0.4 * Math.sin(u),
-						b = 0.1;
-					// let x = a * Math.cos( t ) * Math.cos( phi ) - b * Math.sin( t ) * Math.sin( phi );
-					// const z = a * Math.cos( t ) * Math.sin( phi ) + b * Math.sin( t ) * Math.cos( phi );
+						b = 0.06;
+					let x = a * Math.cos( t ) * Math.cos( phi ) - b * Math.sin( t ) * Math.sin( phi );
+					let z = a * Math.cos( t ) * Math.sin( phi ) + b * Math.sin( t ) * Math.cos( phi );
 
-					let x = a * Math.cos( t )
-					let z = b * Math.sin( t )
+					// let x = a * Math.cos( t )
+					// let z = b * Math.sin( t )
 
 					const y = ( major + x ) * Math.sin( u );
 					x =       ( major + x ) * Math.cos( u );
@@ -182,7 +194,16 @@ a, button, input, select {
 				object.position.set( 0, 0, 0 );
 				object.rotation.x = Math.PI * .5
 				object.scale.multiplyScalar( 64 );
-				scene.add( object );
+
+
+				mesh = new THREE.InstancedMesh( geometry, material, count );
+				mesh.position.set( 0, 0, 0 );
+				mesh.rotation.x = Math.PI * .5
+				mesh.scale.multiplyScalar( 64 );
+				mesh.instanceMatrix.setUsage( THREE.DynamicDrawUsage ); // will be updated every frame
+				scene.add( mesh );
+
+				// scene.add( object );
 
 				// geometry = new ParametricGeometry( ParametricGeometries.plane( 100, 100 ), 10, 10 );
 				// geometry.center();
@@ -269,12 +290,55 @@ a, button, input, select {
 
 				const timer = Date.now() * 0.0001;
 
-				camera.position.x = 0 //Math.cos( timer ) * 400;
-				camera.position.z = 400  + Math.sin( timer ) * 200;
+				camera.position.x = Math.cos( timer ) * 400;
+				camera.position.z = 800  + Math.sin( timer ) * 2000;
 				camera.position.y = 100
 
 				camera.lookAt( scene.position );
 
+				let tt = Math.sin(timer*9.77)
+				let r = 1350 //+10 * tt
+				let t = 4*timer
+				
+				let theta = t*4
+				
+				for(let i = 0; i<lights.length; i++){
+					let j = i+1
+					let phi = j
+					// lights[i].position.x = r*Math.cos(theta+j)
+					// lights[i].position.y = Math.tan(timer*.01 )
+					// lights[i].position.z = r*Math.sin(1*(theta+j))
+
+					lights[i].position.x = r*Math.cos(theta+j)*Math.sin(phi)
+					lights[i].position.y = r*Math.sin(theta+j)*Math.cos(phi)
+					lights[i].position.z = r*Math.cos(phi)
+				}
+
+				let maxOffset = 100
+				let minOffset = 1.8
+
+				if(mesh){
+					let i = 0;
+					let pulse = 1-((Math.cos(2*timer)+1)/2.0)
+					let offset = 0 + pulse*maxOffset
+					offset = 2.8
+				
+					for ( let z = -count/2; z < count/2; z ++ ) {
+
+						dummy.position.set( 0, 0, offset*z );
+						// dummy.rotation.y = ( Math.sin( x / 4 + time ) + Math.sin( y / 4 + time ) + Math.sin( z / 4 + time ) );
+						// dummy.rotation.z = dummy.rotation.y * 2;
+
+						dummy.updateMatrix();
+
+						mesh.setMatrixAt( i ++, dummy.matrix );
+
+
+					}
+
+					mesh.instanceMatrix.needsUpdate = true;
+				}
+				
 				scene.traverse( function ( object ) {
 
 					if ( object.isMesh === true ) {
