@@ -85,7 +85,24 @@ function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
     .linkDirectionalParticleResolution(2);
 }
 
+function setEdgeLabelByAttribute(fGraph, attribute) {
+  fGraph.linkHoverPrecision(3.0);
+  fGraph.linkLabel((link) => {
+    if (link[attribute]) {
+      return link[attribute];
+    } else return "(missing)";
+  });
+}
 
+function setEdgeVisualsByAttributeMap(fGraph, attribute, valueMap) {
+	let color = new THREE.Color()
+	fGraph.linkColor((link) => {
+		if ( link.hasOwnProperty(attribute) && valueMap.hasOwnProperty(link[attribute]) ) {
+			color.set(valueMap[ link[attribute] ])
+			return color.getStyle();
+		}
+	});
+}
 
     fetch('./data/concepts-nodes-links.json').then(res => res.json()).then(data => {
       const fGraph = ForceGraph3D()
@@ -93,29 +110,14 @@ function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
         .graphData(data)
         .nodeId('id')
         .nodeAutoColorBy('id')
-        // .nodeCanvasObject((node, ctx, globalScale) => {
-        //   const label = node.label;
-        //   const fontSize = 12/globalScale;
-        //   ctx.font = `${fontSize}px Sans-Serif`;
-        //   const textWidth = ctx.measureText(label).width;
-        //   const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2); // some padding
-
-        //   ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        //   ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2, ...bckgDimensions);
-
-        //   ctx.textAlign = 'center';
-        //   ctx.textBaseline = 'middle';
-        //   ctx.fillStyle = node.color;
-        //   ctx.fillText(label, node.x, node.y);
-
-        //   node.__bckgDimensions = bckgDimensions; // to re-use in nodePointerAreaPaint
-        // })
-        // .nodePointerAreaPaint((node, color, ctx) => {
-        //   ctx.fillStyle = color;
-        //   const bckgDimensions = node.__bckgDimensions;
-        //   bckgDimensions && ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2, ...bckgDimensions);
-        // });
         setNodeObjectsToSpriteLabels(fGraph,16,null)
+        let relationToColorMap = {
+	        IsA: "cyan",
+	        Synonym: "blue",
+	        Antonym: "red",
+      	};
+      	setEdgeVisualsByAttributeMap(fGraph, "relation", relationToColorMap);
+      	setEdgeLabelByAttribute(fGraph, "relation");
     });
     
   </script>
