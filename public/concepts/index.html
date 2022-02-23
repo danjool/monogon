@@ -124,6 +124,22 @@ function setEdgeVisualsByAttributeMap(fGraph, attribute, valueMap) {
 	});
 }
 
+function setLinkStrengthsFromAttribute(fGraph, attribute, valueToStrengthMap) {
+  fGraph.d3Force("link").strength((link) => {
+    if (link[attribute] && valueToStrengthMap.hasOwnProperty(link[attribute])) {
+      return valueToStrengthMap[link[attribute]];
+    } else return 1.0;
+  });
+}
+
+function setLinkDistancesFromAttribute(fGraph, attribute, valueToDistanceMap) {
+  fGraph.d3Force("link").distance((link) => {
+    if (link[attribute] && valueToDistanceMap.hasOwnProperty(link[attribute])) {
+      return valueToDistanceMap[link[attribute]];
+    } else return 1.0;
+  });
+}
+
 
 function pinNode(node) {
   node.fx = node.x;
@@ -166,20 +182,29 @@ function unpinAllNodes() {
 //     }
 // });
 
-
+// concepts-nodes-links
 fetch('./data/concepts-nodes-links.json').then(res => res.json()).then(data => {
+// fetch('./data/math-nodes-links.json').then(res => res.json()).then(data => {
   const fGraph = ForceGraph3D({rendererConfig:{ antialias: true, alpha: true, clearColor: "black" } } )
   (document.getElementById('3d-graph'))
     .graphData(data)
     .nodeId('id')
     .nodeAutoColorBy('id')
     .onNodeClick((node, event) => {
-  		console.log("!")
 	    togglePinNode(node);
+    })
+    .onNodeDragEnd((node,event)=>{
+    	pinNode(node)
     })
     .linkWidth(1.1)
     .linkOpacity(.5)
     .linkResolution(5)
+    .d3AlphaDecay(0.0)
+    .d3VelocityDecay(0.9)
+    .cooldownTicks(Infinity)
+    .cooldownTime(Infinity)
+
+    fGraph.d3Force("center").strength(1.);
 
     setNodeObjectsToSpriteLabels( fGraph, 8, null )
     let relationToColorMap = {
@@ -188,10 +213,25 @@ fetch('./data/concepts-nodes-links.json').then(res => res.json()).then(data => {
         Antonym: "red",
   	};
   	setEdgeVisualsByAttributeMap(fGraph, "relation", relationToColorMap);
+
+	let valToStr = {
+	    IsA: 0.5,
+	    Synonym: 0.5,
+	    Antonym: 0.5,
+	  };
+  	setLinkStrengthsFromAttribute( fGraph, "relation", valToStr)
+
+  	let valToDist = {
+	    IsA: 200.0,
+	    Synonym: 300.0,
+	    Antonym: 1300.0,
+	  };
+  	setLinkDistancesFromAttribute(fGraph, "relation", valToDist);
+
   	setEdgeLabelByAttribute(fGraph, "relation");
 
-fGraph.scene().background = "red"
-  	console.log(fGraph.scene())
+	fGraph.scene().background = "red"
+  	console.log(fGraph.scene(), fGraph.graphData())
 
 });
 </script>
