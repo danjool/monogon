@@ -166,21 +166,21 @@ a, button, input, select {
 					u *= 2 * Math.PI;
 					t *= 2 * Math.PI;
 					const phi = u / 2.0;
-					const major = 2.25 + 0.4 * Math.sin(u*2.),
-						a = 0.5 + 0.4 * Math.sin(u),
-						b = 0.06;
-					let x = a * Math.cos( t ) * Math.cos( phi ) - b * Math.sin( t ) * Math.sin( phi );
-					let z = a * Math.cos( t ) * Math.sin( phi ) + b * Math.sin( t ) * Math.cos( phi );
+					const major = 2.25 + 0.1 * Math.sin(u*2.),
+						a = 0.25 + 0.2 * Math.sin(u),
+						b = 0.1 * (1.2 + Math.cos(u)  );
+					// let x = a * Math.cos( t ) * Math.cos( phi ) - b * Math.sin( t ) * Math.sin( phi );
+					// let z = a * Math.cos( t ) * Math.sin( phi ) + b * Math.sin( t ) * Math.cos( phi );
 
-					// let x = a * Math.cos( t )
-					// let z = b * Math.sin( t )
+					let x = a * Math.cos( t )
+					let z = b * Math.sin( t )*(1.2 + Math.cos(u + Math.PI*.5)  )*2. + ( .2*Math.cos(u)  )
 
 					const y = ( major + x ) * Math.sin( u );
 					x =       ( major + x ) * Math.cos( u );
 
 					let xb = major, yb = 0
 					let hump = 1 /(1+0.25*Math.sqrt( (x-xb)*(x-xb) + (y-yb)*(y-yb) ))
-					hump = (Math.cos(u) + 1.0)*.3
+					hump = (Math.cos(u*1) + 1.0)*0.2
 
 					target.set( x, y, z + hump );
 				}
@@ -256,6 +256,7 @@ a, button, input, select {
 
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				// renderer.physicallyCorrectLights = true;
+				renderer.setPixelRatio( window.devicePixelRatio * 1 );
 				// renderer.toneMapping = THREE.ACESFilmicToneMapping;
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
