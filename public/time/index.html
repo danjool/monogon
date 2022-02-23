@@ -130,8 +130,6 @@ a, button, input, select {
 
 				scene = new THREE.Scene();
 
-				//
-
 				const ambientLight = new THREE.AmbientLight( 0xffffff, .0 );
 				scene.add( ambientLight );
 
@@ -139,28 +137,19 @@ a, button, input, select {
 				const sphere = new THREE.SphereGeometry( 1.0, 4, 4 );
 				for(let i = 0; i < 4; i++){
 					const pointLight = new THREE.PointLight( 0xffffff, 0.8 );
-					pointLight.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 0xffffff } ) ) )
+					// pointLight.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 0xffffff } ) ) )
 					lights.push( pointLight )
 					scene.add( pointLight );
 				}
-				
 
 				scene.add( camera );
 
-				//
-
-				const map = new THREE.TextureLoader().load( 'textures/uv_grid_opengl.jpg' );
-				map.wrapS = map.wrapT = THREE.RepeatWrapping;
-				map.anisotropy = 16;
-
-				// const material = new THREE.MeshPhongMaterial( { map: map, side: THREE.DoubleSide } );
 				const material = new THREE.MeshStandardMaterial( {
-					color: 0xffee88,
-					metalness: 0.8,
-					roughness: 0 
+					color: 0xffefaa,
+      				side: THREE.DoubleSide,
+					metalness: .99,
+					roughness: 0.1 
 				} )
-
-				//
 
 				let parametricTypeShape = function ( u, t, target ) {
 					u *= 2 * Math.PI;
@@ -169,8 +158,6 @@ a, button, input, select {
 					const major = 2.25 + 0.1 * Math.sin(u*2.),
 						a = 0.25 + 0.2 * Math.sin(u),
 						b = 0.1 * (1.2 + Math.cos(u)  );
-					// let x = a * Math.cos( t ) * Math.cos( phi ) - b * Math.sin( t ) * Math.sin( phi );
-					// let z = a * Math.cos( t ) * Math.sin( phi ) + b * Math.sin( t ) * Math.cos( phi );
 
 					let x = a * Math.cos( t )
 					let z = b * Math.sin( t )*(1.2 + Math.cos(u + Math.PI*.5)  )*2. + ( .2*Math.cos(u)  )
@@ -184,8 +171,6 @@ a, button, input, select {
 
 					target.set( x, y, z + hump );
 				}
-
-
 
 				let geometry, object;
 
@@ -203,67 +188,29 @@ a, button, input, select {
 				mesh.instanceMatrix.setUsage( THREE.DynamicDrawUsage ); // will be updated every frame
 				scene.add( mesh );
 
-				// scene.add( object );
+				if(mesh){
+					let i = 0;
+					let offset = 2.8
+				
+					for ( let z = -count/2; z < count/2; z ++ ) {
 
-				// geometry = new ParametricGeometry( ParametricGeometries.plane( 100, 100 ), 10, 10 );
-				// geometry.center();
-				// object = new THREE.Mesh( geometry, material );
-				// object.position.set( - 200, 0, 200 );
-				// scene.add( object );
+						dummy.position.set( 0, 0, offset*z )
+						// (Math.sin(timer) > -.2 ) ? dummy.position.set( 0, 0, offset*z ) : dummy.position.set( 0, 0, 0 );
+						// dummy.rotation.y = ( Math.sin( x / 4 + time ) + Math.sin( y / 4 + time ) + Math.sin( z / 4 + time ) );
+						// dummy.rotation.z = dummy.rotation.y * 2;
 
-				// geometry = new ParametricGeometry( ParametricGeometries.klein, 20, 20 );
-				// object = new THREE.Mesh( geometry, material );
-				// object.position.set( 0, 0, 200 );
-				// object.scale.multiplyScalar( 5 );
-				// scene.add( object );
-
-				// geometry = new ParametricGeometry( ParametricGeometries.mobius, 20, 20 );
-				// object = new THREE.Mesh( geometry, material );
-				// object.position.set( 200, 0, 200 );
-				// object.scale.multiplyScalar( 30 );
-				// scene.add( object );
-
-				//
-
-				// const GrannyKnot = new Curves.GrannyKnot();
-
-				// const torus = new ParametricGeometries.TorusKnotGeometry( 50, 10, 50, 20, 2, 3 );
-				// const sphere = new ParametricGeometries.SphereGeometry( 50, 20, 10 );
-				// const tube = new ParametricGeometries.TubeGeometry( GrannyKnot, 100, 3, 8, true );
-
-				// object = new THREE.Mesh( torus, material );
-				// object.position.set( - 200, 0, - 200 );
-				// scene.add( object );
-
-				// object = new THREE.Mesh( sphere, material );
-				// object.position.set( 0, 0, - 200 );
-				// scene.add( object );
-
-				// object = new THREE.Mesh( tube, material );
-				// object.position.set( 200, 0, - 200 );
-				// object.scale.multiplyScalar( 2 );
-				// scene.add( object );
-
-				// BACKGROUND GEOMETRY
-
-				// geometry = new THREE.PlaneGeometry( 200, 200 );
-				// let planeMesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial() );
-				// planeMesh.position.z = - 100;
-				// planeMesh.rotation.x = - Math.PI * 0.5;
-				// scene.add( planeMesh );
-
-				//
+						dummy.updateMatrix();
+						mesh.setMatrixAt( i ++, dummy.matrix );
+					}
+					mesh.instanceMatrix.needsUpdate = true;
+				}				
 
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				// renderer.physicallyCorrectLights = true;
-				renderer.setPixelRatio( window.devicePixelRatio * 1 );
 				// renderer.toneMapping = THREE.ACESFilmicToneMapping;
-				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setPixelRatio( window.devicePixelRatio*2.0 );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				container.appendChild( renderer.domElement );
-
-				// stats = new Stats();
-				// container.appendChild( stats.dom );
 
 				window.addEventListener( 'resize', onWindowResize );
 
@@ -283,7 +230,6 @@ a, button, input, select {
 				requestAnimationFrame( animate );
 
 				render();
-				// stats.update();
 
 			}
 
@@ -291,9 +237,9 @@ a, button, input, select {
 
 				const timer = Date.now() * 0.0001;
 
-				camera.position.x = Math.cos( timer ) * 400;
+				camera.position.x = Math.cos( timer ) * 200;
 				camera.position.z = 800  + Math.sin( timer ) * 2000;
-				camera.position.y = 100
+				camera.position.y = 125
 
 				camera.lookAt( scene.position );
 
@@ -317,40 +263,7 @@ a, button, input, select {
 
 				let maxOffset = 100
 				let minOffset = 1.8
-
-				if(mesh){
-					let i = 0;
-					let pulse = 1-((Math.cos(2*timer)+1)/2.0)
-					let offset = 0 + pulse*maxOffset
-					offset = 2.8
 				
-					for ( let z = -count/2; z < count/2; z ++ ) {
-
-						dummy.position.set( 0, 0, offset*z );
-						// dummy.rotation.y = ( Math.sin( x / 4 + time ) + Math.sin( y / 4 + time ) + Math.sin( z / 4 + time ) );
-						// dummy.rotation.z = dummy.rotation.y * 2;
-
-						dummy.updateMatrix();
-
-						mesh.setMatrixAt( i ++, dummy.matrix );
-
-
-					}
-
-					mesh.instanceMatrix.needsUpdate = true;
-				}
-				
-				scene.traverse( function ( object ) {
-
-					if ( object.isMesh === true ) {
-
-						// object.rotation.x = timer * 5;
-						// object.rotation.y = timer * 2.5;
-
-					}
-
-				} );
-
 				renderer.render( scene, camera );
 
 			}
