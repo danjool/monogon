@@ -77,32 +77,31 @@ function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
   fGraph
     .nodeThreeObject((node) => {
     	if (node.image) {
-		const imgTexture = new THREE.TextureLoader().load(
-		imagesFolder + node.image
-		);
-		const material = new THREE.SpriteMaterial({
-		map: imgTexture,
-		alphaMap: node.type === "event" ? rectAlphaMap : circleAlphaMap,
-		});
-		const sprite = new THREE.Sprite(material);
-		sprite.scale.set(node.type === "event" ? 24 : 12, 12);
-		return sprite;
-    } else {
-    	let label = node.label ? node.label : node.id;
+			const imgTexture = new THREE.TextureLoader().load( imagesFolder + node.image, (img)=>{
+				} )
+				const material = new THREE.SpriteMaterial({
+				map: imgTexture,
+				alphaMap: node.type === "book" ? null : circleAlphaMap,
+			})
+			const sprite = new THREE.Sprite(material);
 
-      const sprite = new SpriteText(label);
-      sprite.material.depthWrite = false; // make sprite background transparent
-      sprite.color = color(node);
-      sprite.textHeight = textHeight;
-      return sprite;	
-    }
-      
+			const width = 24
+			const height = node.ratio ? node.ratio*width : width
+			sprite.scale.set(width, height)
+			// sprite.scale.set(imgTexture.source.data.width, imgTexture.source.data.height) // async issue, don't have imgTexture.source.data yet
+			console.log("imgTexture", imgTexture.source, sprite, node.ratio, sprite)
+			return sprite;
+			
+    	} else {
+    		let label = node.label ? node.label : node.id;
+
+	      const sprite = new SpriteText(label);
+	      sprite.material.depthWrite = false; // make sprite background transparent
+	      sprite.color = color(node);
+	      sprite.textHeight = textHeight;
+      	return sprite;	
+		}
     })
-    .linkDirectionalParticles(2)
-    .linkDirectionalParticleSpeed(0.025)
-    .linkDirectionalParticleWidth(2)
-    .linkDirectionalParticleColor("white")
-    .linkDirectionalParticleResolution(2);
 }
 
 function setEdgeLabelByAttribute(fGraph, attribute) {
@@ -136,7 +135,7 @@ function setLinkDistancesFromAttribute(fGraph, attribute, valueToDistanceMap) {
   fGraph.d3Force("link").distance((link) => {
     if (link[attribute] && valueToDistanceMap.hasOwnProperty(link[attribute])) {
       return valueToDistanceMap[link[attribute]];
-    } else return 1.0;
+    } else return 100.0;
   });
 }
 
@@ -163,27 +162,25 @@ function unpinAllNodes() {
   fGraph.graphData().nodes.forEach(unpinNode);
 }
 
-
-// function setNodeObjectsToImageLabels() {
-// 	const imagesFolder = "./images/";
-// 	setNodesLabelByAttribute();
-// 	fGraph.nodeThreeObject((node) => {
-//     if (node.image) {
-// 		const imgTexture = new THREE.TextureLoader().load(
-// 		imagesFolder + node.image
-// 		);
-// 		const material = new THREE.SpriteMaterial({
-// 		map: imgTexture,
-// 		alphaMap: node.type === "event" ? rectAlphaMap : circleAlphaMap,
-// 		});
-// 		const sprite = new THREE.Sprite(material);
-// 		sprite.scale.set(node.type === "event" ? 24 : 12, 12);
-// 		return sprite;
-//     }
-// });
-
 // concepts-nodes-links
-fetch('./data/concepts-nodes-links.json').then(res => res.json()).then(data => {
+// bios.json
+let filePath = './data/concepts-nodes-links.json'
+
+if(window.location.search.substr(1)){
+	let [key, val] = window.location.search.substr(1).split("=")
+	if(key==='c'){
+		switch(val){
+			case 'bios': filePath = './data/bios.json' 
+				break;
+			case 'concepts': filePath = './data/concepts-nodes-links.json' 
+				break;
+			case 'math': filePath = './data/math-nodes-links.json'; break;
+		}
+	}
+}
+
+fetch(filePath).then(res => res.json()).then(data => {
+// fetch('./data/bios.json').then(res => res.json()).then(data => {
 // fetch('./data/math-nodes-links.json').then(res => res.json()).then(data => {
   const fGraph = ForceGraph3D({rendererConfig:{ antialias: true, alpha: true, clearColor: "black" } } )
   (document.getElementById('3d-graph'))
@@ -196,17 +193,31 @@ fetch('./data/concepts-nodes-links.json').then(res => res.json()).then(data => {
     .onNodeDragEnd((node,event)=>{
     	pinNode(node)
     })
-    .linkWidth(1.1)
+    .linkWidth(0.0) // 0 gives a Line
     .linkOpacity(.5)
     .linkResolution(5)
     .d3AlphaDecay(0.0)
     .d3VelocityDecay(0.9)
     .cooldownTicks(Infinity)
     .cooldownTime(Infinity)
+    // .linkDirectionalParticles(2)
+    // .linkDirectionalParticleSpeed(0.025)
+    // .linkDirectionalParticleWidth(2)
+    // .linkDirectionalParticleColor("white")
+    // .linkDirectionalParticleResolution(2);
 
     fGraph.d3Force("center").strength(1.);
 
+    fGraph.renderer().autoClear = false;
+
+    let address = window.location.search
+    let parameterList = new URLSearchParams(address)
+    console.log(parameterList, )
+
     setNodeObjectsToSpriteLabels( fGraph, 8, null )
+
+	setEdgeLabelByAttribute(fGraph, "relation");
+
     let relationToColorMap = {
         IsA: "cyan",
         Synonym: "blue",
@@ -227,8 +238,6 @@ fetch('./data/concepts-nodes-links.json').then(res => res.json()).then(data => {
 	    Antonym: 1300.0,
 	  };
   	setLinkDistancesFromAttribute(fGraph, "relation", valToDist);
-
-  	setEdgeLabelByAttribute(fGraph, "relation");
 
 	fGraph.scene().background = "red"
   	console.log(fGraph.scene(), fGraph.graphData())
