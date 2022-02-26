@@ -7,6 +7,42 @@ var path = require('path');
 // var vhost = require('vhost')
 var router = express.Router()
 // let sqlite3 = require('sqlite3').verbose()
+const { Pool } = require('pg');
+
+let pool
+if( process.env.DATABASE_URL && process.env.DATABASE_URL !== undefined ){
+	console.log('connecting to heroku postgres db with url', process.env.DATABASE_URL)
+	pool = new Pool({
+		connectionString: process.env.DATABASE_URL,
+
+		ssl: {
+			rejectUnauthorized: false
+		}
+	})
+} else {
+	console.log("connecting to local pg database at", process.env.DATABASE_LOCAL)
+	pool = new Pool({
+		user: process.env.DATABASE_LOCAL_USER,
+		password: process.env.DATABASE_LOCAL_PASS, 
+		host: process.env.DATABASE_LOCAL_HOST,
+		port: process.env.DATABASE_LOCAL_PORT,
+		database: process.env.DATABASE_LOCAL 
+	})	
+}
+
+app.get('/db', async (req, res) => {
+    try {
+		const client = await pool.connect();
+		const result = await client.query('SELECT * FROM test_table');
+		const results = { 'results': (result) ? result.rows : null};
+		console.log("rending results", results)
+		res.send(JSON.stringify(results) );
+		client.release();
+	} catch (err) {
+		console.error(err);
+		res.send("~~Error " + err);
+	}
+})
 
 const PORT = process.env.PORT || 80
 
