@@ -9,7 +9,7 @@
     <script src="//unpkg.com/3d-force-graph"></script>
     <script src="//unpkg.com/three-spritetext"></script>
     
-    <title>fdg - concepts</title>
+    <title>fdg - nebula</title>
 </head>
 <style>
 	*
@@ -66,27 +66,9 @@ h1 {
             <div id="3d-graph"></div>    
         </div>
 
-        <script type="glsl" id="vshader">
-          attribute float vertPos; 
-          varying float fragPos; 
-          void main() { 
-            gl_Position = projectionMatrix*modelViewMatrix*vec4(position, 1.0); 
-            fragPos = vertPos; 
-          }
-        </script>
-
-        <script type="glsl" id="fshader">
-          uniform vec3 color; 
-          varying float fragPos; 
-          void main() { 
-            gl_FragColor = vec4(color, 1.0); 
-          }
-        </script>
-
         <script type="module" >
 
-      let fGraph
-    	const imagesFolder = 'images/'
+        	const imagesFolder = 'images/'
 			const circleAlphaMap = new THREE.TextureLoader().load(imagesFolder + "orb.png");
 			const rectAlphaMap = new THREE.TextureLoader().load(imagesFolder + "cropped-rect-mask.jpg");
 
@@ -100,7 +82,7 @@ function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
 				} )
 				const material = new THREE.SpriteMaterial({
 				map: imgTexture,
-				alphaMap: node.type === "person" ? circleAlphaMap : null,
+				alphaMap: node.type === "book" ? null : circleAlphaMap,
 			})
 			const sprite = new THREE.Sprite(material);
 
@@ -108,7 +90,7 @@ function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
 			const height = node.ratio ? node.ratio*width : width
 			sprite.scale.set(width, height)
 			// sprite.scale.set(imgTexture.source.data.width, imgTexture.source.data.height) // async issue, don't have imgTexture.source.data yet
-			// console.log("imgTexture", imgTexture.source, sprite, node.ratio, sprite)
+			console.log("imgTexture", imgTexture.source, sprite, node.ratio, sprite)
 			return sprite;
 			
     	} else {
@@ -144,50 +126,10 @@ function setEdgeVisualsByAttributeMap(fGraph, attribute, valueMap) {
 
 function setLinkStrengthsFromAttribute(fGraph, attribute, valueToStrengthMap) {
   fGraph.d3Force("link").strength((link) => {
-    if(!link.source.visible || !link.target.visible){return 0.0}
     if (link[attribute] && valueToStrengthMap.hasOwnProperty(link[attribute])) {
       return valueToStrengthMap[link[attribute]];
     } else return 1.0;
   });
-}
-
-function setLinkGradient(fGraph){
-  fGraph.linkThreeObject(link=>{
-    const colors = new Float32Array([1,0,0,0,0,1]
-      //[].concat(
-            // ...[link.source, link.target]
-              // .map(nodeColorScale)
-              // .map(d3.color)
-              // .map(({ r, g, b }) => [r, g, b].map(v => v / 255)
-              
-      );
-
-          const material = new THREE.LineBasicMaterial({ 
-            vertexColors: THREE.VertexColors, transparent: true, opacity:.5
-          });
-
-          // const material = new THREE.ShaderMaterial({
-          //     vertexShader: document.getElementById('vshader').textContent,
-          //     fragmentShader: document.getElementById('fshader').textContent,
-          //     // uniforms: {
-          //     //   color: {
-          //     //       type: 'v3',
-          //     //       value: col
-          //     //   }
-          //     // },
-          //     // vertexColors: THREE.VertexColors,
-          //     depthWrite: false,
-          //     depthTest: false,
-          //     lineWidth: 1, //this always defaults to 1, unfortunately
-          //     transparent: true
-          // });
-
-          const geometry = new THREE.BufferGeometry();
-          geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(2 * 3), 3));
-          geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-          return new THREE.Line(geometry, material);
-  })
 }
 
 function setLinkDistancesFromAttribute(fGraph, attribute, valueToDistanceMap) {
@@ -238,80 +180,16 @@ if(window.location.search.substr(1)){
 	}
 }
 
-function fixNodesAttributeToAttribute(fGraph, attrA, attrB, defaultValue=null, offset=0){
-  fGraph.graphData().nodes.forEach(node=>{
-    if(node.hasOwnProperty(attrB)){
-      node[attrA] = node[attrB] + offset
-    } else {
-      if(defaultValue){
-        node[attrA] = defaultValue
-      } else {
-        console.log("skip",attrB,node.hasOwnProperty(attrB), node.time,node)
-        // delete node[attrA]
-      }
-    }
-  })
-}
-
-function reinitializeForceGraph(fGraph){
-  fGraph.nodeVisibility((node)=>{return node.visible})
-  fGraph.linkVisibility((link)=>{
-    if(!link.source.visible || !link.target.visible){return false} else {return true}
-  })
-  // fGraph.linkVisibility(fGraph.linkVisibility())
-  // fGraph.nodeVisibility(fGraph.nodeVisibility())
-  // fGraph.d3Force("link").force(fGraph.d3Force("link"))
-  setNodeObjectsToSpriteLabels( fGraph, 8, null )
-  setEdgeLabelByAttribute(fGraph, "relation");
-
-  let relationToColorMap = {
-      IsA: "cyan",
-      Synonym: "blue",
-      Antonym: "red",
-  };
-  setEdgeVisualsByAttributeMap(fGraph, "relation", relationToColorMap);
-
-  let valToStr = {
-      IsA: 0.5,
-      Synonym: 0.5,
-      Antonym: 0.5,
-    };
-    setLinkStrengthsFromAttribute( fGraph, "relation", valToStr)
-
-    let valToDist = {
-      IsA: 200.0,
-      Synonym: 300.0,
-      Antonym: 1300.0,
-    };
-    setLinkDistancesFromAttribute(fGraph, "relation", valToDist);
-}
-
-window.addEventListener("resize", () => {
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    fGraph.camera().aspect = width / height;
-    fGraph.camera().updateProjectionMatrix();
-    fGraph.renderer().setSize(width, height);
-    fGraph.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  });
-
 fetch(filePath).then(res => res.json()).then(data => {
 // fetch('./data/bios.json').then(res => res.json()).then(data => {
 // fetch('./data/math-nodes-links.json').then(res => res.json()).then(data => {
-  fGraph = ForceGraph3D({rendererConfig:{ antialias: true, alpha: true, clearColor: "black" } } )
+  const fGraph = ForceGraph3D({rendererConfig:{ antialias: true, alpha: true, clearColor: "black" } } )
   (document.getElementById('3d-graph'))
     .graphData(data)
     .nodeId('id')
     .nodeAutoColorBy('id')
     .onNodeClick((node, event) => {
 	    togglePinNode(node);
-      fGraph.graphData().links.forEach(l=>{
-          if(l.source.label === node.label || l.target.label === node.label){
-            l.source.visible = true
-            l.target.visible = true
-          }
-      })
-      reinitializeForceGraph(fGraph )
     })
     .onNodeDragEnd((node,event)=>{
     	pinNode(node)
@@ -323,11 +201,11 @@ fetch(filePath).then(res => res.json()).then(data => {
     .d3VelocityDecay(0.9)
     .cooldownTicks(Infinity)
     .cooldownTime(Infinity)
-    .linkDirectionalParticles(2)
-    .linkDirectionalParticleSpeed(0.025)
-    .linkDirectionalParticleWidth(2)
-    .linkDirectionalParticleColor("white")
-    .linkDirectionalParticleResolution(2);
+    // .linkDirectionalParticles(2)
+    // .linkDirectionalParticleSpeed(0.025)
+    // .linkDirectionalParticleWidth(2)
+    // .linkDirectionalParticleColor("white")
+    // .linkDirectionalParticleResolution(2);
 
     fGraph.d3Force("center").strength(1.);
 
@@ -335,16 +213,35 @@ fetch(filePath).then(res => res.json()).then(data => {
 
     let address = window.location.search
     let parameterList = new URLSearchParams(address)
+    console.log(parameterList, )
+
+    setNodeObjectsToSpriteLabels( fGraph, 8, null )
+
+	setEdgeLabelByAttribute(fGraph, "relation");
+
+    let relationToColorMap = {
+        IsA: "cyan",
+        Synonym: "blue",
+        Antonym: "red",
+  	};
+  	setEdgeVisualsByAttributeMap(fGraph, "relation", relationToColorMap);
+
+	let valToStr = {
+	    IsA: 0.5,
+	    Synonym: 0.5,
+	    Antonym: 0.5,
+	  };
+  	setLinkStrengthsFromAttribute( fGraph, "relation", valToStr)
+
+  	let valToDist = {
+	    IsA: 200.0,
+	    Synonym: 300.0,
+	    Antonym: 1300.0,
+	  };
+  	setLinkDistancesFromAttribute(fGraph, "relation", valToDist);
 
 	fGraph.scene().background = "red"
-  // fixNodesAttributeToAttribute(fGraph, 'fx', 'time', null, -1900)
-  // setLinkGradient(fGraph)
-  console.log(fGraph.scene(), fGraph.graphData())
-
-  fGraph.graphData().nodes.forEach(node=>{
-    node.visible = node.visible
-  })
-  reinitializeForceGraph(fGraph)
+  	console.log(fGraph.scene(), fGraph.graphData())
 
 });
 </script>
