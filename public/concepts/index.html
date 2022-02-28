@@ -96,16 +96,24 @@ async function onKeyUp(event) {
     case "t":
       fGraph.graphData().nodes.forEach(node=> {
         if(node.hasOwnProperty('time')){
-            node.fy = (node.time - 1900) 
+            node.fy = 100.0*Math.pow(node.time+500, -10.0)-400 //-Math.log(-node.time + 1900) 
         } else {
-            return node
+            delete node.fy
         }
       })
       break;
     
     case "a":
+
         fGraph.graphData().nodes.forEach(node=> node.visible= true )
         reinitializeForceGraph(fGraph)
+    break;
+
+    case "f":
+        console.log("fGraph graphData", fGraph.graphData())
+    break;
+    case "u":
+        unpinAllNodes()
     break;
   }
 }
@@ -235,7 +243,7 @@ function unpinNode(node) {
 
 function togglePinNode(node) {
 	console.log("togglePinNode", node)
-  if (node.fx !== null) {
+  if (node.fy ) {
     unpinNode(node)
     return true
   } else {
@@ -246,6 +254,7 @@ function togglePinNode(node) {
 
 function unpinAllNodes() {
   fGraph.graphData().nodes.forEach(unpinNode);
+  fGraph.d3Force("center").strength(1.0)
 }
 
 // concepts-nodes-links
@@ -382,7 +391,7 @@ fetch(filePath).then(res => res.json()).then(data => {
     .linkDirectionalParticleColor("white")
     .linkDirectionalParticleResolution(2);
 
-    fGraph.d3Force("center").strength(1.1)
+    fGraph.d3Force("center").strength(0.0)
     // fGraph.d3Force("charge").strength(-200)
 
     fGraph.renderer().autoClear = false;
