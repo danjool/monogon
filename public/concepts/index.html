@@ -96,7 +96,7 @@ async function onKeyUp(event) {
     case "t":
       fGraph.graphData().nodes.forEach(node=> {
         if(node.hasOwnProperty('time')){
-            node.fy = 100.0*Math.pow(node.time+500, -10.0)-400 //-Math.log(-node.time + 1900) 
+            node.fx = (node.time - 1900) 
         } else {
             delete node.fy
         }
@@ -243,7 +243,7 @@ function unpinNode(node) {
 
 function togglePinNode(node) {
 	console.log("togglePinNode", node)
-  if (node.fy ) {
+  if (node.fx || node.fy || node.fz ) {
     unpinNode(node)
     return true
   } else {
