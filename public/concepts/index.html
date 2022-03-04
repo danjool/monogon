@@ -8,6 +8,8 @@
     <script src="//unpkg.com/d3-force-3d"></script>
     <script src="//unpkg.com/3d-force-graph"></script>
     <script src="//unpkg.com/three-spritetext"></script>
+    <script src="//unpkg.com/dat.gui"></script>
+    
     
     <title>fdg - concepts</title>
 </head>
@@ -85,37 +87,129 @@ h1 {
 
         <script type="module" >
 
-      let fGraph
-    	const imagesFolder = 'images/'
-			const circleAlphaMap = new THREE.TextureLoader().load(imagesFolder + "orb.png");
-			const rectAlphaMap = new THREE.TextureLoader().load(imagesFolder + "cropped-rect-mask.jpg");
+let fGraph
+const imagesFolder = 'images/'
+const circleAlphaMap = new THREE.TextureLoader().load(imagesFolder + "orb.png");
+const rectAlphaMap = new THREE.TextureLoader().load(imagesFolder + "cropped-rect-mask.jpg");
 
-window.addEventListener("keyup", (e) => onKeyUp(e), false);
-async function onKeyUp(event) {
-  switch (event.key) {
-    case "t":
-      fGraph.graphData().nodes.forEach(node=> {
-        if(node.hasOwnProperty('time')){
-            node.fx = (node.time - 1900) 
-        } else {
-            delete node.fy
+let gui
+let params = {
+  forceCenterStrength: 0.3,
+  forceChargeStrength: -100,
+  timeOnXAxis: false,
+  showAll: false,
+  valToDist : {
+      IsA: 200.0,
+      Synonym: 300.0,
+      Antonym: 1300.0,
+    }
+}
+let valToStr = {
+      IsA: 0.5,
+      Synonym: 0.5,
+      Antonym: 0.5,
+    };
+let relationForces = {}
+let relationVisibility = {}
+function initDatGui(fGraph){
+  gui = new dat.GUI({ name: "My GUI" })
+  gui.width = 400
+
+  let relations = [... new Set(fGraph.graphData().links.map(l=>l.relation) ) ]
+  console.log('relations', relations)
+
+  let forcesFolder = gui.addFolder("Forces")
+  forcesFolder.open()
+  forcesFolder.add(params, "forceCenterStrength", 0, 1, 0.01).name("Center Str").onChange((val)=>{ setForceStrength() })
+  forcesFolder.add(params, "forceChargeStrength", -1000, 0, 0.01).name("Charge Str").onChange((val)=>{ setForceStrength() })
+
+  let relationsFolder = forcesFolder.addFolder("Relations")
+
+  relations.forEach(relation=>{
+    relationForces[ relation ] = { forceLinkStrength: 0.5, forceLinkDistance: 200 }
+    relationVisibility[relation] = true
+    let relationFolder = relationsFolder.addFolder( relation )
+
+    relationFolder.add(relationForces[ relation ], "forceLinkStrength", 0, 1, 0.01).name("Link Str").onChange((val)=>{ 
+      valToStr[relation] = relationForces[relation].forceLinkStrength
+      setLinkStrengthsFromAttribute(fGraph, "relation", valToStr)
+    })
+    setLinkStrengthsFromAttribute(fGraph, "relation", valToStr)
+
+    relationFolder.add(relationForces[ relation ], "forceLinkDistance", 0, 1000, 0.01).name("Link Dist").onChange((val)=>{ 
+      params.valToDist[relation] = relationForces[relation].forceLinkDistance
+      setLinkDistancesFromAttribute(fGraph, "relation", params.valToDist )
+    })
+    setLinkDistancesFromAttribute(fGraph, "relation", params.valToDist )
+
+    relationFolder.add(relationVisibility, relation ).name("Hide").onChange(val=>{
+      fGraph.graphData().links.forEach(l=>{
+        if(l.relation === relation){
+          l.hide = !l.hide
+          reinitializeLinkVisibility(fGraph)
         }
       })
-      break;
-    
-    case "a":
+    })
+  })
 
-        fGraph.graphData().nodes.forEach(node=> node.visible= true )
-        reinitializeForceGraph(fGraph)
-    break;
+  forcesFolder.add(params, "timeOnXAxis").onChange(val=>{
+    if(val){ pinNodeAxisToProperty(fGraph, 'x', 'time', -1900) }
+    else { unpinAllNodes() }
+  })
 
+  forcesFolder.add(params, "showAll").name("Show All").onChange(val=>{
+    if(val){ 
+      fGraph.graphData().nodes.forEach(node=> node.visible= true )
+      reinitializeLinkVisibility(fGraph)  
+    }
+    else { 
+      fGraph.graphData().nodes.forEach(node=> node.visible= false )
+      let i = Math.floor(Math.random()*fGraph.graphData().nodes.length)
+      fGraph.graphData().nodes[i].visible = true
+      reinitializeLinkVisibility(fGraph)  
+    }
+    fGraph.nodeVisibility(fGraph.nodeVisibility())
+    reinitializeForceGraph(fGraph)
+  })
+
+}
+
+function reinitializeLinkVisibility(fGraph){
+  fGraph.linkVisibility((link)=>{
+    if(!link.source.visible || !link.target.visible || link.hide){return false} else {return true}
+  })
+}
+
+window.addEventListener("keyup", (e) => onKeyUp(e), false);
+
+
+function pinNodeAxisToProperty(fGraph, axis, prop, offset = 0){
+  fGraph.graphData().nodes.forEach(node=> {
+    if(node.hasOwnProperty(prop)){
+      node[ 'f'+axis ] = node[prop] + offset
+    } else {
+      delete node[ 'f' + axis ]
+    }
+  })
+}
+
+async function onKeyUp(event) {
+  switch (event.key) {
     case "f":
         console.log("fGraph graphData", fGraph.graphData())
+        filterVisibleByAttr(fGraph, 'reviewed')
     break;
     case "u":
         unpinAllNodes()
     break;
   }
+}
+
+function filterVisibleByAttr(fGraph, attr){
+  fGraph.graphData().nodes.forEach(node => {
+    node.visible = node[attr] 
+  } )
+  reinitializeForceGraph(fGraph)
 }
 
 function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
@@ -171,9 +265,9 @@ function setEdgeVisualsByAttributeMap(fGraph, attribute, valueMap) {
 
 function setLinkStrengthsFromAttribute(fGraph, attribute, valueToStrengthMap) {
   fGraph.d3Force("link").strength((link) => {
-    if(link['serendipity']){
-      console.log("serendipity", link)
-      return 0.0} 
+    // if(link['serendipity']){
+      // console.log("serendipity", link)
+      // return 0.0} 
     if(!link.source.visible || !link.target.visible){return 0.0}
     if (link[attribute] && valueToStrengthMap.hasOwnProperty(link[attribute])) {
       return valueToStrengthMap[link[attribute]];
@@ -224,7 +318,11 @@ function setLinkDistancesFromAttribute(fGraph, attribute, valueToDistanceMap) {
   fGraph.d3Force("link").distance((link) => {
     if (link[attribute] && valueToDistanceMap.hasOwnProperty(link[attribute])) {
       return valueToDistanceMap[link[attribute]];
-    } else return 50.0;
+    } else {
+      console.log("failed setLinkDistancesFromAttribute lookup", valueToDistanceMap, attribute)
+      return 50.0
+      
+    }
   });
 }
 
@@ -291,11 +389,8 @@ function fixNodesAttributeToAttribute(fGraph, attrA, attrB, defaultValue=null, o
 
 function reinitializeForceGraph(fGraph){
   fGraph.nodeVisibility((node)=>{return node.visible})
-  fGraph.linkVisibility((link)=>{
-    if(!link.source.visible || !link.target.visible){return false} else {return true}
-  })
-  // fGraph.linkVisibility(fGraph.linkVisibility())
-  // fGraph.nodeVisibility(fGraph.nodeVisibility())
+  fGraph.linkVisibility(fGraph.linkVisibility())
+  fGraph.nodeVisibility(fGraph.nodeVisibility())
   // fGraph.d3Force("link").force(fGraph.d3Force("link"))
   setNodeObjectsToSpriteLabels( fGraph, 8, null )
   setEdgeLabelByAttribute(fGraph, "relation");
@@ -307,6 +402,7 @@ function reinitializeForceGraph(fGraph){
       Antonym: "red",
       Wrote: "yellow",
       Succeeds: "cyan",
+      Invented: "beige",
       Inspire: "pink",
       Adjacent: "brown",
         About:"pink",
@@ -314,19 +410,9 @@ function reinitializeForceGraph(fGraph){
   };
   setEdgeVisualsByAttributeMap(fGraph, "relation", relationToColorMap);
 
-  let valToStr = {
-      IsA: 0.5,
-      Synonym: 0.5,
-      Antonym: 0.5,
-    };
-    // setLinkStrengthsFromAttribute( fGraph, "relation", valToStr)
-
-    let valToDist = {
-      IsA: 200.0,
-      Synonym: 300.0,
-      Antonym: 1300.0,
-    };
-    setLinkDistancesFromAttribute(fGraph, "relation", valToDist);
+  
+  setLinkStrengthsFromAttribute( fGraph, "relation", valToStr)
+  setLinkDistancesFromAttribute(fGraph, "relation", params.valToDist);
 }
 
 window.addEventListener("resize", () => {
@@ -348,6 +434,11 @@ function swingCameraToNode(fGraph, node){
           );
 }
 
+function setForceStrength(){
+  fGraph.d3Force("center").strength(params.forceCenterStrength)
+  fGraph.d3Force("charge").strength(params.forceChargeStrength)
+}
+
 
 fetch(filePath).then(res => res.json()).then(data => {
 // fetch('./data/bios.json').then(res => res.json()).then(data => {
@@ -363,10 +454,10 @@ fetch(filePath).then(res => res.json()).then(data => {
         togglePinNode(node)
 	    
       fGraph.graphData().links.forEach(l=>{
-          if(l.source.label === node.label || l.target.label === node.label){
-            l.source.visible = true
-            l.target.visible = true
-          }
+        if(l.source.label === node.label || l.target.label === node.label){
+          l.source.visible = true
+          l.target.visible = true
+        }
       })
       
       reinitializeForceGraph(fGraph )
@@ -389,10 +480,9 @@ fetch(filePath).then(res => res.json()).then(data => {
     .linkDirectionalParticleSpeed(0.025)
     .linkDirectionalParticleWidth(2)
     .linkDirectionalParticleColor("white")
-    .linkDirectionalParticleResolution(2);
+    .linkDirectionalParticleResolution(2)
 
-    fGraph.d3Force("center").strength(0.0)
-    // fGraph.d3Force("charge").strength(-200)
+    setForceStrength()
 
     fGraph.renderer().autoClear = false;
 
@@ -408,6 +498,8 @@ fetch(filePath).then(res => res.json()).then(data => {
     node.visible = node.visible
   })
   reinitializeForceGraph(fGraph)
+  reinitializeLinkVisibility(fGraph)
+  initDatGui(fGraph)
 
 });
 </script>
