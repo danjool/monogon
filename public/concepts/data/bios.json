@@ -165,12 +165,29 @@
 	{"id":165, "label":"Discourses of Epictetus", "type":"book", "time":120, "image":"220px-The_Discourses_of_Epictetus_-_Elizabeth_Carter_-_1759_-_page_1.jpg", "reviewed":false},
 	{"id":166, "label":"Enchiridion of Epictetus", "type":"book", "time":125, "image":"200px-Epictetus_Enchiridion_1683_page1.jpg", "reviewed":true},
 	{"id":167, "label":"Stoicism", "type":"concept", "reviewed":false},
-	{"id":168, "label":"Seneca", "type":"person", "time": 4,"image":"Duble_herma_of_Socrates_and_Seneca_Antikensammlung_Berlin_07.jpg", "ratio":1.1, "reviewed":false}
-	
+	{"id":168, "label":"Seneca", "type":"person", "time": 4,"image":"Duble_herma_of_Socrates_and_Seneca_Antikensammlung_Berlin_07.jpg", "ratio":1.1, "reviewed":false},
+	{"id":169, "label":"Marcus Aurelius", "type":"person", "time": 121, "image":"marcus-aurelius.jpg", "ratio":2.0, "reviewed":true},
+	{"id":170, "label":"Meditations", "type":"book", "time": 170, "reviewed":true},
+	{"id":171, "label":"Moral Letters to Lucilium", "type":"book", "time": 170, "image":"Seneca_the_Younger,_Letters,_Florence,_Plut._45.33.jpg", "ratio":1.8, "reviewed":true},
+	{"id":172, "label":"Ways of Seeing", "type":"tv", "time":1972,"youtube":"https://www.youtube.com/watch?v=0pDE4VX_9Kk", "image":"ways-of-seeing.jpg", "ratio":0.9, "reviewed":true},
+	{"id":173, "label":"Walter Benjamin", "type":"person", "time": 1892, "image":"250px-Walter_Benjamin_vers_1928.jpg", "ratio":1.2, "reviewed":false},
+	{"id":174, "label":"John Berger", "type":"person", "time": 1926, "image":"250px-Walter_Benjamin_vers_1928.jpg", "ratio":1.2, "reviewed":false},
+	{"id":175, "label":"The Work of Art in the Age of Mechanical Reproduction", "type":"essay", "time":1935, "reviewed":true},
+	{"id":176, "label":"Aura", "type":"concept", "reviewed":true},
+	{"id":177, "label":"Male Gaze", "type":"concept", "reviewed":true}
 
 	
 	
 ],"links":[
+	{"relation":"Debuted", "source":172, "target":177 },
+	{"relation":"Debuted", "source":175, "target":176 },
+	{"relation":"Influenced", "source":175, "target":172 },
+	{"relation":"Wrote", "source":174, "target":172 },
+	{"relation":"Wrote", "source":168, "target":171 },
+	{"relation":"Influenced", "source":168, "target":169 },
+	{"relation":"Influenced", "source":11, "target":169 },
+	{"relation":"Influenced", "source":162, "target":169 },
+	{"relation":"Wrote", "source":169, "target":170 },
 	{"relation":"Influenced", "source":11, "target":162 },
 	{"relation":"Influenced", "source":168, "target":146 },
 	{"relation":"About", "source":168, "target":167 },

@@ -114,6 +114,7 @@ let relationVisibility = {}
 function initDatGui(fGraph){
   gui = new dat.GUI({ name: "My GUI" })
   gui.width = 400
+  gui.close()
 
   let relations = [... new Set(fGraph.graphData().links.map(l=>l.relation) ) ]
   console.log('relations', relations)
@@ -157,7 +158,10 @@ function initDatGui(fGraph){
     else { unpinAllNodes() }
   })
 
-  forcesFolder.add(params, "showAll").name("Show All").onChange(val=>{
+  let displayFolder = gui.addFolder("Display")
+  displayFolder.open()
+
+  displayFolder.add(params, "showAll").name("Show All").onChange(val=>{
     if(val){ 
       fGraph.graphData().nodes.forEach(node=> node.visible= true )
       reinitializeLinkVisibility(fGraph)  
@@ -319,9 +323,7 @@ function setLinkDistancesFromAttribute(fGraph, attribute, valueToDistanceMap) {
     if (link[attribute] && valueToDistanceMap.hasOwnProperty(link[attribute])) {
       return valueToDistanceMap[link[attribute]];
     } else {
-      console.log("failed setLinkDistancesFromAttribute lookup", valueToDistanceMap, attribute)
       return 50.0
-      
     }
   });
 }
@@ -340,7 +342,6 @@ function unpinNode(node) {
 }
 
 function togglePinNode(node) {
-	console.log("togglePinNode", node)
   if (node.fx || node.fy || node.fz ) {
     unpinNode(node)
     return true
@@ -380,7 +381,6 @@ function fixNodesAttributeToAttribute(fGraph, attrA, attrB, defaultValue=null, o
       if(defaultValue){
         node[attrA] = defaultValue
       } else {
-        console.log("skip",attrB,node.hasOwnProperty(attrB), node.time,node)
         // delete node[attrA]
       }
     }
@@ -477,8 +477,8 @@ fetch(filePath).then(res => res.json()).then(data => {
     .cooldownTicks(Infinity)
     .cooldownTime(Infinity)
     .linkDirectionalParticles(2)
-    .linkDirectionalParticleSpeed(0.025)
-    .linkDirectionalParticleWidth(2)
+    .linkDirectionalParticleSpeed(0.0125)
+    .linkDirectionalParticleWidth(1)
     .linkDirectionalParticleColor("white")
     .linkDirectionalParticleResolution(2)
 
@@ -492,7 +492,6 @@ fetch(filePath).then(res => res.json()).then(data => {
 	fGraph.scene().background = "red"
   // fixNodesAttributeToAttribute(fGraph, 'fx', 'time', null, -1900)
   // setLinkGradient(fGraph)
-  console.log(fGraph.scene(), fGraph.graphData())
 
   fGraph.graphData().nodes.forEach(node=>{
     node.visible = node.visible
