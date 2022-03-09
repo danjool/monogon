@@ -9,8 +9,7 @@
     <script src="//unpkg.com/3d-force-graph"></script>
     <script src="//unpkg.com/three-spritetext"></script>
     <script src="//unpkg.com/dat.gui"></script>
-    
-    
+        
     <title>fdg - concepts</title>
 </head>
 <style>
@@ -61,7 +60,16 @@ h1 {
     overflow:hidden;
 }
 </style>
-
+<!-- 
+Nodes all sharing a connection of the same relationship type to the same target node, effectively have an attribute.
+Toggling a single type of relationship to strength 0 or distance infinity, and low/no visbility 
+  is the visual equivalent of thinking of the relationship as an attribute 
+  (but that's not restricted to target)
+Turning a shared relation-type-plus-target into an attribute, does that give that target extra value or less?
+  Wandering child nodes, (taking the relationshipo with them as an attirbute)
+  vs
+  sucking those child nodes up into the source (indicated vis somehow)
+ -->
 <body>
     
         <div>
@@ -94,10 +102,15 @@ const rectAlphaMap = new THREE.TextureLoader().load(imagesFolder + "cropped-rect
 
 let gui
 let params = {
+  shuffleRelations: true,
   forceCenterStrength: 0.3,
   forceChargeStrength: -100,
-  timeOnXAxis: false,
-  showAll: false,
+  timeOnYAxis: false,
+  timeFuncMultiplier: -20.0,
+  timeFuncInnerMult: -1.0,
+  timeFuncOffset: 2025, 
+  showAll: true,
+  timeAxes: false,
   valToDist : {
       IsA: 200.0,
       Synonym: 300.0,
@@ -114,10 +127,9 @@ let relationVisibility = {}
 function initDatGui(fGraph){
   gui = new dat.GUI({ name: "My GUI" })
   gui.width = 400
-  gui.close()
+  // gui.close()
 
   let relations = [... new Set(fGraph.graphData().links.map(l=>l.relation) ) ]
-  console.log('relations', relations)
 
   let forcesFolder = gui.addFolder("Forces")
   forcesFolder.open()
@@ -125,9 +137,10 @@ function initDatGui(fGraph){
   forcesFolder.add(params, "forceChargeStrength", -1000, 0, 0.01).name("Charge Str").onChange((val)=>{ setForceStrength() })
 
   let relationsFolder = forcesFolder.addFolder("Relations")
+  relationsFolder.open()
 
   relations.forEach(relation=>{
-    relationForces[ relation ] = { forceLinkStrength: 0.5, forceLinkDistance: 200 }
+    relationForces[ relation ] = { forceLinkStrength: 0.7, forceLinkDistance: 100 }
     relationVisibility[relation] = true
     let relationFolder = relationsFolder.addFolder( relation )
 
@@ -147,16 +160,37 @@ function initDatGui(fGraph){
       fGraph.graphData().links.forEach(l=>{
         if(l.relation === relation){
           l.hide = !l.hide
-          reinitializeLinkVisibility(fGraph)
+          
         }
       })
+      reinitializeLinkVisibility(fGraph)
     })
+    // relationFolder.open()
   })
 
-  forcesFolder.add(params, "timeOnXAxis").onChange(val=>{
-    if(val){ pinNodeAxisToProperty(fGraph, 'x', 'time', -1900) }
-    else { unpinAllNodes() }
-  })
+  function toggleTimeHelpers(){
+    timeHelpers.forEach(h=>{ h.visible = true })
+  }
+
+  function reinitTime(){
+    if(params.timeOnYAxis){ 
+      pinNodeAxisToProperty(fGraph, 'y', 'time', (val)=> { 
+        return timeFunc(val)
+      } ) 
+      
+    }
+    else { 
+      unpinAllNodes()
+      timeHelpers.forEach(h=>{ h.visible = false })
+      }
+    resetTimeHelpers()
+  }
+
+  forcesFolder.add(params, "timeOnYAxis").onChange(val=>{ reinitTime() })
+  forcesFolder.add(params, "timeFuncMultiplier", -1000.0, 1000.0, .1).onChange( val => reinitTime() )
+  forcesFolder.add(params, "timeFuncInnerMult", -100, 100.0, .1).onChange( val => reinitTime() )
+  forcesFolder.add(params, "timeFuncOffset", -5000.0, 5000.0, .1).onChange( val => reinitTime() )
+  forcesFolder.add(params, "shuffleRelations")
 
   let displayFolder = gui.addFolder("Display")
   displayFolder.open()
@@ -176,6 +210,9 @@ function initDatGui(fGraph){
     reinitializeForceGraph(fGraph)
   })
 
+  displayFolder.add(params, "timeAxes").name("Time Axes").onChange(val=>resetTimeHelpers())
+
+
 }
 
 function reinitializeLinkVisibility(fGraph){
@@ -187,14 +224,21 @@ function reinitializeLinkVisibility(fGraph){
 window.addEventListener("keyup", (e) => onKeyUp(e), false);
 
 
-function pinNodeAxisToProperty(fGraph, axis, prop, offset = 0){
+function pinNodeAxisToProperty(fGraph, axis, prop, nonlinearFunc){
   fGraph.graphData().nodes.forEach(node=> {
     if(node.hasOwnProperty(prop)){
-      node[ 'f'+axis ] = node[prop] + offset
+      node[ 'f'+ axis ] = nonlinearFunc ? nonlinearFunc( node[prop] ) : node[prop]
     } else {
       delete node[ 'f' + axis ]
     }
   })
+}
+
+const toggleHidingYearLabels = () => {
+  for (let i = 0; i < scene.children.length; i++){
+    if ( scene.children[i].name === 'yearHelper' ) { scene.children[i].visible = !scene.children[i].visible }
+  }
+  for(let i = 0; i < yearLabels.length; i++){ yearLabels[i].toggleVisibility() }
 }
 
 async function onKeyUp(event) {
@@ -233,7 +277,6 @@ function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
 			const height = node.ratio ? node.ratio*width : width
 			sprite.scale.set(width, height)
 			// sprite.scale.set(imgTexture.source.data.width, imgTexture.source.data.height) // async issue, don't have imgTexture.source.data yet
-			// console.log("imgTexture", imgTexture.source, sprite, node.ratio, sprite)
 			return sprite;
 			
     	} else {
@@ -269,10 +312,8 @@ function setEdgeVisualsByAttributeMap(fGraph, attribute, valueMap) {
 
 function setLinkStrengthsFromAttribute(fGraph, attribute, valueToStrengthMap) {
   fGraph.d3Force("link").strength((link) => {
-    // if(link['serendipity']){
-      // console.log("serendipity", link)
-      // return 0.0} 
-    if(!link.source.visible || !link.target.visible){return 0.0}
+    // if(link['serendipity']){ return 0.0 } 
+    if(!link.source.visible || !link.target.visible || link.hide){return 0.0}
     if (link[attribute] && valueToStrengthMap.hasOwnProperty(link[attribute])) {
       return valueToStrengthMap[link[attribute]];
     } else return 1.0;
@@ -353,7 +394,6 @@ function togglePinNode(node) {
 
 function unpinAllNodes() {
   fGraph.graphData().nodes.forEach(unpinNode);
-  fGraph.d3Force("center").strength(1.0)
 }
 
 // concepts-nodes-links
@@ -369,6 +409,7 @@ if(window.location.search.substr(1)){
 			case 'concepts': filePath = './data/concepts-nodes-links.json' 
 				break;
 			case 'math': filePath = './data/math-nodes-links.json'; break;
+      case 'philos': filePath = './data/philosopher-inluences3.json'; break;
 		}
 	}
 }
@@ -438,11 +479,41 @@ function setForceStrength(){
   fGraph.d3Force("center").strength(params.forceCenterStrength)
   fGraph.d3Force("charge").strength(params.forceChargeStrength)
 }
+function timeFunc(t){
+  return params.timeFuncMultiplier*Math.sqrt( Math.max(  params.timeFuncOffset + params.timeFuncInnerMult*t , .00001 ) ) 
+}
 
+let timeHelpers = []
+function setupTimeHelpers(){
+  let circleGeom = new THREE.CircleGeometry( 2000, 2 )
+  // circleGeom.vertices.shift()
+  circleGeom.rotateX(Math.PI/2.0)
+  for (let i = 0; i < 10; i++){
+    // var gridHelper = new THREE.PolarGridHelper( 100, 16, 2, 16 )
+    let circleMat = new THREE.LineBasicMaterial({color: new THREE.Color().setHSL( i/10.0, 0.0, i/10.0 ) })
+    let gridHelper = new THREE.LineLoop( circleGeom, circleMat )
+    console.log("timeFunc", i*200, timeFunc( i*200 ))
+    gridHelper.translateY( timeFunc( i*200 ) )
+    gridHelper.name = 'yearHelper'
+    gridHelper.visible = params.timeAxes;
+    timeHelpers.push(gridHelper)
+    fGraph.scene().add(gridHelper)
+  }
+}
 
-fetch(filePath).then(res => res.json()).then(data => {
-// fetch('./data/bios.json').then(res => res.json()).then(data => {
-// fetch('./data/math-nodes-links.json').then(res => res.json()).then(data => {
+function resetTimeHelpers(){
+  timeHelpers.forEach( (helper, index)=>{
+    helper.position.y = ( timeFunc( index*200 ) )
+    helper.visible = params.timeAxes
+  })
+}
+
+fetch(filePath).then(res => {
+  let json = res.json()
+  console.log('res', res, json)
+  return json
+}).then(data => {
+  console.log("data", data)
   fGraph = ForceGraph3D({rendererConfig:{ antialias: true, alpha: true, clearColor: "black" } } )
   (document.getElementById('3d-graph'))
     .graphData(data)
@@ -467,7 +538,7 @@ fetch(filePath).then(res => res.json()).then(data => {
     })
     // .onNodeHover(node=>{})
     .nodeLabel(node=>{
-        return node.label ? node.label : null
+        return node.time ? node.time : node.label
     })
     .linkWidth(0.0) // 0 gives a Line
     .linkOpacity(.5)
@@ -494,13 +565,59 @@ fetch(filePath).then(res => res.json()).then(data => {
   // setLinkGradient(fGraph)
 
   fGraph.graphData().nodes.forEach(node=>{
-    node.visible = node.visible
+    node.visible = true
   })
   reinitializeForceGraph(fGraph)
   reinitializeLinkVisibility(fGraph)
   initDatGui(fGraph)
 
+  setupTimeHelpers()
+  resetTimeHelpers()
+
 });
+
+function randomlyToggleLink(){
+  const l = fGraph.graphData().links[ Math.floor(Math.random()*fGraph.graphData().links.length) ]
+  l.hide = !l.hide
+  // if(!l.hide){
+    
+  // } else {
+    
+  // }
+  reinitializeLinkVisibility(fGraph) 
+}
+
+function shuffleRelations(){
+  if(!params.shuffleRelations) return
+  let relations = [...new Set(fGraph.graphData().links.map(l=>l.relation))]
+  let threshold = 0.5*Math.sin(new Date()*.0002)+0.5
+
+  let relation = relations[ Math.floor(Math.random()*relations.length) ]
+  // relations.forEach(relation=>{
+    const defaultStr = .4
+    
+    let visible = Math.random() > threshold
+    if(!visible){
+      relationForces[relation].forceLinkStrength = 0
+      valToStr[relation] = relationForces[relation].forceLinkStrength
+    } else {
+      relationForces[relation].forceLinkStrength = defaultStr
+      valToStr[relation] = relationForces[relation].forceLinkStrength
+    }
+    fGraph.graphData().links.forEach(l=>{
+      if(l.relation === relation){
+        l.hide = !visible  
+      } 
+    })
+  // })
+
+  setLinkStrengthsFromAttribute(fGraph, "relation", valToStr)
+  reinitializeLinkVisibility(fGraph)
+  
+}
+setInterval( shuffleRelations, 100 )
+// setInterval( randomlyToggleLink, 800 )
+
 </script>
     
 </body>
