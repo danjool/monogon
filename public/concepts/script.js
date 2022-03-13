@@ -394,7 +394,7 @@ async function mergeData(data) {
   }
 
   forcesDirty = true;
-  console.log("mergeData", data);
+
   if (fGraph.graphData().nodes.length < 1) {
     console.log("first data!");
     fGraph.graphData(data);
