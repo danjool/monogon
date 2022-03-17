@@ -116,7 +116,7 @@ let gui
 let params = {
   shuffleRelations: false,
   forceCenterStrength: 0.3,
-  forceChargeStrength: -100,
+  forceChargeStrength: -200,
   velocityDecay: .9,
   timeOnYAxis: false,
   timeFuncMultiplier: -80.0,
@@ -125,6 +125,7 @@ let params = {
   showAll: true,
   maxHighlightDepth: 2,
   timeAxes: false,
+  nodeImages: false,
   valToDist : {
       IsA: 200.0,
       Synonym: 300.0,
@@ -138,6 +139,54 @@ let valToStr = {
     };
 let relationForces = {}
 let relationVisibility = {}
+
+let relationsMap = {
+  'Equivalent':'Is',
+
+  // 'Explains'
+  // 'About'
+
+
+  // Person -> Person
+  'Knew':'Adjacent',
+  'Married':'Adjacent',
+  'Fathered':'Adjacent',
+  'Mothered':'Adjacent',
+  'Raised':'Adjacent',
+  'Parented':'Adjacent',
+
+  'Discovered':'',
+
+  // Person -> Work
+  'Proposed':'Created',
+  'Wrote':'Created',
+
+  // Work/Idea -> Work/Idea
+  'Anticipated':'Prefigured',
+  'Influenced':'Prefigured',
+  'Equivalent':'Prefigured',
+
+  // Person -> Work
+  'Translated': 'Observed',
+  'Commented On': 'Observed',
+  'Read': 'Observed',
+  'Referenced': 'Observed',
+
+}
+
+function reinitTime(){
+  if(params.timeOnYAxis){ 
+    pinNodeAxisToProperty(fGraph, 'y', 'time', (val)=> { 
+      return timeFunc(val)
+    } ) 
+  }
+  else { 
+    unpinAllNodes()
+    timeHelpers.forEach(h=>{ h.visible = false })
+    }
+  resetTimeHelpers()
+}
+
 function initDatGui(fGraph){
   gui = new dat.GUI({ name: "My GUI" })
   gui.width = 400
@@ -187,19 +236,6 @@ function initDatGui(fGraph){
     timeHelpers.forEach(h=>{ h.visible = true })
   }
 
-  function reinitTime(){
-    if(params.timeOnYAxis){ 
-      pinNodeAxisToProperty(fGraph, 'y', 'time', (val)=> { 
-        return timeFunc(val)
-      } ) 
-    }
-    else { 
-      unpinAllNodes()
-      timeHelpers.forEach(h=>{ h.visible = false })
-      }
-    resetTimeHelpers()
-  }
-
   forcesFolder.add(params, "timeOnYAxis").onChange(val=>{ reinitTime() })
   forcesFolder.add(params, "timeFuncMultiplier", -100.0, 100.0, .1).onChange( val => reinitTime() )
   forcesFolder.add(params, "timeFuncInnerMult", -100, 100.0, .1).onChange( val => reinitTime() )
@@ -225,6 +261,7 @@ function initDatGui(fGraph){
   displayFolder.add(params, "maxHighlightDepth", 1, 5, 1).name("Max Depth")
 
   displayFolder.add(params, "timeAxes").name("Time Axes").onChange(val=>resetTimeHelpers())
+  displayFolder.add(params, "nodeImages").name("Node Images").onChange(val=>setNodeObjectsToSpriteLabels( fGraph, 8, null ))
 
 
 }
@@ -287,20 +324,20 @@ function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
   }
   fGraph
     .nodeThreeObject((node) => {
-    	if (node.image) {
-			const imgTexture = new THREE.TextureLoader().load( imagesFolder + node.image, (img)=>{
-				} )
-				const material = new THREE.SpriteMaterial({
-				map: imgTexture,
-				alphaMap: node.type === "person" ? circleAlphaMap : null,
-			})
-			const sprite = new THREE.Sprite(material);
+    	if (node.image && params.nodeImages) {
+  			const imgTexture = new THREE.TextureLoader().load( imagesFolder + node.image, (img)=>{
+  				} )
+  				const material = new THREE.SpriteMaterial({
+  				map: imgTexture,
+  				alphaMap: node.type === "person" ? circleAlphaMap : null,
+  			})
+  			const sprite = new THREE.Sprite(material);
 
-			const width = 24
-			const height = node.ratio ? node.ratio*width : width
-			sprite.scale.set(width, height)
-			// sprite.scale.set(imgTexture.source.data.width, imgTexture.source.data.height) // async issue, don't have imgTexture.source.data yet
-			return sprite;
+  			const width = 24
+  			const height = node.ratio ? node.ratio*width : width
+  			sprite.scale.set(width, height)
+  			// sprite.scale.set(imgTexture.source.data.width, imgTexture.source.data.height) // async issue, don't have imgTexture.source.data yet
+  			return sprite;
 			
     	} else {
     		let label = node.label ? node.label : node.id;
@@ -536,7 +573,7 @@ function timeFunc(t){
 
 let timeHelpers = []
 function setupTimeHelpers(){
-  let circleGeom = new THREE.CircleGeometry( 2000, 2 )
+  let circleGeom = new THREE.CircleGeometry( 2000, 4 )
   // circleGeom.vertices.shift()
   circleGeom.rotateX(Math.PI/2.0)
   for (let i = 0; i <= 10; i++){
@@ -553,21 +590,55 @@ function setupTimeHelpers(){
 
 }
 
-function makeLabelsIds(fGraph){
+function difference(setA, setB) {
+    let _difference = new Set(setA)
+    for (let elem of setB) {
+        _difference.delete(elem)
+    }
+    return _difference
+}
+
+function checkForMissingNodeIds(data){
+  console.log("nodes", data.nodes.length)
+  let necessaryIds = new Set()
+  let ids = new Set()
+  data.links.forEach(l=>{
+    necessaryIds.add(l.source)
+    necessaryIds.add(l.target)
+  })
+  data.nodes.forEach(n=>{
+    ids.add(n.id)
+  })
+  let missingIds = [...difference(ids, necessaryIds)]
+  let missingObjects = missingIds.map(id=>{return { "source":id, "relation":"", "target":"" }})
+  console.log("difference, nodes missing relations", missingObjects )
+
+  missingIds = [...difference(necessaryIds, ids)]
+  missingObjects = missingIds.map(id=>{return { "id":id, "type":"" }})
+  console.log("difference, relations missing nodes", missingObjects)
+
+}
+
+function makeAttrsValueOfAttr2(data, attr, attr2){
+  
     data.nodes.forEach(n=>{
-      if(n.label){
-        data.links.forEach(l=>{
+      if(n.hasOwnProperty(attr)){
+        // data.links.forEach(l=>{
           
-            if(l.source === n.id){
-              l.source = n.label
-            }
-            if(l.target === n.id){
-              l.target = n.label
-            }
+        //     // if(l.source === n.id){
+        //     //   l.source = n[attr]
+        //     // }
+        //     // if(l.target === n.id){
+        //     //   l.target = n[attr]
+        //     // }
           
-        })
-        n.id = n.label
-        delete n.label
+        // })
+        n[attr2] = attr
+        delete n[attr]
+        // console.log("makeAttrsValueOfAttr2", data, attr, n[attr], attr2, n[attr2])
+        if(!n.hasOwnProperty('type')){
+          console.log("no type", n.id)
+        }
       }
     })
   console.log("processed", JSON.stringify(data) )
@@ -642,10 +713,12 @@ function setNodesLabelByAttribute(attribute) {
 
 fetch(filePath).then(res => {
   let json = res.json()
-
+  
   return json
 }).then(data => {
   console.log("data", data)
+  makeAttrsValueOfAttr2(data, 'concept', 'type')  
+  checkForMissingNodeIds(data)
   
   fGraph = ForceGraph3D({rendererConfig:{ antialias: true, alpha: true, clearColor: "black" } } )
   (document.getElementById('3d-graph'))
@@ -654,6 +727,11 @@ fetch(filePath).then(res => {
     .nodeAutoColorBy('id')
     .onNodeClick((node, event) => {
       if(!togglePinNode(node)) swingCameraToNode(fGraph,node)
+      reinitTime()
+    })
+    .onNodeDrag(node=>{
+      // console.log('drag', node)
+      if(params.timeOnYAxis){ reinitTime() }
     })
     .onNodeDragEnd((node,event)=>{
     	pinNode(node)
@@ -666,7 +744,7 @@ fetch(filePath).then(res => {
     //   return label
     // })
     // .linkWidth(0.0) // 0 gives a Line
-    .linkWidth(link => highlightLinks.has(link) ? 3.0 : .1)
+    .linkWidth(link => highlightLinks.has(link) ? 3.0 : 1.0)
     .linkOpacity(link => { highlightLinks.has(link) ? .4 : .2 })
     .linkResolution(4)
     .d3AlphaDecay(0.0)
@@ -678,6 +756,7 @@ fetch(filePath).then(res => {
     .linkDirectionalParticleWidth(1)
     .linkDirectionalParticleColor("white")
     .linkDirectionalParticleResolution(4)
+    .linkHoverPrecision(3.0)
 
   setNodesLabelByAttribute()
   // reinitializeLinkVisibility(fGraph)
@@ -707,7 +786,6 @@ fetch(filePath).then(res => {
 )
 
 async function addNeighborsAndNodes(fGraph) {
-  console.log("addNeighborsAndNodes", fGraph.graphData().links)
   fGraph.graphData().links.forEach((link) => {
     const a = fGraph.graphData().nodes.find((n) => n.id === link.source);
     const b = fGraph.graphData().nodes.find((n) => n.id === link.target);
@@ -736,14 +814,14 @@ async function addNeighborsAndNodes(fGraph) {
 }
 
 function randomlyToggleLink(){
-  const l = fGraph.graphData().links[ Math.floor(Math.random()*fGraph.graphData().links.length) ]
-  l.hide = !l.hide
-  // if(!l.hide){
-    
-  // } else {
-    
-  // }
-  reinitializeLinkVisibility(fGraph) 
+  if(!params.shuffleRelations) return
+  let threshold = 0.5*Math.sin(new Date()*.0002)+0.7
+  let visible = Math.random() > threshold
+  let linkIndex = Math.floor(Math.random()*fGraph.graphData().links.length)
+  const l = fGraph.graphData().links[ linkIndex ]
+  l.hide = visible
+  setLinkStrengthsFromAttribute(fGraph, "relation", valToStr)
+  reinitializeLinkVisibility(fGraph)
 }
 
 function shuffleRelations(){
@@ -774,8 +852,8 @@ function shuffleRelations(){
   reinitializeLinkVisibility(fGraph)
   
 }
-setInterval( shuffleRelations, 100 )
-// setInterval( randomlyToggleLink, 800 )
+// setInterval( shuffleRelations, 100 )
+setInterval( randomlyToggleLink, 100 )
 
 </script>
     
