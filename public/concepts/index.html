@@ -126,6 +126,7 @@ let params = {
   maxHighlightDepth: 2,
   timeAxes: false,
   nodeImages: false,
+  reduceCategories: false,
   valToDist : {
       IsA: 200.0,
       Synonym: 300.0,
@@ -241,6 +242,7 @@ function initDatGui(fGraph){
   forcesFolder.add(params, "timeFuncInnerMult", -100, 100.0, .1).onChange( val => reinitTime() )
   forcesFolder.add(params, "timeFuncOffset", -5000.0, 5000.0, .1).onChange( val => reinitTime() )
   forcesFolder.add(params, "shuffleRelations")
+  forcesFolder.add(params, "reduceCategories").onChange(val=>{ toggleCategories( ["Science Fiction"], val ) })
 
   let displayFolder = gui.addFolder("Display")
   displayFolder.open()
@@ -264,6 +266,30 @@ function initDatGui(fGraph){
   displayFolder.add(params, "nodeImages").name("Node Images").onChange(val=>setNodeObjectsToSpriteLabels( fGraph, 8, null ))
 
 
+}
+
+function toggleCategories( categoriesArray=['Science Fiction'], onOff=true, throughRelations=['Is'] ){
+  categoriesArray.forEach(category=>{
+    let categoryNode = fGraph.graphData().nodes.find( n => n.id === category )
+    if( !categoryNode ) return
+    categoryNode.visible = onOff
+    categoryNode.links.forEach(l=>{
+      // console.log("l", throughRelations, l.target.id, l.target.id === categoryNode.id, throughRelations.includes(l.relation),
+      //  l.target.id === categoryNode.id && ( throughRelations.includes(l.relation) ) 
+      if( l.target.id === categoryNode.id && ( throughRelations.includes(l.relation) ) ){
+        if(onOff){
+          l.source.categories ? l.source.categories = l.source.categories.filter(c=> c.id !== category) : l.source.categories = []
+        } else {
+          l.source.categories ? l.source.categories.push(category) : l.source.categories = [category]
+        }        
+      }
+    })
+  })
+  fGraph.nodeThreeObject(fGraph.nodeThreeObject())
+  reinitializeLinkVisibility(fGraph)  
+  setLinkStrengthsFromAttribute(fGraph, "relation", valToStr)
+  setNodeObjectsToSpriteLabels( fGraph, 8, null )
+  // reinitializeForceGraph(fGraph, 8, null)
 }
 
 function reinitializeLinkVisibility(fGraph){
@@ -340,9 +366,16 @@ function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
   			return sprite;
 			
     	} else {
+        let backgroundColor = null
     		let label = node.label ? node.label : node.id;
+        if(node.categories && node.categories.length > 0){
+          console.log("setNodeObjectsToSpriteLabels")
+          label += "<br />" + node.categories.join("<br />")
+          backgroundColor = 'pink'
+        }
 
-	      const sprite = new SpriteText(label);
+        const sprite = new SpriteText(label)
+        sprite.backgroundColor = backgroundColor
 	      sprite.material.depthWrite = false; // make sprite background transparent
 	      sprite.color = color(node);
 	      sprite.textHeight = textHeight;
@@ -679,7 +712,6 @@ function setupHoverToHighightEffect(node){
 }
 
 function updateHighlight(){
-  console.log("updateHighlight")
   fGraph.nodeColor(fGraph.nodeColor())
   // fGraph.linkOpacity(fGraph.linkOpacity())
   fGraph.linkWidth(fGraph.linkWidth())
