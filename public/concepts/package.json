@@ -16,7 +16,8 @@
     "dat.gui": "^0.7.7",
     "internal-ip": "^7.0.0",
     "three": "^0.126.0",
-    "three-spritetext": "^1.6.3"
+    "three-spritetext": "^1.6.3",
+    "yaml-js": "^0.3.1"
   },
   "author": "",
   "license": "ISC",

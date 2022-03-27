@@ -1,0 +1,40 @@
+{"nodes":[	
+	{"id":"Collective Framework","type":""},
+	{"id":"Coordination","type":""},{"id":"Cooperation","type":""},{"id":"Collaboration","type":""},
+
+	{"id":"Harmony of Proximal Relations","type":""},{"id":"Procedural Compliance in Shared Pursuit","type":""},{"id":"Co-created Shared Representation","type":""},
+
+	{"id":"Output Greater than Sum of the Parts","type":""},
+	{"id":"Volition","type":""},
+	{"id":"Creativity","type":""},
+
+	{"id":"Synergy","type":""},
+	{"id":"Convergent Production & Evaluation","type":""},
+	{"id":"Divergent Production & Evaluation","type":""}
+
+],"links":[
+
+	{"source": "Collective Framework", "relation": "necessary", "target": "Coordination"},
+	{"source": "Collective Framework", "relation": "necessary", "target": "Cooperation"},
+	{"source": "Collective Framework", "relation": "necessary", "target": "Collaboration"},
+
+	{"source": "Coordination", "relation": "necessary", "target": "Cooperation"},
+	{"source": "Cooperation", "relation": "necessary", "target": "Collaboration"},
+
+	{"source": "Coordination", "relation": "distinguished by", "target": "Harmony of Proximal Relations"},
+	{"source": "Cooperation", "relation": "distinguished by", "target": "Procedural Compliance in Shared Pursuit"},
+	{"source": "Collaboration", "relation": "distinguished by", "target": "Co-created Shared Representation"},
+
+	{"source": "Harmony of Proximal Relations", "relation": "enables", "target": "Procedural Compliance in Shared Pursuit"},
+	{"source": "Procedural Compliance in Shared Pursuit", "relation": "enables", "target": "Co-created Shared Representation"},
+
+	{"source": "Harmony of Proximal Relations", "relation": "manifests as", "target": "Output Greater than Sum of the Parts"},
+	{"source": "Procedural Compliance in Shared Pursuit", "relation": "manifests as", "target": "Volition"},
+	{"source": "Co-created Shared Representation", "relation": "manifests as", "target": "Creativity"},
+
+	{"source": "Harmony of Proximal Relations", "relation": "results in", "target": "Synergy"},
+	{"source": "Procedural Compliance in Shared Pursuit", "relation": "results in", "target": "Convergent Production & Evaluation"},
+	{"source": "Co-created Shared Representation", "relation": "results in", "target": "Divergent Production & Evaluation"}
+
+
+]}

@@ -9,6 +9,8 @@
     <script src="//unpkg.com/3d-force-graph"></script>
     <script src="//unpkg.com/three-spritetext"></script>
     <script src="//unpkg.com/dat.gui"></script>
+    <!-- <script src="//unpkg.com/yamljs"></script> -->
+    <script type="text/javascript" src="./js/yaml.min.js"></script>
         
     <title>fdg - concepts</title>
 </head>
@@ -102,7 +104,13 @@ Turning a shared relation-type-plus-target into an attribute, does that give tha
           }
         </script>
 
+<script type="module">
+  // import yaml from './yaml-js'
+</script>
+
         <script type="module" >
+
+
 
 let fGraph
 const imagesFolder = 'images/'
@@ -524,6 +532,8 @@ if(window.location.search.substr(1)){
 		switch(val){
 			case 'bios': filePath = './data/bios.json' 
 				break;
+      case 'coop': filePath = './data/coop.json' 
+        break;
 			case 'concepts': filePath = './data/concepts-nodes-links.json' 
 				break;
 			case 'math': filePath = './data/math-nodes-links.json'; break;
@@ -886,6 +896,16 @@ function shuffleRelations(){
 }
 // setInterval( shuffleRelations, 100 )
 setInterval( randomlyToggleLink, 100 )
+
+// fetch(filePath).then(res => {
+//   console.log("res", res)
+  // let nativeObject = YAML.load(res)
+
+  // console.log("nativeObject", nativeObject)
+// })
+// console.log(YAML)
+// console.log(Yaml)
+console.log(yaml)
 
 </script>
     
