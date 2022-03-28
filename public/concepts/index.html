@@ -124,9 +124,9 @@ let gui
 let params = {
   shuffleRelations: false,
   forceCenterStrength: 0.3,
-  forceChargeStrength: -200,
-  velocityDecay: .9,
-  timeOnYAxis: false,
+  forceChargeStrength: -600,
+  velocityDecay: .98,
+  timeOnYAxis: true,
   timeFuncMultiplier: -80.0,
   timeFuncInnerMult: -1.0,
   timeFuncOffset: 2025, 
@@ -354,7 +354,7 @@ function filterVisibleByAttr(fGraph, attr){
 
 function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
   if (!color) color = (n) => {
-    return n.reviewed ? "white" : "gray"
+    return n.reviewed ? "white" : "lightgray"
   }
   fGraph
     .nodeThreeObject((node) => {
@@ -377,14 +377,13 @@ function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
         let backgroundColor = null
     		let label = node.label ? node.label : node.id;
         if(node.categories && node.categories.length > 0){
-          console.log("setNodeObjectsToSpriteLabels")
           label += "<br />" + node.categories.join("<br />")
           backgroundColor = 'pink'
         }
 
         const sprite = new SpriteText(label)
         sprite.backgroundColor = backgroundColor
-	      sprite.material.depthWrite = false; // make sprite background transparent
+	      sprite.material.depthWrite = true; // make sprite background transparent
 	      sprite.color = color(node);
 	      sprite.textHeight = textHeight;
         sprite.font = 'Acherus'
@@ -616,13 +615,15 @@ function timeFunc(t){
 
 let timeHelpers = []
 function setupTimeHelpers(){
-  let circleGeom = new THREE.CircleGeometry( 2000, 4 )
-  // circleGeom.vertices.shift()
-  circleGeom.rotateX(Math.PI/2.0)
+  let geom = new THREE.CircleGeometry( 1000, 16 )
+  geom.rotateX(Math.PI/2.0)
   for (let i = 0; i <= 10; i++){
-    // var gridHelper = new THREE.PolarGridHelper( 100, 16, 2, 16 )
-    let circleMat = new THREE.LineBasicMaterial({color: new THREE.Color().setHSL( i/10.0, 0.0, i/10.0 ) })
-    let gridHelper = new THREE.LineLoop( circleGeom, circleMat )
+    // let helperMat = new THREE.LineBasicMaterial({color: new THREE.Color().setHSL( i/10.0, 0.0, i/10.0 ) })
+    // let gridHelper = new THREE.LineLoop( geom, helperMat )
+
+    let helperMat = new THREE.MeshLambertMaterial( { color: 0xffffff, opacity: 0.05, transparent: true, side: THREE.DoubleSide } )
+    let gridHelper = new THREE.Mesh( geom, helperMat )
+    
 
     gridHelper.translateY( timeFunc( i*200 ) )
     gridHelper.name = 'yearHelper'
@@ -630,7 +631,6 @@ function setupTimeHelpers(){
     timeHelpers.push(gridHelper)
     fGraph.scene().add(gridHelper)
   }
-
 }
 
 function difference(setA, setB) {
@@ -762,7 +762,7 @@ fetch(filePath).then(res => {
   makeAttrsValueOfAttr2(data, 'concept', 'type')  
   checkForMissingNodeIds(data)
   
-  fGraph = ForceGraph3D({rendererConfig:{ antialias: true, alpha: true, clearColor: "black" } } )
+  fGraph = ForceGraph3D({rendererConfig:{ antialias: true, alpha: true, clearColor: "black" }, controlType:'orbit' } )
   (document.getElementById('3d-graph'))
     .graphData(data)
     .nodeId('id')
@@ -824,6 +824,7 @@ fetch(filePath).then(res => {
 
 }).then(fGraph=>{
   console.log("sdfas", fGraph)
+  reinitTime()
 }
 )
 
@@ -905,7 +906,7 @@ setInterval( randomlyToggleLink, 100 )
 // })
 // console.log(YAML)
 // console.log(Yaml)
-console.log(yaml)
+// console.log(yaml)
 
 </script>
     
