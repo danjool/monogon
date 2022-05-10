@@ -54,7 +54,7 @@ function init()
 	// CONTROLS
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
 	controls.target = new THREE.Vector3(0,0,0);
-	controls.noZoom = true;
+	controls.noZoom = false;
 
 	// LIGHT
 	var light = new THREE.PointLight(0xffffff);

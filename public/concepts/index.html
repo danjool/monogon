@@ -124,10 +124,10 @@ let gui
 let params = {
   shuffleRelations: false,
   forceCenterStrength: 0.3,
-  forceChargeStrength: -600,
-  velocityDecay: .98,
+  forceChargeStrength: -1500,
+  velocityDecay: .96,
   timeOnYAxis: true,
-  timeFuncMultiplier: -80.0,
+  timeFuncMultiplier: -150.0,
   timeFuncInnerMult: -1.0,
   timeFuncOffset: 2025, 
   showAll: true,
@@ -206,7 +206,7 @@ function initDatGui(fGraph){
   let forcesFolder = gui.addFolder("Forces")
   forcesFolder.open()
   forcesFolder.add(params, "forceCenterStrength", 0, 1, 0.01).name("Center Str").onChange((val)=>{ setForceStrength() })
-  forcesFolder.add(params, "forceChargeStrength", -1000, 0, 0.01).name("Charge Str").onChange((val)=>{ setForceStrength() })
+  forcesFolder.add(params, "forceChargeStrength", -2000, 0, 0.01).name("Charge Str").onChange((val)=>{ setForceStrength() })
   forcesFolder.add(params, "velocityDecay", 0, 1, 0.001).onChange((val) => fGraph.d3VelocityDecay(val));
 
   let relationsFolder = forcesFolder.addFolder("Relations")
@@ -246,7 +246,7 @@ function initDatGui(fGraph){
   }
 
   forcesFolder.add(params, "timeOnYAxis").onChange(val=>{ reinitTime() })
-  forcesFolder.add(params, "timeFuncMultiplier", -100.0, 100.0, .1).onChange( val => reinitTime() )
+  forcesFolder.add(params, "timeFuncMultiplier", -200.0, 200.0, .1).onChange( val => reinitTime() )
   forcesFolder.add(params, "timeFuncInnerMult", -100, 100.0, .1).onChange( val => reinitTime() )
   forcesFolder.add(params, "timeFuncOffset", -5000.0, 5000.0, .1).onChange( val => reinitTime() )
   forcesFolder.add(params, "shuffleRelations")
@@ -352,9 +352,22 @@ function filterVisibleByAttr(fGraph, attr){
   reinitializeForceGraph(fGraph)
 }
 
-function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
-  if (!color) color = (n) => {
-    return n.reviewed ? "white" : "lightgray"
+function setNodeObjectsToSpriteLabels(fGraph, textHeight, colorFunc) {
+  if (!colorFunc) colorFunc = function(n){
+    let c = new THREE.Color()
+    c.setHSL(0.0, 0.0, 1.0)
+    if(n.type === 'person') {
+      c = c.setHSL(.9, .95, .67)
+    }
+    if(n.type === 'concept') {
+      c = c.setHSL(.55, .75, .67)
+    }
+    if(n.type === 'concept') {
+      c = c.setHSL(.55, .75, .67)
+    }
+    // console.log('setNodeObjectsToSpriteLabels', n.type, c, c.getStyle(), n.type === 'person')
+    if (!n.reviewed) c.offsetHSL(0.0, 0.0, -.4) 
+    return c.getStyle()
   }
   fGraph
     .nodeThreeObject((node) => {
@@ -384,11 +397,11 @@ function setNodeObjectsToSpriteLabels(fGraph, textHeight, color) {
         const sprite = new SpriteText(label)
         sprite.backgroundColor = backgroundColor
 	      sprite.material.depthWrite = true; // make sprite background transparent
-	      sprite.color = color(node);
+	      sprite.color = colorFunc(node);
 	      sprite.textHeight = textHeight;
         sprite.font = 'Acherus'
-        sprite.strokeWidth = (node.type === 'concept' ? .5 : 0.0)
-        sprite.strokeColor = 'pink'
+        // sprite.strokeWidth = (node.type === 'concept' ? 1.0 : 0.0)
+        // sprite.strokeColor = 'pink'
       	return sprite;	
 		}
     })
@@ -563,21 +576,19 @@ function reinitializeForceGraph(fGraph){
   fGraph.linkVisibility(fGraph.linkVisibility())
   fGraph.nodeVisibility(fGraph.nodeVisibility())
   // fGraph.d3Force("link").force(fGraph.d3Force("link"))
-  setNodeObjectsToSpriteLabels( fGraph, 8, null )
+  setNodeObjectsToSpriteLabels( fGraph, 16, null )
   setEdgeLabelByAttribute(fGraph, "relation");
 
   let relationToColorMap = {
-        Is: "cyan",
-      IsA: "cyan",
-      Synonym: "blue",
-      Antonym: "red",
-      Wrote: "yellow",
-      Succeeds: "cyan",
-      Invented: "beige",
-      Inspire: "pink",
-      Adjacent: "brown",
-        About:"pink",
-        Created:"yellow"
+      Is: "yellow", Demonstrates: "yellow", Equivalent: "yellow", Synonym: "yellow", Defines: "yellow", Explains: "yellow", IsA: "yellow",
+      Antonym: "red", Criticizes: "red", Rejects: "red", Refuted: "red",
+      Wrote: "green", Discovered: "green", Introduced: "green", Created: "green", 
+      Invented: "green", Made: "green", Observed: "green", Anticipated: "green", Proved: "green", 
+      Succeeds: "lightblue", Influenced: "lightblue", Proposed: "lightblue", Believed: "lightblue", Inspired: "lightblue",
+      Adjacent: "pink",
+      About:"pink", References:"pink", 'Referenced By':"pink", Related:"pink",
+      Knew: "brown", Married: "brown", Mothered: "brown", Fathered: "brown", Taught: "brown", 
+      Translated: "orange", 'Commented On': "orange", Edited: "orange"
   };
   setLinkColorByAttributeMap(fGraph, "relation", relationToColorMap);
 
@@ -617,11 +628,20 @@ let timeHelpers = []
 function setupTimeHelpers(){
   let geom = new THREE.CircleGeometry( 1000, 16 )
   geom.rotateX(Math.PI/2.0)
+  let color = new THREE.Color()
   for (let i = 0; i <= 10; i++){
+    color.setHSL(1.0 - i*.9, 1.0, 0.5)
     // let helperMat = new THREE.LineBasicMaterial({color: new THREE.Color().setHSL( i/10.0, 0.0, i/10.0 ) })
     // let gridHelper = new THREE.LineLoop( geom, helperMat )
 
-    let helperMat = new THREE.MeshLambertMaterial( { color: 0xffffff, opacity: 0.05, transparent: true, side: THREE.DoubleSide } )
+    let helperMat = new THREE.MeshLambertMaterial( { 
+      color: color, 
+      opacity: 0.03, 
+      transparent: true, 
+      side: THREE.DoubleSide,
+      depthTest: false,
+
+    } )
     let gridHelper = new THREE.Mesh( geom, helperMat )
     
 
@@ -659,6 +679,19 @@ function checkForMissingNodeIds(data){
   missingIds = [...difference(necessaryIds, ids)]
   missingObjects = missingIds.map(id=>{return { "id":id, "type":"" }})
   console.log("difference, relations missing nodes", missingObjects)
+
+  let relationSet = new Set()
+  data.links.forEach(l=>{
+    relationSet.add(l.relation)
+    if(!l.relation){console.log("every link should have a relation property", l)}   
+  })
+  console.log("relationSet", relationSet)
+  let nodeSet = new Set()
+  data.nodes.forEach(n=>{
+    nodeSet.add(n.type)
+    if(!n.type){console.log("every node shouldhave a type", n)}
+  })
+  console.log("node types", nodeSet)
 
 }
 
@@ -723,7 +756,7 @@ function setupHoverToHighightEffect(node){
 
 function updateHighlight(){
   fGraph.nodeColor(fGraph.nodeColor())
-  // fGraph.linkOpacity(fGraph.linkOpacity())
+  fGraph.linkOpacity(fGraph.linkOpacity())
   fGraph.linkWidth(fGraph.linkWidth())
   // fGraph.linkDirectionalParticles(fGraph.linkDirectionalParticles())
   
@@ -753,6 +786,42 @@ function setNodesLabelByAttribute(attribute) {
   }
 }
 
+function compressNode(node){
+  if(!node || ! fGraph ) return
+  let { nodes, links } = fGraph.graphData()
+
+  if(node.type === 'person'){
+    let newLinks = []
+    let linksToHide = []
+    node.neighbors.forEach(neighbor => {
+      neighbor.links.forEach( l => {
+        if(neighbor.type == 'person') return
+        if(l.source !== node && l.target !== node) {
+          // this link needs to have its src/tgt that matches neighbor change to match node
+          if(l.source === neighbor){
+            newLinks.push( { "relation":l.relation, "source": node, "target": l.target} )  
+          } else if (l.target === neighbor) {
+            newLinks.push( { "relation":l.relation, "source": l.source, "target": node } )  
+          }
+        }
+        linksToHide.push(l)
+      } )
+    })
+    links = links.filter( l=> linksToHide.indexOf(l) < 0 )
+    links = [...links, ...newLinks]
+    // nodes = nodes.filter(n=>)
+  }
+  fGraph.graphData({nodes, links})
+  addNeighborsAndNodes(fGraph)
+}
+
+function disperseNode(node){
+  if(!node || ! fGraph ) return
+  let { nodes, links } = fGraph.graphData()
+
+
+}
+
 fetch(filePath).then(res => {
   let json = res.json()
   
@@ -768,8 +837,14 @@ fetch(filePath).then(res => {
     .nodeId('id')
     .nodeAutoColorBy('id')
     .onNodeClick((node, event) => {
+      console.log("event", event)
       if(!togglePinNode(node)) swingCameraToNode(fGraph,node)
       reinitTime()
+      if(event.ctrlKey){
+        compressNode(node)
+      } else if (event.altKey){
+
+      }
     })
     .onNodeDrag(node=>{
       // console.log('drag', node)
@@ -787,7 +862,9 @@ fetch(filePath).then(res => {
     // })
     // .linkWidth(0.0) // 0 gives a Line
     .linkWidth(link => highlightLinks.has(link) ? 3.0 : 1.0)
-    .linkOpacity(link => { highlightLinks.has(link) ? .4 : .2 })
+    // .linkWidth(1)
+    // .linkOpacity(link => { highlightLinks.has(link) ? .2 : .1 })
+    .linkOpacity(.4)
     .linkResolution(4)
     .d3AlphaDecay(0.0)
     .d3VelocityDecay(params.velocityDecay)
