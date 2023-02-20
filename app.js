@@ -1,13 +1,25 @@
-var express = require('express')
-var app = express()
-var server = require('http').createServer(app)
-var directory = require('serve-index');
-var path = require('path');
-// var socketio = require('socket.io')
-// var vhost = require('vhost')
-var router = express.Router()
+const express = require('express')
+const app = express()
+const http = require('http')
+const https = require('https')
+const fs = require('fs')
+// const directory = require('serve-index')
+const path = require('path');
+// const socketio = require('socket.io')
+// const vhost = require('vhost')
+const router = express.Router()
 // let sqlite3 = require('sqlite3').verbose()
 const { Pool } = require('pg');
+
+const privateKey = fs.readFileSync('/etc/letsencrypt/live/monogon.net/privkey.pem', 'utf8')
+const certificate = fs.readFileSync('/etc/letsencrypt/live/monogon.net/cert.pem', 'utf8')
+const ca = fs.readFileSync('/etc/letsencrypt/live/monogon.net/chain.pem', 'utf8')
+
+const credentials = {
+    key: privateKey,
+    cert: certificate,
+    ca: ca,
+}
 
 let pool
 if( process.env.DATABASE_URL && process.env.DATABASE_URL !== undefined ){
@@ -66,6 +78,11 @@ app.use('/', express.static(path.join(__dirname, 'public')))
 app.use(express.json())
 app.use(express.urlencoded({extended:true}))
 
-server.listen(PORT)
+const httpServer = http.createServer(app)
+const httpsServer = https.createServer(credentials, app);
 
-console.log('Server running at http://127.0.0.1:' + PORT + '/');
+httpServer.listen(port, () => console.log(`Listening on port ${port}`))
+
+httpsServer.listen(443, ()=>{
+    console.log('HTTPS Server running on port 443')
+})
