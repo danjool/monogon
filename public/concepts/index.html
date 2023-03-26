@@ -711,7 +711,7 @@ function makeAttrsValueOfAttr2(data, attr, attr2){
         // })
         n[attr2] = attr
         delete n[attr]
-        // console.log("makeAttrsValueOfAttr2", data, attr, n[attr], attr2, n[attr2])
+        console.log("makeAttrsValueOfAttr2", data, attr, n[attr], attr2, n[attr2])
         if(!n.hasOwnProperty('type')){
           console.log("no type", n.id)
         }
@@ -822,13 +822,22 @@ function disperseNode(node){
 
 }
 
-fetch(filePath).then(res => {
-  let json = res.json()
-  
-  return json
+fetch(filePath).then( async (res) => {
+  let json = await res.json()
+  // return json //.nodes.filter( n => n.type !== 'concept')
+  const filteredNodes = json.nodes.filter( n => n.type !== 'concept')
+  const filteredNodeIds = filteredNodes.map( n => n.id)
+  console.log("filteredNodeIds", json.nodes.filter(n=>n.type === 'concept')  )
+  const filteredEdges = json.links.filter( l => 
+    filteredNodeIds.includes(l.source) && filteredNodeIds.includes(l.target)
+  )
+  return {
+    nodes: filteredNodes,
+    links: filteredEdges
+  }
 }).then(data => {
   console.log("data", data)
-  makeAttrsValueOfAttr2(data, 'concept', 'type')  
+  // makeAttrsValueOfAttr2(data, 'concept', 'type')  
   checkForMissingNodeIds(data)
   
   fGraph = ForceGraph3D({rendererConfig:{ antialias: true, alpha: true, clearColor: "black" }, controlType:'orbit' } )

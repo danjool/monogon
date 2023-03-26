@@ -11,17 +11,21 @@ const router = express.Router()
 // let sqlite3 = require('sqlite3').verbose()
 const { Pool } = require('pg');
 
-const privateKey = fs.readFileSync('/etc/letsencrypt/live/monogon.net/privkey.pem', 'utf8')
-const certificate = fs.readFileSync('/etc/letsencrypt/live/monogon.net/cert.pem', 'utf8')
-const ca = fs.readFileSync('/etc/letsencrypt/live/monogon.net/chain.pem', 'utf8')
+let pool, credentials
 
-const credentials = {
-    key: privateKey,
-    cert: certificate,
-    ca: ca,
+try {
+	const privateKey = fs.readFileSync('/etc/letsencrypt/live/monogon.net/privkey.pem', 'utf8')
+	const certificate = fs.readFileSync('/etc/letsencrypt/live/monogon.net/cert.pem', 'utf8')
+	const ca = fs.readFileSync('/etc/letsencrypt/live/monogon.net/chain.pem', 'utf8')
+	credentials = {
+		key: privateKey,
+		cert: certificate,
+		ca: ca,
+	}
+} catch(err) {
+	console.error(err)
 }
 
-let pool
 if( process.env.DATABASE_URL && process.env.DATABASE_URL !== undefined ){
 	console.log('connecting to heroku postgres db with url', process.env.DATABASE_URL)
 	pool = new Pool({
