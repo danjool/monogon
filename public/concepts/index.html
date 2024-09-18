@@ -1,19 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="//unpkg.com/force-graph"></script>
-    <script src="//unpkg.com/three"></script>
-    <script src="//unpkg.com/d3-force-3d"></script>
-    <script src="//unpkg.com/3d-force-graph"></script>
-    <script src="//unpkg.com/three-spritetext"></script>
-    <script src="//unpkg.com/dat.gui"></script>
-    <!-- <script src="//unpkg.com/yamljs"></script> -->
-    <script type="text/javascript" src="./js/yaml.min.js"></script>
-        
-    <title>fdg - concepts</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/3d-force-graph"></script>
+  <script src="https://unpkg.com/three-spritetext"></script>
+  <script src="https://unpkg.com/dat.gui"></script>
+  <script type="text/javascript" src="./js/yaml.min.js"></script>
+  <title>force directed graphs</title>
 </head>
+
 <style>
 	*
 {
@@ -62,63 +59,47 @@ h1 {
     overflow:hidden;
 }
 </style>
-<!-- 
-Nodes all sharing a connection of the same relationship type to the same target node, effectively have an attribute.
-Toggling a single type of relationship to strength 0 or distance infinity, and low/no visbility 
-  is the visual equivalent of thinking of the relationship as an attribute 
-  (but that's not restricted to target)
-Turning a shared relation-type-plus-target into an attribute, does that give that target extra value or less?
-  Wandering child nodes, (taking the relationshipo with them as an attirbute)
-  vs
-  sucking those child nodes up into the source (indicated vis somehow)
- -->
+
 <body>
     
-        <div>
-            <div id="3d-graph"></div>    
-        </div>
+<div>
+    <div id="3d-graph"></div>    
+</div>
 
-        <script type="glsl" id="vshader">
-          attribute float lineDistance;
-          attribute float vertPos; 
-          varying float fragPos; 
-          varying vec4 pos;
-          varying float lineDist;
+<script type="glsl" id="vshader">
+  attribute float lineDistance;
+  attribute float vertPos; 
+  varying float fragPos; 
+  varying vec4 pos;
+  varying float lineDist;
 
-          void main() { 
-            pos = vec4(position, 1.0);
-            gl_Position = projectionMatrix*modelViewMatrix*pos;
-            fragPos = vertPos; 
-            lineDist = lineDistance;
-          }
-        </script>
-
-        <script type="glsl" id="fshader">
-          uniform vec3 color; 
-          varying float fragPos; 
-          varying vec4 pos;
-          varying float lineDist;
-
-          void main() { 
-            gl_FragColor = vec4(lineDist*1000., 0., 0., 1.0); 
-          }
-        </script>
-
-<script type="module">
-  // import yaml from './yaml-js'
+  void main() { 
+    pos = vec4(position, 1.0);
+    gl_Position = projectionMatrix*modelViewMatrix*pos;
+    fragPos = vertPos; 
+    lineDist = lineDistance;
+  }
 </script>
 
-        <script type="module" >
+<script type="glsl" id="fshader">
+  uniform vec3 color; 
+  varying float fragPos; 
+  varying vec4 pos;
+  varying float lineDist;
 
+  void main() { 
+    gl_FragColor = vec4(lineDist*1000., 0., 0., 1.0); 
+  }
+</script>
 
-
+<script type="module" >
 let fGraph
 const imagesFolder = 'images/'
 const circleAlphaMap = new THREE.TextureLoader().load(imagesFolder + "orb.png");
 const rectAlphaMap = new THREE.TextureLoader().load(imagesFolder + "cropped-rect-mask.jpg");
-  const highlightNodes = new Set();
-  const highlightLinks = new Set();
-  let hoverNode = null;
+const highlightNodes = new Set();
+const highlightLinks = new Set();
+let hoverNode = null;
 
 let gui
 let params = {
@@ -155,7 +136,6 @@ let relationsMap = {
   // 'Explains'
   // 'About'
 
-
   // Person -> Person
   'Knew':'Adjacent',
   'Married':'Adjacent',
@@ -180,7 +160,6 @@ let relationsMap = {
   'Commented On': 'Observed',
   'Read': 'Observed',
   'Referenced': 'Observed',
-
 }
 
 function reinitTime(){
@@ -199,7 +178,7 @@ function reinitTime(){
 function initDatGui(fGraph){
   gui = new dat.GUI({ name: "My GUI" })
   gui.width = 400
-  // gui.close()
+  gui.close()
 
   let relations = [... new Set(fGraph.graphData().links.map(l=>l.relation) ) ]
 
@@ -210,7 +189,6 @@ function initDatGui(fGraph){
   forcesFolder.add(params, "velocityDecay", 0, 1, 0.001).onChange((val) => fGraph.d3VelocityDecay(val));
 
   let relationsFolder = forcesFolder.addFolder("Relations")
-  // relationsFolder.open()
 
   relations.forEach(relation=>{
     relationForces[ relation ] = { forceLinkStrength: 0.7, forceLinkDistance: 100 }
@@ -238,7 +216,6 @@ function initDatGui(fGraph){
       })
       reinitializeLinkVisibility(fGraph)
     })
-    // relationFolder.open()
   })
 
   function toggleTimeHelpers(){
@@ -297,22 +274,15 @@ function toggleCategories( categoriesArray=['Science Fiction'], onOff=true, thro
   reinitializeLinkVisibility(fGraph)  
   setLinkStrengthsFromAttribute(fGraph, "relation", valToStr)
   setNodeObjectsToSpriteLabels( fGraph, 8, null )
-  // reinitializeForceGraph(fGraph, 8, null)
 }
 
 function reinitializeLinkVisibility(fGraph){
   fGraph.linkVisibility((link)=>{
-    // console.log("linkVisibility", link.hasOwnProperty('visible'), link.visible, link)
-    // if(!link.hasOwnProperty('visible')) link.visible = true
-    // if(!link.source.hasOwnProperty('visible')) link.source.visible = true
-    // if(!link.target.hasOwnProperty('visible')) link.target.visible = true
-    // || !highlightLinks.has(link)
     if(!link.source.visible || !link.target.visible || link.hide ){return false} else {return true}
   })
 }
 
 window.addEventListener("keyup", (e) => onKeyUp(e), false);
-
 
 function pinNodeAxisToProperty(fGraph, axis, prop, nonlinearFunc){
   fGraph.graphData().nodes.forEach(node=> {
@@ -365,46 +335,45 @@ function setNodeObjectsToSpriteLabels(fGraph, textHeight, colorFunc) {
     if(n.type === 'concept') {
       c = c.setHSL(.55, .75, .67)
     }
-    // console.log('setNodeObjectsToSpriteLabels', n.type, c, c.getStyle(), n.type === 'person')
     if (!n.reviewed) c.offsetHSL(0.0, 0.0, -.4) 
     return c.getStyle()
   }
-  fGraph
-    .nodeThreeObject((node) => {
-    	if (node.image && params.nodeImages) {
-  			const imgTexture = new THREE.TextureLoader().load( imagesFolder + node.image, (img)=>{
-  				} )
-  				const material = new THREE.SpriteMaterial({
-  				map: imgTexture,
-  				alphaMap: node.type === "person" ? circleAlphaMap : null,
-  			})
-  			const sprite = new THREE.Sprite(material);
+  fGraph.nodeThreeObject((node) => {
+    if (node.image && params.nodeImages) {
+      const imgTexture = new THREE.TextureLoader().load( imagesFolder + node.image, (img)=>{
+        } )
+        const material = new THREE.SpriteMaterial({
+        map: imgTexture,
+        alphaMap: node.type === "person" ? circleAlphaMap : null,
+      })
+      const sprite = new THREE.Sprite(material);
 
-  			const width = 24
-  			const height = node.ratio ? node.ratio*width : width
-  			sprite.scale.set(width, height)
-  			// sprite.scale.set(imgTexture.source.data.width, imgTexture.source.data.height) // async issue, don't have imgTexture.source.data yet
-  			return sprite;
-			
-    	} else {
-        let backgroundColor = null
-    		let label = node.label ? node.label : node.id;
-        if(node.categories && node.categories.length > 0){
-          label += "<br />" + node.categories.join("<br />")
-          backgroundColor = 'pink'
-        }
+      const width = 24
+      const height = node.ratio ? node.ratio*width : width
+      sprite.scale.set(width, height)
+      // sprite.scale.set(imgTexture.source.data.width, imgTexture.source.data.height) // async issue, don't have imgTexture.source.data yet
+      return sprite;
+    
+    } else {
+      console.log('fGraph.nodeThreeObject')
+      let backgroundColor = null
+      let label = node.label ? node.label : node.id;
+      if(node.categories && node.categories.length > 0){
+        label += "<br />" + node.categories.join("<br />")
+        backgroundColor = 'pink'
+      }
 
-        const sprite = new SpriteText(label)
-        sprite.backgroundColor = backgroundColor
-	      sprite.material.depthWrite = true; // make sprite background transparent
-	      sprite.color = colorFunc(node);
-	      sprite.textHeight = textHeight;
-        sprite.font = 'Acherus'
-        // sprite.strokeWidth = (node.type === 'concept' ? 1.0 : 0.0)
-        // sprite.strokeColor = 'pink'
-      	return sprite;	
-		}
-    })
+      const sprite = new SpriteText(label)
+      sprite.backgroundColor = backgroundColor
+      sprite.material.depthWrite = true; // make sprite background transparent
+      sprite.color = colorFunc(node);
+      sprite.textHeight = textHeight;
+      sprite.font = 'Acherus'
+      // sprite.strokeWidth = (node.type === 'concept' ? 1.0 : 0.0)
+      // sprite.strokeColor = 'pink'
+      return sprite;	
+    }
+  })
 }
 
 function setEdgeLabelByAttribute(fGraph, attribute) {
@@ -537,12 +506,14 @@ function unpinAllNodes() {
 // concepts-nodes-links
 // bios.json
 let filePath = './data/concepts-nodes-links.json'
+filePath = './data/bios.json'
 
 if(window.location.search.substr(1)){
 	let [key, val] = window.location.search.substr(1).split("=")
 	if(key==='c'){
 		switch(val){
 			case 'bios': filePath = './data/bios.json' 
+        console.log("val", val)
 				break;
       case 'coop': filePath = './data/coop.json' 
         break;
