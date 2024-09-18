@@ -4,15 +4,10 @@
 		<title>three.js webgl - geometry hierarchy 2</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<!-- <link type="text/css" rel="stylesheet" href="main.css"> -->
 		<style>
 			body {
 	margin: 0;
 	background-color: #000;
-	color: #fff;
-	font-family: Monospace;
-	font-size: 13px;
-	line-height: 24px;
 	overscroll-behavior: none;
 	overflow: hidden;
 }
@@ -88,7 +83,7 @@
 
 			varying vec3 vColor;
 			varying float time;
-			varying float depth;
+			varying float depth; // ?? does this really do anything? *0. suggests no
 			varying vec3 pos;
 
 			vec3 hsv2rgb(vec3 c)
@@ -100,11 +95,12 @@
 
 			void main() {
 
-				float r = length(pos)* (.5+sin(time*.0005));
-				float pulse = 0.5*sin(time * 1.9 + r*.005) + 0.5;
+				float radius = length(pos);
+				float pulse1 = radius * (.5+sin(time*.0005));
+				float pulse2 = 0.5*sin(time * 1.9 + pulse1 * .005) + 0.5;
 				float d = vColor.r;
-				float peak = (1.-d*d)*0.7*max(floor( mod( 128.83*offset + .2*d + time * 0.02, 3.004 +pulse*0.0002 )-2.0 ), 0.);// * (1.0+sin(time*20.123+d*320.));
-				float cycle = depth*(.5)  + .05*pulse + peak;
+				float peak = (1.-d*d)*0.7*max(floor( mod( 128.83*offset * .03 + .2*d + time * 0. * 0.02, 3.004 +pulse2*0.2 )-2.0 ), 0.);
+				float cycle = depth*(.5)  + .05*pulse2 + peak;
 				float c = cycle;
 				vec3 hsvColor = vec3( d*10. +time*.1, (1.2-2.*peak), .9 - max(peak, 0.));
 				vec3 rainbow = hsv2rgb( hsvColor );
@@ -112,9 +108,11 @@
 				
 				// c = offset;
 
-				//gl_FragColor = vec4( d*.2, c, c, 1. );
+				// gl_FragColor = vec4( d*.2, c, c, 1. );
 				gl_FragColor = vec4( rainbow*c, 1. );
-
+				// gl_FragColor = vec4( depth, depth, depth, 1. );
+				// gl_FragColor = vec4( offset, offset, offset, 1. );
+				// gl_FragColor = vec4( c, c, c, 1. ); // turns out 'c' is the 'worm' that traces
 			}
 
 		</script>
@@ -122,11 +120,10 @@
 	<body>
 		<script type="text/javascript" src="js/dat.gui.js"></script>
 		<script type="module">
-
 			import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.118/build/three.module.js';
 
 			var renderer, scene, camera, gui, globalUniforms;
-			var numLines = 200
+			var numLines = 800
 
 			var line, lines = [], time = 0., lastTime = Date.now();
 
@@ -161,7 +158,7 @@
 
 				var point = new THREE.Vector3();
 				var direction = new THREE.Vector3();
-				var randomness = 7.5;
+				var randomness = 2.5;
 				points.push( point.x, point.y, point.z );
 
 				for ( var i = 0; i < 40000; i ++ ) {
@@ -273,7 +270,7 @@
 				var now = Date.now();
 				let delta = now - lastTime
 				lastTime = now
-				time += delta* 0.001
+				time += delta* 0.0005 // so time is the equivalent of Date.now() but in seconds instead of milliseconds
 
 				// line.rotation.y = 0.25 * time;
 				// camera.position.z = 4000 + 3900.*Math.sin(time)

@@ -35,6 +35,7 @@ p{
  -moz-user-select: all;
   -ms-user-select: all;
       user-select: all;
+}
 
 .row{
   outline-width:2px;

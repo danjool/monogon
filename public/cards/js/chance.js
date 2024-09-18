@@ -979,13 +979,6 @@
         return parseInt('10000' + this.natural({max: 100000000000}), 10);
     };
 
-    Chance.prototype.google_analytics = function () {
-        var account = this.pad(this.natural({max: 999999}), 6);
-        var property = this.pad(this.natural({max: 99}), 2);
-
-        return 'UA-' + account + '-' + property;
-    };
-
     Chance.prototype.hashtag = function () {
         return '#' + this.word();
     };
