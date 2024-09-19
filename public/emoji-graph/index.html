@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Graph</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <div id="3d-graph" style="width: 100vw; height: 100vh;"></div>
+
+    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/3d-force-graph"></script>
+    <script src="https://unpkg.com/three-spritetext"></script>
+    <script>
+        // emojis are from https://emojicombos.com/
+        const graphData = {
+            nodes: [
+                { id: 'sun', emoji: '☀️' },
+                { id: 'seed', emoji: '🌰' },
+                { id: 'seedling', emoji: '🌱' },
+                { id: 'tree', emoji: '🌳' },
+                { id: 'jungle', emoji: '🌴' },
+                { id: 'leaves', emoji: '🍃' },
+                { id: 'water', emoji: '💧' },
+                { id: 'fire', emoji: '🔥' },
+                { id: 'dinosaur', emoji: '🦕' },
+                { id: 'cloud', emoji: '☁️' },
+                { id: 'air', emoji: '💨' },
+                { id: 'earth', emoji: '🌍' },
+                { id: 'lake', emoji: '🏞️' },
+                { id: 'ocean', emoji: '🌊' },
+                { id: 'apple', emoji: '🍎' },
+                { id: 'farmer', emoji: '👩‍🌾' },
+                { id: 'bread', emoji: '🍞' },
+                { id: 'cheese', emoji: '🧀' },
+                { id: 'milk', emoji: '🥛' },
+                { id: 'bear', emoji: '🐻' },
+                { id: 'cow', emoji: '🐄' },
+                { id: 'monkey', emoji: '🐒' },
+                { id: 'poo', emoji: '💩' },
+                { id: 'bird', emoji: '🐦' },
+                { id: 'bug', emoji: '🐞' },
+                { id: 'fish', emoji: '🐟' },
+                { id: 'shark', emoji: '🦈' },
+                { id: 'bee', emoji: '🐝' },
+                { id: 'honey', emoji: '🍯' },
+                { id: 'mushroom', emoji: '🍄' },
+                { id: 'banana', emoji: '🍌' },
+                { id: 'egg', emoji: '🥚' },
+                { id: 'wheat', emoji: '🌾' },
+                { id: 'flower', emoji: '🌸' },
+                { id: 'collision', emoji: '💥' },
+                { id: 'sweat_droplets', emoji: '💦' },
+                { id: 'hole', emoji: '🕳️' },
+                { id: 'ice_cube', emoji: '🧊' },
+                { id: 'ringed_planet', emoji: '🪐' },
+                { id: 'star', emoji: '⭐' },
+                { id: 'milky_way', emoji: '🌌' },
+                { id: 'fog', emoji: '🌫️' },
+                { id: 'high_voltage', emoji: '⚡' },
+                { id: 'comet', emoji: '☄️' },
+                { id: 'snowflake', emoji: '❄️' },
+                { id: 'sparkles', emoji: '✨' },
+                { id: 'knot', emoji: '🪢' },
+                { id: 'gem_stone', emoji: '💎' },
+                { id: 'link', emoji: '🔗' },
+                { id: 'magnet', emoji: '🧲' },
+                { id: 'light_bulb', emoji: '💡' },
+                { id: 'dna', emoji: '🧬' },
+                { id: 'microbe', emoji: '🦠' },
+                { id: 'wavy_dash', emoji: '〰️' },                
+                { id: 'iron', emoji: '🔩' },
+                
+                
+            ],
+            links: [
+                { source: 'sparkles', target: 'seedling', type: 'nourishes' },
+                { source: 'water', target: 'seedling', type: 'feeds' },
+                { source: 'cloud', target: 'water', type: 'produces' },
+                { source: 'bird', target: 'air', type: 'flies_in' },
+                { source: 'bird', target: 'bread', type: 'eats' },
+                { source: 'bird', target: 'egg', type: 'lays' },
+                { source: 'cloud', target: 'air', type: 'floats_in' },
+                { source: 'sun', target: 'water', type: 'evaporates' },
+                { source: 'water', target: 'lake', type: 'lives_in' },
+                { source: 'water', target: 'ocean', type: 'lives_in' },
+                { source: 'fish', target: 'lake', type: 'swims_in' },
+                { source: 'fish', target: 'ocean', type: 'swims_in' },
+                { source: 'shark', target: 'fish', type: 'eats' },
+                { source: 'shark', target: 'ocean', type: 'lives_in' },
+                { source: 'seed', target: 'seedling', type: 'grows' },
+                { source: 'tree', target: 'seed', type: 'produces' },
+                { source: 'seedling', target: 'tree', type: 'produces' },
+                { source: 'seedling', target: 'flower', type: 'produces' },
+                { source: 'bee', target: 'flower', type: 'pollinates' },
+                { source: 'bee', target: 'honey', type: 'makes' },
+                { source: 'bug', target: 'leaves', type: 'bug' },
+                { source: 'tree', target: 'leaves', type: 'has' },
+                { source: 'farmer', target: 'apple', type: 'harvests' },
+                { source: 'fire', target: 'bread', type: 'bakes' },
+                { source: 'milk', target: 'cheese', type: 'makes' },
+                { source: 'earth', target: 'farmer', type: 'supports' },
+                { source: 'seedling', target: 'wheat', type: 'provides' },
+                { source: 'wheat', target: 'bread', type: 'provides' },
+                { source: 'apple', target: 'farmer', type: 'picked_by' },
+                { source: 'cow', target: 'milk', type: 'produces' },
+                { source: 'milk', target: 'cheese', type: 'produces' },
+                { source: 'cow', target: 'seedling', type: 'eats' },
+                { source: 'cow', target: 'water', type: 'drinks' },
+                { source: 'cow', target: 'earth', type: 'stands_on' },
+                { source: 'cow', target: 'poo', type: 'poos' },
+                { source: 'poo', target: 'seedling', type: 'grows' },
+                { source: 'bear', target: 'honey', type: 'eats' },
+                { source: 'bear', target: 'fish', type: 'eats' },
+                { source: 'bear', target: 'tree', type: 'lives_in' },
+                { source: 'microbe', target: 'dna', type: 'has' },
+                { source: 'cow', target: 'dna', type: 'has' },
+                { source: 'seedling', target: 'dna', type: 'has' },
+                { source: 'farmer', target: 'dna', type: 'has' },                
+                { source: 'poo', target: 'microbe', type: 'has' },
+                { source: 'apple', target: 'tree', type: 'falls_from' },
+                { source: 'sun', target: 'milky_way', type: 'orbits' }, 
+                { source: 'sun', target: 'ringed_planet', type: 'orbits' },
+                { source: 'star', target: 'milky_way', type: 'orbits' },
+                { source: 'snowflake', target: 'water', type: 'melts' },
+                { source: 'snowflake', target: 'cloud', type: 'comes from' },
+                { source: 'snowflake', target: 'ice_cube', type: 'is' },
+                { source: 'high_voltage', target: 'cloud', type: 'strikes' },
+                { source: 'milky_way', target: 'hole', type: 'has' },
+                { source: 'sparkles', target: 'magnet', type: 'is' },
+                { source: 'sparkles', target: 'high_voltage', type: 'is' },
+                { source: 'earth', target: 'magnet', type: 'is' },
+                { source: 'comet', target: 'earth', type: 'hits' },
+                { source: 'sun', target: 'sparkles', type: 'shines' },
+                { source: 'monkey', target: 'poo', type: 'throws' },
+                { source: 'bear', target: 'poo', type: 'shits' },
+                { source: 'mushroom', target: 'poo', type: 'decomposes' },
+                { source: 'banana', target: 'monkey', type: 'eats' },
+                { source: 'monkey', target: 'jungle', type: 'lives_in' },
+                // comets are made of ice, fire requires air
+                { source: 'comet', target: 'ice_cube', type: 'is' },
+                { source: 'fire', target: 'air', type: 'requires' },
+                { source: 'fire', target: 'sparkles', type: 'creates' },
+                // stars make sparkles, stars are in the milky way
+                { source: 'star', target: 'sparkles', type: 'makes' },
+                { source: 'light_bulb', target: 'sparkles', type: 'makes' },
+                { source: 'high_voltage', target: 'light_bulb', type: 'powers' },
+                { source: 'star', target: 'milky_way', type: 'is' },
+                
+            ]   
+            };
+
+        // Create the 3D force-directed graph
+        const Graph = ForceGraph3D()
+            (document.getElementById('3d-graph'))
+            .graphData(graphData)
+            .nodeThreeObject(node => {
+                const sprite = new SpriteText(node.emoji);
+                sprite.material.depthWrite = false; // make sprite background transparent
+                sprite.textHeight = 8;
+                return sprite;
+            })
+            .linkWidth(0.2)
+            .linkOpacity(0.5)
+            .linkDirectionalParticles(2)
+            .linkDirectionalParticleWidth(1.5)
+            .linkDirectionalParticleSpeed(0.005)
+            .onNodeDragEnd(node => {
+                node.fx = node.x;
+                node.fy = node.y;
+                node.fz = node.z;
+            })
+            .onNodeClick(node => {
+                // Center view on clicked node
+                Graph.cameraPosition(
+                    { x: node.x, y: node.y, z: node.z },
+                    node,
+                    3000
+                );
+            })
+            // make the label be the from the emojiNames array
+            .nodeLabel(node => node.id)
+            // change the look of the link directional particles to be emojis, not the color
+            // .linkDirectionalParticles([() => '🌟']);
+            console.log(Graph.linkDirectionalParticles)
+            
+    </script>
+</body>
+</html>
