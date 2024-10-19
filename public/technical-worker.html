@@ -270,6 +270,9 @@
       const judgeHeight = 1.5 * arbitraryFactor; // feet
       const floorSize = 20 * arbitraryFactor; // feet
       let kids, adults
+      let eventIndex;
+      let eventTimer;
+      let events;
 
       const timeStep = 1 / 60;
       const N = 20;
@@ -282,6 +285,7 @@
       let quaternions = new Float32Array(N * 4);
       let isAttracted = false;
       let emojiCounts = new Array(N).fill(0);
+
 
       const targetZoneSizesImperial = [8, 7, 5, 2]; // feet, and the last "target zone" is the assembly zone
       const pointsPerZone = [2, 1, .5, 0]; // points per zone, arbitrary from rules
@@ -599,6 +603,14 @@
         return createPersonSprite(adultOptions);
       });
       adults.forEach(adult => scene.add(adult));
+
+      eventIndex = 0;
+      eventTimer = 0;
+      events = [
+        { duration: 10, cam: { x: 0, y: 20, z: 30 }, attraction: true, emitParticles: false, kidPositions: [{x: 0, y: 0, z: -10}] },
+        { duration: 6, cam: { x: -120, y: 10, z: 100 }, attraction: false, emitParticles: true, adultPositions: [{x: -5, y: 0, z: 0}] },
+        // ... add more events as needed
+      ];
 }
 
 function animatePeople(time) {
@@ -623,6 +635,36 @@ function animatePeople(time) {
       Math.sin(angle) * radius - floorSize * 0.4
     );
   });
+}
+
+function updateEvent(deltaTime) {
+  if (!events) return;
+  const currentEvent = events[eventIndex];
+  eventTimer += deltaTime;
+
+  // Tween camera
+  camera.position.lerp(new THREE.Vector3(currentEvent.cam.x, currentEvent.cam.y, currentEvent.cam.z), 0.05);
+
+  // Update physics state
+  if (currentEvent.attraction !== isAttracted) toggleAttraction();
+
+  // Emit particles
+  if (currentEvent.emitParticles) meshes.forEach(mesh => emitParticlesForBox(mesh, 4));
+
+  // Update people positions
+  if (
+    currentEvent.kidPositions && window.kids
+  ) kids.forEach((kid, i) => 
+    kid.position.lerp(new THREE.Vector3(...Object.values(currentEvent.kidPositions[i])), 0.05)
+  );
+  // if (currentEvent.adultPositions) adults.forEach((adult, i) => adult.position.lerp(new THREE.Vector3(...Object.values(currentEvent.adultPositions[i])), 0.05));
+
+  // Move to next event
+  if (eventTimer >= currentEvent.duration) {
+    eventIndex = (eventIndex + 1) % events.length;
+    eventTimer = 0;
+    console.log('Switching to event', eventIndex);
+  }
 }
 
       function onWindowResize() {
@@ -678,6 +720,7 @@ function animatePeople(time) {
 
         updateParticles(deltaTime);
         animatePeople(currentTime);
+        updateEvent(deltaTime);
         controls.update();
         renderer.render(scene, camera);
         stats.update();
