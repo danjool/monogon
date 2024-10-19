@@ -6,6 +6,7 @@ import { Scene } from './Scene.js';
 import { ParticleSystem } from './ParticleSystem.js';
 import { EventSequence } from './EventSequence.js';
 import { PhysicsWorker } from './PhysicsWorker.js';
+import { TextOverlaySystem } from './TextOverlaySystem.js';
 
 export class Main {
     constructor() {
@@ -16,6 +17,7 @@ export class Main {
         this.clock = new THREE.Clock();
     
         this.init();
+        this.createTextOverlays();
         this.animate();
       }
 
@@ -25,7 +27,25 @@ export class Main {
     this.initControls();
     this.initStats();
     this.initEventListeners();
+    this.textOverlaySystem = new TextOverlaySystem(this.scene, this.camera, this.renderer);
   }
+
+  createTextOverlays() {
+    // Add a fixed overlay
+    this.textOverlaySystem.addFixedOverlay('Tech Challenge Simulation', 10, 100, {
+      fontSize: '20px',
+      fontWeight: 'bold',
+    });
+
+    // Add an overlay for each box
+    this.scene.meshes.forEach((mesh, index) => {
+      this.textOverlaySystem.addObject3DOverlay(`Box ${index + 1}`, mesh, { x: 0, y: -30 });
+    });
+
+    // Add an overlay for the current event
+    this.currentEventOverlay = this.textOverlaySystem.addFixedOverlay('', 10, 240);
+  }
+
 
   initRenderer() {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -87,6 +107,10 @@ export class Main {
     this.particleSystem.update(deltaTime);
     this.eventSequence.update(deltaTime, this.camera, this.scene, this.particleSystem);  // Pass particleSystem here
     this.controls.update();
+
+    this.textOverlaySystem.update();
+    const currentEvent = this.eventSequence.events[this.eventSequence.currentEventIndex];
+    this.currentEventOverlay.element.textContent = `Current Event: ${currentEvent.desc}`;
 
     this.renderer.render(this.scene, this.camera);
     this.stats.update();

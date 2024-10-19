@@ -7,7 +7,8 @@ export class ParticleSystem {
     this.scene = scene;
     this.particles = [];
     this.particlePool = [];
-    this.MAX_PARTICLES = 300;
+    this.MAX_PARTICLES = 100; // Reduced from 300
+    this.PARTICLE_BUDGET = 50; // New particle budget
     this.initParticles();
   }
 
@@ -21,11 +22,13 @@ export class ParticleSystem {
   }
 
   getParticle() {
+    if (this.particles.length >= this.PARTICLE_BUDGET) {
+      return null; // Don't create new particles if we've reached the budget
+    }
+    
     let particle = this.particlePool.find(p => !p.visible);
     if (!particle) {
-      particle = new SpriteText('🌓', 0.5, 'rgba(255, 255, 255, 1)');
-      this.scene.add(particle);
-      this.particlePool.push(particle);
+      return null; // Don't create new particles if the pool is exhausted
     }
     return particle;
   }
@@ -33,6 +36,8 @@ export class ParticleSystem {
   emitEmojiParticles(position, emoji, count, lifetime = 2) {
     for (let i = 0; i < count; i++) {
       let particle = this.getParticle();
+      if (!particle) break; // Stop if we can't get more particles
+
       particle.text = emoji;
       particle.position.copy(position).add(new THREE.Vector3(
         (Math.random() - 0.5) * 0.5,
@@ -57,6 +62,8 @@ export class ParticleSystem {
 
     for (let i = 0; i < emojiCount; i++) {
       let particle = this.getParticle();
+      if (!particle) break; // Stop if we can't get more particles
+
       particle.text = '🌓';
       particle.position.copy(box.position);
       particle.visible = true;
