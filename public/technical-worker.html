@@ -14,12 +14,12 @@
     <script id="worker1" type="text/js-worker">
       import * as CANNON from 'https://cdn.skypack.dev/cannon-es';
 
-      const boxSize = 0.2;
+      const boxSize = 0.5;
       const N = 20;
       const bodies = [];
       let originalPositions = [];
       let originalOrientations = [];
-      let isAttracted = true;
+      let isAttracted = false;
       let t = 0.0;
 
       const world = new CANNON.World();
@@ -57,10 +57,18 @@
           const body = bodies[i];
           if (isAttracted) {
             body.mass = 0.1;
-            body.fixedRotation = true;
+            body.fixedRotation = true;            
           } else {
             body.mass = 1;
             body.fixedRotation = false;
+            // also add an explosive force at the bottom of the stack
+            body.applyForce(new CANNON.Vec3(
+              
+              (Math.random() - 0.5) * 1,
+              0,
+              (Math.random() - 0.5) * 1
+
+            ).scale(body.mass * 9.82 * 1. * (80.*boxSize - body.position.y)), body.position);
           }
         }
       }
@@ -121,19 +129,117 @@
 
     <script type="module">
       import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+      const three = THREE; 
+      import {
+        CanvasTexture, Sprite, SpriteMaterial
+      } from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+      const SRGBColorSpace = 'srgb';
       import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.112.1/examples/jsm/controls/OrbitControls.js';
       import Stats from 'https://unpkg.com/three@0.122.0/examples/jsm/libs/stats.module.js';
 
+      class SpriteText extends three.Sprite {
+  constructor(text = '', textHeight = 10, color = 'rgba(255, 255, 255, 1)') {
+    super(new three.SpriteMaterial());
+
+    this._text = `${text}`;
+    this._textHeight = textHeight;
+    this._color = color;
+    this._backgroundColor = false; // no background color
+
+    this._padding = 10; // Add padding to prevent clipping
+    this._borderWidth = 0;
+    this._borderRadius = 0;
+    this._borderColor = 'white';
+
+    this._strokeWidth = 0;
+    this._strokeColor = 'white';
+
+    this._fontFace = 'system-ui';
+    this._fontSize = 90; // defines text resolution
+    this._fontWeight = 'normal';
+
+    this._canvas = document.createElement('canvas');
+
+    this._genCanvas();
+  }
+
+  _genCanvas() {
+    const context = this._canvas.getContext('2d');
+    context.font = `${this._fontWeight} ${this._fontSize}px ${this._fontFace}`;
+    const textWidth = context.measureText(this._text).width;
+    const textHeight = this._fontSize;
+
+    // Increase canvas size to accommodate padding
+    this._canvas.width = textWidth + this._padding * 2;
+    this._canvas.height = textHeight + this._padding * 2;
+
+    // Clear the canvas
+    context.clearRect(0, 0, this._canvas.width, this._canvas.height);
+
+    // Set background color if specified
+    if (this._backgroundColor) {
+      context.fillStyle = this._backgroundColor;
+      context.fillRect(0, 0, this._canvas.width, this._canvas.height);
+    }
+
+    // Set text properties
+    context.font = `${this._fontWeight} ${this._fontSize}px ${this._fontFace}`;
+    context.textBaseline = 'top';
+    context.fillStyle = this._color;
+
+    // Draw the text with padding
+    context.fillText(this._text, this._padding, this._padding);
+
+    // Update the texture
+    this.material.map = new three.CanvasTexture(this._canvas);
+    this.transparent = true;
+    this.material.map.needsUpdate = true;
+  }
+
+  get text() { return this._text; }
+  set text(text) { this._text = text; this._genCanvas(); }
+  get textHeight() { return this._textHeight; }
+  set textHeight(textHeight) { this._textHeight = textHeight; this._genCanvas(); }
+  get color() { return this._color; }
+  set color(color) { this._color = color; this._genCanvas(); }
+  get backgroundColor() { return this._backgroundColor; }
+  set backgroundColor(color) { this._backgroundColor = color; this._genCanvas(); }
+  get padding() { return this._padding; }
+  set padding(padding) { this._padding = padding; this._genCanvas(); }
+  get borderWidth() { return this._borderWidth; }
+  set borderWidth(borderWidth) { this._borderWidth = borderWidth; this._genCanvas(); }
+  get borderRadius() { return this._borderRadius; }
+  set borderRadius(borderRadius) { this._borderRadius = borderRadius; this._genCanvas(); }
+  get borderColor() { return this._borderColor; }
+  set borderColor(borderColor) { this._borderColor = borderColor; this._genCanvas(); }
+  get strokeWidth() { return this._strokeWidth; }
+  set strokeWidth(strokeWidth) { this._strokeWidth = strokeWidth; this._genCanvas(); }
+  get strokeColor() { return this._strokeColor; }
+  set strokeColor(strokeColor) { this._strokeColor = strokeColor; this._genCanvas(); }
+  get fontFace() { return this._fontFace; }
+  set fontFace(fontFace) { this._fontFace = fontFace; this._genCanvas(); }
+  get fontSize() { return this._fontSize; }
+  set fontSize(fontSize) { this._fontSize = fontSize; this._genCanvas(); }
+  get fontWeight() { return this._fontWeight; }
+  set fontWeight(fontWeight) { this._fontWeight = fontWeight; this._genCanvas(); }
+}
+
+      // for us 1 unit = 1 foot, but also multiplied by an arbitrary factor to make the scene look better
+      const arbitraryFactor = 10.0;
+      const kidHeight = 3.5 * arbitraryFactor; // feet
+      const judgeHeight = 5.5 * arbitraryFactor; // feet
+      const floorSize = 20 * arbitraryFactor; // feet
+
       const timeStep = 1 / 60;
       const N = 20;
-      const boxSize = 0.2;
+      const boxSize = 0.5;
       const MAX_PARTICLES = 80;
       const PARTICLES_PER_BOX = 4;
 
       let lastTime = performance.now();
       let positions = new Float32Array(N * 3);
       let quaternions = new Float32Array(N * 4);
-      let isAttracted = true;
+      let isAttracted = false;
 
       let workerScript = document.querySelector('#worker1').textContent;
       const blob = new Blob([workerScript], { type: 'text/javascript' });
@@ -264,13 +370,6 @@
         directionalLight.shadow.camera.near = distance;
         scene.add(directionalLight);
 
-        const floorGeometry = new THREE.PlaneBufferGeometry(100, 100, 1, 1);
-        floorGeometry.rotateX(-Math.PI / 2);
-        const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x777777 });
-        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-        floor.receiveShadow = true;
-        scene.add(floor);
-
         const cubeGeometry = new THREE.BoxBufferGeometry(boxSize*2.0, boxSize*2.0, boxSize*2.0, 10, 10);
         const haloGeometry = new THREE.RingBufferGeometry(0.6, 0.8, 32);
         const haloMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
@@ -292,10 +391,13 @@
           scene.add(cubeMesh);
         }
 
-        const particleGeometry = new THREE.SphereBufferGeometry(0.25, 8, 8);
-        const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        // const particleGeometry = new THREE.SphereBufferGeometry(0.25, 8, 8);
+        // const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         for (let i = 0; i < MAX_PARTICLES; i++) {
-          const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+          // const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+          // use SpriteText instead of Mesh for particles, a half moon emoji
+          const allAstronomicalEmojies = ['🌜', '🌛', '🌙', '🌚', '🌝', '🌞', '🌟', '🌠', '⭐', '🌌', '🌆', '🌃', '🌉', '🌄', '🌅', '🌇', '🌈', '🌊', '🌋', '🌍', '🌎', '🌏', '🌐', '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘', '🌷', '🌹', '🌺', '🌻', '🌼', '🌽', '🌾', '🌿', '🍀', '🍁', '🍂', '🍃', '🍄', '🍅', '🍆', '🍇', '🍈', '🍉', '🍊', '🍋', '🍌', '🍍', '🍎', '🍏', '🍐', '🍑', '🍒', '🍓', '🍔', '🍕', '🍖', '🍗', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝', '🍞', '🍟', '🍠', '🍡', '🍢', '🍣', '🍤', '🍥', '🍦', '🍧', '🍨', '🍩', '🍪', '🍫', '🍬', '🍭', '🍮', '🍯', '🍰', '🍱', '🍲', '🍳', '🍴', '🍵', '🍶', '🍷', '🍸', '🍹', '🍺', '🍻', '🍼']
+          const particle = new SpriteText('🌑', 0.5, 'rgba(255, 255, 255, 1)');
           particle.visible = false;
           scene.add(particle);
           particlePool.push(particle);
@@ -303,7 +405,67 @@
 
         window.addEventListener('resize', onWindowResize);
 
+        const targetZoneSizesImperial = [8, 7, 5, 2]; // feet, and the last "target zone" is the assembly zone
+        const targetZoneColors = [0x00ff00, 0x00cc00, 0x009900, 0xff6600];
+        const firstZoneSize = targetZoneSizesImperial[0] * arbitraryFactor;
+        const centerOfTheZones = floorSize / 2 - firstZoneSize / 2; 
 
+        const floorGeometry = new THREE.PlaneBufferGeometry(floorSize, floorSize, 1, 1);
+        floorGeometry.rotateX(-Math.PI / 2);
+        const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x777777 });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.position.z = -centerOfTheZones
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        targetZoneSizesImperial.forEach((size, index) => {
+            const targetZoneGeometry = new THREE.PlaneGeometry(size * arbitraryFactor, size * arbitraryFactor);
+            const targetZoneMaterial = new THREE.MeshBasicMaterial({ color: targetZoneColors[index], side: THREE.DoubleSide, transparent: true, opacity: .9 });
+            const targetZone = new THREE.Mesh(targetZoneGeometry, targetZoneMaterial);
+            targetZone.rotation.x = Math.PI / 2;
+            targetZone.position.y = 0.01 + index * 0.01; // helps with z fighting    
+            targetZone.renderOrder = -1;
+            // targetZoneMaterial.depthTest = false;
+            // targetZone.position.z = centerOfTheZones;
+            scene.add(targetZone);
+        });
+
+        // assemblyZone is 3d, width and breadth of last zone, height extending upwards infinitely, opacity 0.5, orange
+        const assemblyZoneHeight = 100;
+        const assemblyZoneGeometry = new THREE.BoxGeometry(targetZoneSizesImperial[3], assemblyZoneHeight, targetZoneSizesImperial[3]);
+        const assemblyZoneMaterial = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.5 });
+        const assemblyZone = new THREE.Mesh(assemblyZoneGeometry, assemblyZoneMaterial  );
+        assemblyZone.position.y = assemblyZoneHeight / 2;
+        // assemblyZone.position.z = centerOfTheZones;
+        assemblyZone.visible = false; // start off invisible
+        scene.add(assemblyZone);
+
+        function createBox(width, height, depth, color, x, y, z) {
+            const geometry = new THREE.BoxGeometry(width, height, depth);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const box = new THREE.Mesh(geometry, material);
+            box.position.set(x, y, z);
+            scene.add(box);
+            return box;
+        }
+
+        // cyan and magenta Assembly Equipment and Destructive Equipment, respectively, positioned inside the zones
+        createBox(0.5, 0.5, 0.5, 0x00ffff, -2, 0.25);
+        createBox(0.5, 0.5, 0.5, 0xff00ff, 2, 0.25);
+
+        // Judges (3 example judges)
+        for (let i = 0; i < 3; i++) {
+            // take into account floor size to position the judges
+            createBox(0.2, 0.5, 0.2, 0x888888, -2 + i * 2, 0.25, 3);
+        }
+
+        // Audience (simplified representation)
+        const audienceGeometry = new THREE.PlaneGeometry(floorSize * .8, floorSize * .2);
+        const audienceMaterial = new THREE.MeshBasicMaterial({ color: 0x444499, side: THREE.DoubleSide });
+        const audience = new THREE.Mesh(audienceGeometry, audienceMaterial);
+        audience.rotation.x = Math.PI / 2;
+        audience.position.set(0, 0.01, centerOfTheZones);
+        scene.add(audience);
       }
 
       function onWindowResize() {
@@ -369,7 +531,7 @@
         }
       });
       // also toggle attraction every 10 seconds
-      setInterval(toggleAttraction, 10000);
+      // setInterval(toggleAttraction, 10000);
 
       function toggleAttraction() {
         worker.postMessage({ action: 'toggleAttraction' });
