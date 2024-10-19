@@ -17,15 +17,52 @@
       const boxSize = 0.5;
       const N = 20;
       const bodies = [];
+      const arbitraryFactor = 10.0;
       let originalPositions = [];
       let originalOrientations = [];
       let isAttracted = false;
       let t = 0.0;
 
+      
       const world = new CANNON.World();
       world.gravity.set(0, -9.82, 0);
       world.solver.iterations = 10;
       world.solver.tolerance = 0.001;
+      
+            const zones = [
+            { size: 2 * arbitraryFactor, emojiCount: 0 },
+            { size: 5 * arbitraryFactor, emojiCount: 1 },
+            { size: 7 * arbitraryFactor, emojiCount: 2 },
+              { size: 8 * arbitraryFactor, emojiCount: 4 },
+            ];
+      
+            const zoneBodies = zones.map((zone, index) => {
+              const zoneShape = new CANNON.Box(new CANNON.Vec3(zone.size/2, 0.1, zone.size/2));
+              const zoneBody = new CANNON.Body({ mass: 0, type: CANNON.Body.STATIC });
+              zoneBody.addShape(zoneShape);
+              zoneBody.position.set(0, 0, 0);
+              zoneBody.collisionResponse = false;
+              world.addBody(zoneBody);
+              return zoneBody;
+            });
+
+            function getEmojiCountForBody(body) {
+              for (let i = 0; i < zoneBodies.length; i++) {
+                if (checkBodyInZone(body, zoneBodies[i])) {
+                  return zones[i].emojiCount;
+                }
+              }
+              return 0;
+            }
+
+            function checkBodyInZone(body, zoneBody) {
+              const x = body.position.x;
+              const z = body.position.z;
+              if (x < zoneBody.shapes[0].halfExtents.x && x > -zoneBody.shapes[0].halfExtents.x &&
+                  z < zoneBody.shapes[0].halfExtents.z && z > -zoneBody.shapes[0].halfExtents.z) {
+                return true;
+              }
+            }
 
       const groundShape = new CANNON.Plane();
       const groundBody = new CANNON.Body({ mass: 0 });
@@ -65,7 +102,7 @@
             body.applyForce(new CANNON.Vec3(
               
               (Math.random() - 0.5) * 1,
-              0,
+              Math.random()*2.0,
               (Math.random() - 0.5) * 1
 
             ).scale(body.mass * 9.82 * 1. * (80.*boxSize - body.position.y)), body.position);
@@ -115,11 +152,14 @@
             quaternions[i * 4 + 3] = body.quaternion.w;
           }
 
+          const emojiCounts = bodies.map(getEmojiCountForBody);
+
           self.postMessage(
             {
               positions,
               quaternions,
-              isAttracted
+              isAttracted,
+              emojiCounts
             },
             [positions.buffer, quaternions.buffer]
           );
@@ -233,13 +273,18 @@
       const timeStep = 1 / 60;
       const N = 20;
       const boxSize = 0.5;
-      const MAX_PARTICLES = 80;
+      const MAX_PARTICLES = 180;
       const PARTICLES_PER_BOX = 4;
 
       let lastTime = performance.now();
       let positions = new Float32Array(N * 3);
       let quaternions = new Float32Array(N * 4);
       let isAttracted = false;
+      let emojiCounts = new Array(N).fill(0);
+
+      const targetZoneSizesImperial = [8, 7, 5, 2]; // feet, and the last "target zone" is the assembly zone
+      const pointsPerZone = [2, 1, .5, 0]; // points per zone, arbitrary from rules
+      const targetZoneColors = [0x00ff00, 0x00cc00, 0x009900, 0xff6600];
 
       let workerScript = document.querySelector('#worker1').textContent;
       const blob = new Blob([workerScript], { type: 'text/javascript' });
@@ -264,6 +309,7 @@
         positions = event.data.positions;
         quaternions = event.data.quaternions;
         isAttracted = event.data.isAttracted;
+        emojiCounts = event.data.emojiCounts;
 
         let allRested = false;
         let greatestDistance = 0;
@@ -292,7 +338,7 @@
 
         if (greatestDistance < .0001 && !isAttracted && greatestRotation < .0005 && highestY < 3.1) {
           meshes.forEach(mesh=>{
-            if (Math.abs(mesh.position.y - boxSize) < 0.01) emitParticlesForBox(mesh);
+            if (Math.abs(mesh.position.y - boxSize) < 0.01) emitParticlesForBox(mesh, emojiCounts[meshes.indexOf(mesh)]);
           });
         }
 
@@ -396,8 +442,8 @@
         for (let i = 0; i < MAX_PARTICLES; i++) {
           // const particle = new THREE.Mesh(particleGeometry, particleMaterial);
           // use SpriteText instead of Mesh for particles, a half moon emoji
-          const allAstronomicalEmojies = ['🌜', '🌛', '🌙', '🌚', '🌝', '🌞', '🌟', '🌠', '⭐', '🌌', '🌆', '🌃', '🌉', '🌄', '🌅', '🌇', '🌈', '🌊', '🌋', '🌍', '🌎', '🌏', '🌐', '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘', '🌷', '🌹', '🌺', '🌻', '🌼', '🌽', '🌾', '🌿', '🍀', '🍁', '🍂', '🍃', '🍄', '🍅', '🍆', '🍇', '🍈', '🍉', '🍊', '🍋', '🍌', '🍍', '🍎', '🍏', '🍐', '🍑', '🍒', '🍓', '🍔', '🍕', '🍖', '🍗', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝', '🍞', '🍟', '🍠', '🍡', '🍢', '🍣', '🍤', '🍥', '🍦', '🍧', '🍨', '🍩', '🍪', '🍫', '🍬', '🍭', '🍮', '🍯', '🍰', '🍱', '🍲', '🍳', '🍴', '🍵', '🍶', '🍷', '🍸', '🍹', '🍺', '🍻', '🍼']
-          const particle = new SpriteText('🌑', 0.5, 'rgba(255, 255, 255, 1)');
+          // const allAstronomicalEmojies = ['🌜', '🌛', '🌙', '🌚', '🌝', '🌞', '🌟', '🌠', '⭐', '🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘', '🍪'] // just for fun
+          const particle = new SpriteText('🌓', 0.5, 'rgba(255, 255, 255, 1)');
           particle.visible = false;
           scene.add(particle);
           particlePool.push(particle);
@@ -405,8 +451,6 @@
 
         window.addEventListener('resize', onWindowResize);
 
-        const targetZoneSizesImperial = [8, 7, 5, 2]; // feet, and the last "target zone" is the assembly zone
-        const targetZoneColors = [0x00ff00, 0x00cc00, 0x009900, 0xff6600];
         const firstZoneSize = targetZoneSizesImperial[0] * arbitraryFactor;
         const centerOfTheZones = floorSize / 2 - firstZoneSize / 2; 
 
@@ -432,12 +476,12 @@
 
         // assemblyZone is 3d, width and breadth of last zone, height extending upwards infinitely, opacity 0.5, orange
         const assemblyZoneHeight = 100;
-        const assemblyZoneGeometry = new THREE.BoxGeometry(targetZoneSizesImperial[3], assemblyZoneHeight, targetZoneSizesImperial[3]);
+        const assemblyZoneGeometry = new THREE.BoxGeometry(targetZoneSizesImperial[3] * arbitraryFactor, assemblyZoneHeight, targetZoneSizesImperial[3]* arbitraryFactor);
         const assemblyZoneMaterial = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.5 });
         const assemblyZone = new THREE.Mesh(assemblyZoneGeometry, assemblyZoneMaterial  );
         assemblyZone.position.y = assemblyZoneHeight / 2;
         // assemblyZone.position.z = centerOfTheZones;
-        assemblyZone.visible = false; // start off invisible
+        assemblyZone.visible = true; // start off invisible
         scene.add(assemblyZone);
 
         function createBox(width, height, depth, color, x, y, z) {
@@ -474,10 +518,10 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
       }
 
-      function emitParticlesForBox(box) {
-        if (box.userData.particlesEmitted >= PARTICLES_PER_BOX) return;
+      function emitParticlesForBox(box, emojiCount=0) {
+        const particlesToEmit = emojiCount;
+        if (box.userData.particlesEmitted >= particlesToEmit) return;
 
-        const particlesToEmit = Math.min(PARTICLES_PER_BOX - box.userData.particlesEmitted, particlePool.length - particles.length);
 
         for (let i = 0; i < particlesToEmit; i++) {
           let particle = particlePool.find(p => !p.visible);
