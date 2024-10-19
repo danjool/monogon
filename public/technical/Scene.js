@@ -5,6 +5,8 @@ import { SpriteText } from './SpriteText.js';
 export class Scene extends THREE.Scene {
   constructor() {
     super();
+    this.kids = [];
+    this.adults = [];
     this.fog = new THREE.Fog(0x000000, 500, 10000);
     this.boxSize = 0.5;
     this.N = 20;
@@ -21,6 +23,7 @@ export class Scene extends THREE.Scene {
     this.initAudience();
     this.initTeamChoiceElements();
     this.initBoxes();
+    this.initKidsAndAdults();
   }
 
   initLights() {
@@ -68,10 +71,10 @@ export class Scene extends THREE.Scene {
     const assemblyZoneHeight = 100;
     const assemblyZoneGeometry = new THREE.BoxGeometry(this.targetZoneSizesImperial[3] * this.arbitraryFactor, assemblyZoneHeight, this.targetZoneSizesImperial[3] * this.arbitraryFactor);
     const assemblyZoneMaterial = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.5 });
-    const assemblyZone = new THREE.Mesh(assemblyZoneGeometry, assemblyZoneMaterial);
-    assemblyZone.position.y = assemblyZoneHeight / 2;
-    assemblyZone.visible = true;
-    this.add(assemblyZone);
+    this.assemblyZone = new THREE.Mesh(assemblyZoneGeometry, assemblyZoneMaterial);
+    this.assemblyZone.position.y = assemblyZoneHeight / 2;
+    this.assemblyZone.visible = true;
+    this.add(this.assemblyZone);
   }
 
   initAudience() {
@@ -147,15 +150,36 @@ export class Scene extends THREE.Scene {
   initTeamChoiceElements() {
     const icosahedronGeometry = new THREE.IcosahedronGeometry(1);
     const icosahedronMaterial = new THREE.MeshBasicMaterial({ color: 0x3498db });
-    const icosahedron = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
-    icosahedron.position.set(-5, 0.5, 0);
-    this.add(icosahedron);
+    this.teamChoiceElement1 = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
+    this.teamChoiceElement1.position.set(-5, 0.5, 0);
+    this.add(this.teamChoiceElement1);
 
     const dodecahedronGeometry = new THREE.DodecahedronGeometry(1);
     const dodecahedronMaterial = new THREE.MeshBasicMaterial({ color: 0xf4d84b });
-    const dodecahedron = new THREE.Mesh(dodecahedronGeometry, dodecahedronMaterial);
-    dodecahedron.position.set(5, 0.5, 0);
-    this.add(dodecahedron);
+    this.teamChoiceElement2 = new THREE.Mesh(dodecahedronGeometry, dodecahedronMaterial);
+    this.teamChoiceElement2.position.set(5, 0.5, 0);
+    this.add(this.teamChoiceElement2);
+  }
+
+  initKidsAndAdults() {
+    const kidColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00'];
+    const adultColors = ['#8B4513', '#4682B4'];
+    const kidHeight = 0.5 * this.arbitraryFactor;
+    const adultHeight = 1.5 * this.arbitraryFactor;
+
+    kidColors.forEach((color, index) => {
+      const kid = this.createPersonSprite({ color, height: kidHeight, width: kidHeight * 0.6 });
+      kid.position.set(-5 + index * 2, kidHeight / 2, -5);
+      this.kids.push(kid);
+      this.add(kid);
+    });
+
+    adultColors.forEach((color, index) => {
+      const adult = this.createPersonSprite({ color, height: adultHeight, width: adultHeight * 0.5 });
+      adult.position.set(-2 + index * 4, adultHeight / 2, 5);
+      this.adults.push(adult);
+      this.add(adult);
+    });
   }
 
   initBoxes() {

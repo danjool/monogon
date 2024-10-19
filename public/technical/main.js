@@ -12,7 +12,7 @@ export class Main {
     constructor() {
         this.scene = new Scene();
         this.particleSystem = new ParticleSystem(this.scene);
-        this.eventSequence = new EventSequence(this.particleSystem);  // Pass particleSystem here
+        this.eventSequence = new EventSequence(this.particleSystem, this.scene);
         this.physicsWorker = new PhysicsWorker();
         this.clock = new THREE.Clock();
     
