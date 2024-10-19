@@ -19,6 +19,7 @@
       let originalPositions = [];
       let originalOrientations = [];
       let isAttracted = true;
+      let t = 0.0;
 
       const world = new CANNON.World();
       world.gravity.set(0, -9.82, 0);
@@ -50,6 +51,7 @@
 
       function toggleAttraction() {
         isAttracted = !isAttracted;
+        t = 0.0;
         for (let i = 0; i < bodies.length; i++) {
           const body = bodies[i];
           if (isAttracted) {
@@ -62,9 +64,9 @@
         }
       }
 
-      setInterval(toggleAttraction, 5000);
-
       self.addEventListener('message', (event) => {
+        t += 0.01;
+        if (t > 5.0) toggleAttraction();
         const { positions, quaternions, timeStep } = event.data;
 
         world.fixedStep(timeStep);
@@ -77,12 +79,12 @@
             
             // Position tweening
             const positionDiff = targetPos.vsub(body.position);
-            const positionStep = positionDiff.scale(0.05);
+            const positionStep = positionDiff.scale(0.05 * t);
             body.position.vadd(positionStep, body.position);
 
             // Rotation tweening
             const currentQuat = body.quaternion;
-            currentQuat.slerp(targetQuat, 0.71, currentQuat);
+            currentQuat.slerp(targetQuat, 0.1 * t, currentQuat);
 
             // Apply a small upward force to counteract gravity
             body.applyForce(new CANNON.Vec3(0, 1, 0).scale(body.mass * 9.82 * 1.1), body.position);
@@ -104,6 +106,7 @@
           {
             positions,
             quaternions,
+            isAttracted
           },
           [positions.buffer, quaternions.buffer]
         );
@@ -111,16 +114,19 @@
     </script>
 
     <script type="module">
-      import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+       import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
       import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.112.1/examples/jsm/controls/OrbitControls.js';
       import Stats from 'https://unpkg.com/three@0.122.0/examples/jsm/libs/stats.module.js';
 
       const timeStep = 1 / 60;
       const N = 20;
+      const MAX_PARTICLES = 80;
+      const PARTICLES_PER_BOX = 4;
 
       let lastTime = performance.now();
       let positions = new Float32Array(N * 3);
       let quaternions = new Float32Array(N * 4);
+      let isAttracted = true;
 
       let workerScript = document.querySelector('#worker1').textContent;
       const blob = new Blob([workerScript], { type: 'text/javascript' });
@@ -135,7 +141,9 @@
             timeStep,
             positions,
             quaternions,
+            isAttracted
           },
+          // this must be a Transferable[], so to get the boolean value across, we need to include it in the array like:
           [positions.buffer, quaternions.buffer]
         );
       }
@@ -143,8 +151,15 @@
       worker.addEventListener('message', (event) => {
         positions = event.data.positions;
         quaternions = event.data.quaternions;
+        isAttracted = event.data.isAttracted;
 
+        let allRested = false;
+        let greatestDistance = 0;
+        let greatestRotation = 0;
+        let highestY = 0;
         for (let i = 0; i < meshes.length; i++) {
+          const prevPosition = meshes[i].position.clone();
+          const prevQuaternion = meshes[i].quaternion.clone();
           meshes[i].position.set(positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2]);
           meshes[i].quaternion.set(
             quaternions[i * 4 + 0],
@@ -153,10 +168,25 @@
             quaternions[i * 4 + 3]
           );
 
-          // Check if cube touches the ground and emit particle
-          if (meshes[i].position.y <= 0.5) {
-            emitParticle(meshes[i].position);
+          // Check if cube has come to rest on the ground plane
+          const distanceToPrevious = meshes[i].position.distanceTo(prevPosition);
+          const rotationDiff = meshes[i].quaternion.angleTo(prevQuaternion)/Math.PI; // 0 to 1
+          greatestDistance = Math.max(greatestDistance, distanceToPrevious);
+          greatestRotation = Math.max(greatestRotation, rotationDiff);
+          if (
+            // Math.abs(meshes[i].position.y - 0.5) < 0.01 && 
+            distanceToPrevious < 0.01) {
+            allRested = allRested && true;
           }
+          highestY = Math.max(highestY, meshes[i].position.y);
+        }
+        // if all have come to rest
+        // console.log("allRested: ", allRested, "isAttracted: ", isAttracted, "greatestDistance: ", greatestDistance, "greatestRotation: ", greatestRotation, "highestY: ", highestY); 
+        if (greatestDistance < .0001 && !isAttracted && greatestRotation < .0005 && highestY < 3.1) {
+          // emit particles from all boxes
+          meshes.forEach(mesh=>{
+            if (Math.abs(mesh.position.y - 0.5) < 0.01) emitParticlesForBox(mesh);
+          });
         }
 
         const delay = timeStep * 1000 - (performance.now() - sendTime);
@@ -177,8 +207,8 @@
       requestDataFromWorker();
 
       function initThree() {
-        camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.5, 1000);
-        camera.position.set(Math.cos(Math.PI / 5) * 70, 15, Math.sin(Math.PI / 5) * 30);
+        camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.5, 10000);
+        camera.position.set(Math.cos(Math.PI / 5) * 30, 5, Math.sin(Math.PI / 5) * 30);
 
         scene = new THREE.Scene();
         scene.fog = new THREE.Fog(0x000000, 500, 10000);
@@ -230,14 +260,15 @@
         for (let i = 0; i < N; i++) {
           const cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterial);
           cubeMesh.castShadow = true;
+          cubeMesh.userData.particlesEmitted = 0;
           meshes.push(cubeMesh);
           scene.add(cubeMesh);
         }
 
         // Create particle pool
-        const particleGeometry = new THREE.SphereBufferGeometry(0.1, 8, 8);
+        const particleGeometry = new THREE.SphereBufferGeometry(0.25, 8, 8);
         const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < MAX_PARTICLES; i++) {
           const particle = new THREE.Mesh(particleGeometry, particleMaterial);
           particle.visible = false;
           scene.add(particle);
@@ -253,19 +284,27 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
       }
 
-      function emitParticle(position) {
-        let particle = particlePool.find(p => !p.visible);
-        if (!particle) return;
+      function emitParticlesForBox(box) {
+        if (box.userData.particlesEmitted >= PARTICLES_PER_BOX) return;
 
-        particle.position.copy(position);
-        particle.visible = true;
-        particle.userData.velocity = new THREE.Vector3(
-          (Math.random() - 0.5) * 0.5,
-          Math.random() * 2 + 1,
-          (Math.random() - 0.5) * 0.5
-        );
-        particle.userData.lifetime = 2; // 2 seconds lifetime
-        particles.push(particle);
+        const particlesToEmit = Math.min(PARTICLES_PER_BOX - box.userData.particlesEmitted, particlePool.length - particles.length);
+
+        for (let i = 0; i < particlesToEmit; i++) {
+          let particle = particlePool.find(p => !p.visible);
+          if (!particle) break;
+
+          particle.position.copy(box.position);
+          particle.visible = true;
+          particle.userData.velocity = new THREE.Vector3(
+            (Math.random() - 0.5) * 0.5,
+            Math.random() * 2 + 1,
+            (Math.random() - 0.5) * 0.5
+          );
+          particle.userData.lifetime = 2; // 2 seconds lifetime
+          particle.userData.originalBox = box;
+          particles.push(particle);
+          box.userData.particlesEmitted++;
+        }
       }
 
       function updateParticles(deltaTime) {
@@ -276,6 +315,8 @@
 
           if (particle.userData.lifetime <= 0) {
             particle.visible = false;
+            particle.position.copy(particle.userData.originalBox.position);
+            particle.userData.originalBox.userData.particlesEmitted--;
             particles.splice(i, 1);
           }
         }
@@ -293,6 +334,9 @@
         renderer.render(scene, camera);
         stats.update();
       }
+      /**
+       * todo: label boxes with numbers 1-20, 
+       * **/
     </script>
   </body>
 </html>
