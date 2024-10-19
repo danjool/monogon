@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Challenge Simulation</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js",
+                "three/examples/jsm/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js",
+                "three/examples/jsm/libs/stats.module.js": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/libs/stats.module.js"
+            }
+        }
+    </script>
+    <script type="module">
+        import { Scene } from './Scene.js';
+        import { ParticleSystem } from './ParticleSystem.js';
+        import { EventSequence } from './EventSequence.js';
+        import { PhysicsWorker } from './PhysicsWorker.js';
+        import { Main } from './main.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const main = new Main();
+        });
+    </script>
+</body>
+</html>
