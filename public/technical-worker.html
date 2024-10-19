@@ -272,12 +272,13 @@
       let kids, adults
       let eventIndex;
       let eventTimer;
-      let events;
+      let sequenceOfEvents;
+      let currentEvent
 
       const timeStep = 1 / 60;
       const N = 20;
       const boxSize = 0.5;
-      const MAX_PARTICLES = 180;
+      const MAX_PARTICLES = 300;
       const PARTICLES_PER_BOX = 4;
 
       let lastTime = performance.now();
@@ -487,25 +488,6 @@
         assemblyZone.visible = true; // start off invisible
         scene.add(assemblyZone);
 
-        function createBox(width, height, depth, color, x, y, z) {
-            const geometry = new THREE.BoxGeometry(width, height, depth);
-            const material = new THREE.MeshBasicMaterial({ color: color });
-            const box = new THREE.Mesh(geometry, material);
-            box.position.set(x, y, z);
-            scene.add(box);
-            return box;
-        }
-
-        // cyan and magenta Assembly Equipment and Destructive Equipment, respectively, positioned inside the zones
-        createBox(0.5, 0.5, 0.5, 0x00ffff, -2, 0.25);
-        createBox(0.5, 0.5, 0.5, 0xff00ff, 2, 0.25);
-
-        // Judges (3 example judges)
-        for (let i = 0; i < 3; i++) {
-            // take into account floor size to position the judges
-            createBox(0.2, 0.5, 0.2, 0x888888, -2 + i * 2, 0.25, 3);
-        }
-
         // Audience (simplified representation)
         const audienceGeometry = new THREE.PlaneGeometry(floorSize * .8, floorSize * .2);
         const audienceMaterial = new THREE.MeshBasicMaterial({ color: 0x444499, side: THREE.DoubleSide });
@@ -606,23 +588,83 @@
 
       eventIndex = 0;
       eventTimer = 0;
-      events = [
-        { duration: 10, cam: { x: 0, y: 20, z: 30 }, attraction: true, emitParticles: false, kidPositions: [{x: 0, y: 0, z: -10}] },
-        { duration: 6, cam: { x: -120, y: 10, z: 100 }, attraction: false, emitParticles: true, adultPositions: [{x: -5, y: 0, z: 0}] },
-        // ... add more events as needed
+      sequenceOfEvents = [
+        { duration: 5, cam: { x: 0, y: 20, z: 30 }, desc: "Initial setup", kidPositions: [{x: -10, y: 0, z: -10}], adultPositions: [{x: 10, y: 0, z: -10}] },
+        { duration: 3, cam: { x: 20, y: 10, z: 20 }, desc: "Team enters", kidPositions: [{x: 0, y: 0, z: 0}], adultPositions: [{x: 5, y: 0, z: 0}] },
+        { duration: 4, cam: { x: 0, y: 15, z: 25 }, desc: "Setup equipment", emitParticles: { pos: {x: 0, y: 1, z: 0}, emoji: "🔧", count: 5 } },
+        { duration: 5, cam: { x: -10, y: 10, z: 15 }, desc: "Story begins - Wishful Scene", emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "💭", count: 3 } },
+        { duration: 2, cam: { x: 5, y: 8, z: 20 }, desc: "Assembly Equipment activates", attraction: true, emitParticles: { pos: {x: -2, y: 1, z: 0}, emoji: "✨", count: 10 } },
+        { duration: 4, cam: { x: 0, y: 12, z: 18 }, desc: "Stack assembly", attraction: true },
+        { duration: 3, cam: { x: 15, y: 10, z: 15 }, desc: "Team Choice Element 1", emitParticles: { pos: {x: 5, y: 2, z: 0}, emoji: "🔮", count: 5 } },
+        { duration: 2, cam: { x: 0, y: 15, z: 20 }, desc: "Stack assembly completes", attraction: false },
+        { duration: 3, cam: { x: -10, y: 12, z: 15 }, desc: "Frustration Point", emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "😖", count: 3 } },
+        { duration: 2, cam: { x: 10, y: 8, z: 20 }, desc: "Destruction Equipment activates", emitParticles: { pos: {x: 2, y: 1, z: 0}, emoji: "💥", count: 10 } },
+        { duration: 5, cam: { x: 0, y: 20, z: 25 }, desc: "Stack Destruction", attraction: false },
+        { duration: 3, cam: { x: 0, y: 15, z: 30 }, desc: "Items land in zones", emitParticles: [
+          { pos: {x: -7, y: 0.5, z: -7}, emoji: "🌕", count: 5, lifetime: 10 },  // Full points
+          { pos: {x: -5, y: 0.5, z: -5}, emoji: "🌗", count: 8, lifetime: 8 },   // Half points
+          { pos: {x: -3, y: 0.5, z: -3}, emoji: "🌘", count: 4, lifetime: 6 },   // Quarter points
+        ]},
+        { duration: 4, cam: { x: 15, y: 10, z: 15 }, desc: "Team Choice Element 2", emitParticles: { pos: {x: 5, y: 2, z: 0}, emoji: "🎭", count: 5 } },
+        { duration: 5, cam: { x: -5, y: 12, z: 20 }, desc: "Story resolution", emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "😄", count: 3 } },
+        { duration: 2, cam: { x: 0, y: 18, z: 25 }, desc: "Team calls TIME", emitParticles: { pos: {x: 0, y: 3, z: 0}, emoji: "⏰", count: 1 } },
+        { duration: 10, cam: { x: 10, y: 10, z: 30 }, desc: "Judges ask questions", kidPositions: [{x: 0, y: 0, z: -5}], adultPositions: [{x: 0, y: 0, z: 5}] },
+        { duration: 5, cam: { x: 0, y: 25, z: 35 }, desc: "Review points", emitParticles: { pos: {x: 0, y: 5, z: 0}, emoji: "🏆", count: 10 } },
       ];
+      currentEvent = sequenceOfEvents[eventIndex];
+
+            // Two Team Choice Elements, one an icosahedron, the other a dodecahedron
+      const icosahedronGeometry = new THREE.IcosahedronGeometry(1);
+      const icosahedronMaterial = new THREE.MeshBasicMaterial({ color: 0x3498db });
+      const icosahedron = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
+      icosahedron.position.set(-5, 0.5, 0);
+      scene.add(icosahedron);
+
+      const dodecahedronGeometry = new THREE.DodecahedronGeometry(1);
+      const dodecahedronMaterial = new THREE.MeshBasicMaterial({ color: 0xf4d84b });;
+      const dodecahedron = new THREE.Mesh(dodecahedronGeometry, dodecahedronMaterial);
+      dodecahedron.position.set(5, 0.5, 0);
+      scene.add(dodecahedron);
+      
+  } // end of initThree
+
+function initParticles() {
+  for (let i = 0; i < MAX_PARTICLES; i++) {
+    const particle = new SpriteText('🌓', 0.5, 'rgba(255, 255, 255, 1)');
+    particle.visible = false;
+    scene.add(particle);
+    particlePool.push(particle);
+  }
 }
 
-function animatePeople(time) {
+function getParticle() {
+  let particle = particlePool.find(p => !p.visible);
+  if (!particle) {
+    particle = new SpriteText('🌓', 0.5, 'rgba(255, 255, 255, 1)');
+    scene.add(particle);
+    particlePool.push(particle);
+  }
+  return particle;
+}
+
+
+function animatePeople(time, currentEvent) {
   // Animate kids
   kids.forEach((kid, index) => {
     const angle = time * 0.001 + index * Math.PI / 2;
     const radius = floorSize * 0.3;
-    kid.position.set(
-      Math.cos(angle * .5) * radius,
-      kidHeight / 2,
-      Math.sin(angle) * radius - floorSize * 0.4
-    );
+    // kid.position.set(
+    //   Math.cos(angle * .5) * radius,
+    //   kidHeight / 2,
+    //   Math.sin(angle) * radius - floorSize * 0.4
+    // );
+    if(currentEvent.kidPositions && currentEvent.kidPositions[index])
+    kid.position.lerp(
+      new THREE.Vector3(
+        ...Object.values(currentEvent.kidPositions[index])
+      ),
+      0.05
+    )
   });
   
   // Animate adults
@@ -637,9 +679,31 @@ function animatePeople(time) {
   });
 }
 
+function emitEmojiParticles(position, emoji, count, lifetime = 2) {
+  for (let i = 0; i < count; i++) {
+    let particle = getParticle();
+    particle.text = emoji;
+    particle.position.copy(position).add(new THREE.Vector3(
+      (Math.random() - 0.5) * 0.5,
+      Math.random() * 0.5,
+      (Math.random() - 0.5) * 0.5
+    ));
+    particle.visible = true;
+    particle.userData.velocity = new THREE.Vector3(
+      (Math.random() - 0.5) * 0.5,
+      Math.random() * 1 + 0.5,
+      (Math.random() - 0.5) * 0.5
+    );
+    particle.userData.lifetime = lifetime;
+    particle.userData.maxLifetime = lifetime;
+    particle.userData.type = 'emoji';
+    particles.push(particle);
+  }
+}
+
 function updateEvent(deltaTime) {
-  if (!events) return;
-  const currentEvent = events[eventIndex];
+  if (!sequenceOfEvents) return;
+  currentEvent = sequenceOfEvents[eventIndex];
   eventTimer += deltaTime;
 
   // Tween camera
@@ -648,22 +712,36 @@ function updateEvent(deltaTime) {
   // Update physics state
   if (currentEvent.attraction !== isAttracted) toggleAttraction();
 
-  // Emit particles
-  if (currentEvent.emitParticles) meshes.forEach(mesh => emitParticlesForBox(mesh, 4));
+    // Handle particle emissions
+    if (currentEvent.emitParticles) {
+    if (Array.isArray(currentEvent.emitParticles)) {
+      currentEvent.emitParticles.forEach(emission => 
+        emitEmojiParticles(emission.pos, emission.emoji, emission.count, emission.lifetime));
+    } else {
+      emitEmojiParticles(currentEvent.emitParticles.pos, currentEvent.emitParticles.emoji, 
+                         currentEvent.emitParticles.count, currentEvent.emitParticles.lifetime);
+    }
+  }
 
-  // Update people positions
-  if (
-    currentEvent.kidPositions && window.kids
-  ) kids.forEach((kid, i) => 
-    kid.position.lerp(new THREE.Vector3(...Object.values(currentEvent.kidPositions[i])), 0.05)
-  );
-  // if (currentEvent.adultPositions) adults.forEach((adult, i) => adult.position.lerp(new THREE.Vector3(...Object.values(currentEvent.adultPositions[i])), 0.05));
+  // Update people positions // was breaking
+  // if (
+  //   currentEvent.kidPositions && kids
+  // ) kids.forEach((kid, i) => {
+  //   console.log('kid', i) 
+  //   kid.position.lerp(new THREE.Vector3(...Object.values(currentEvent.kidPositions[i])), 0.05)
+  // }
+  // );
+  // if (
+  //   currentEvent.adultPositions && window.adults
+  // ) adults.forEach((adult, i) => 
+  //   adult.position.lerp(new THREE.Vector3(...Object.values(currentEvent.adultPositions[i])), 0.05)
+  // );
 
   // Move to next event
   if (eventTimer >= currentEvent.duration) {
-    eventIndex = (eventIndex + 1) % events.length;
+    eventIndex = (eventIndex + 1) % sequenceOfEvents.length;
     eventTimer = 0;
-    console.log('Switching to event', eventIndex);
+    console.log('Switching to event', eventIndex, sequenceOfEvents[eventIndex].desc);
   }
 }
 
@@ -673,15 +751,12 @@ function updateEvent(deltaTime) {
         renderer.setSize(window.innerWidth, window.innerHeight);
       }
 
-      function emitParticlesForBox(box, emojiCount=0) {
-        const particlesToEmit = emojiCount;
-        if (box.userData.particlesEmitted >= particlesToEmit) return;
+      function emitParticlesForBox(box, emojiCount = 4) {
+        if (box.userData.particlesEmitted >= emojiCount) return;
 
-
-        for (let i = 0; i < particlesToEmit; i++) {
-          let particle = particlePool.find(p => !p.visible);
-          if (!particle) break;
-
+        for (let i = 0; i < emojiCount; i++) {
+          let particle = getParticle();
+          particle.text = '🌓'; // You can change this to any emoji you want
           particle.position.copy(box.position);
           particle.visible = true;
           particle.userData.velocity = new THREE.Vector3(
@@ -691,6 +766,7 @@ function updateEvent(deltaTime) {
           );
           particle.userData.lifetime = 2;
           particle.userData.originalBox = box;
+          particle.userData.type = 'box';
           particles.push(particle);
           box.userData.particlesEmitted++;
         }
@@ -702,11 +778,20 @@ function updateEvent(deltaTime) {
           particle.position.add(particle.userData.velocity.clone().multiplyScalar(deltaTime));
           particle.userData.lifetime -= deltaTime;
 
+          if (particle.userData.type === 'emoji') {
+            // Fade out emoji particles
+            const alpha = particle.userData.lifetime / particle.userData.maxLifetime;
+            particle.material.opacity = alpha;
+          }
+
           if (particle.userData.lifetime <= 0) {
             particle.visible = false;
-            particle.position.copy(particle.userData.originalBox.position);
-            particle.userData.originalBox.userData.particlesEmitted--;
+            if (particle.userData.type === 'box') {
+              particle.position.copy(particle.userData.originalBox.position);
+              particle.userData.originalBox.userData.particlesEmitted--;
+            }
             particles.splice(i, 1);
+            particlePool.push(particle);
           }
         }
       }
@@ -719,7 +804,7 @@ function updateEvent(deltaTime) {
         lastTime = currentTime;
 
         updateParticles(deltaTime);
-        animatePeople(currentTime);
+        animatePeople(currentTime, currentEvent);
         updateEvent(deltaTime);
         controls.update();
         renderer.render(scene, camera);
