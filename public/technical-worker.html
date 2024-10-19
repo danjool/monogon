@@ -266,9 +266,10 @@
 
       // for us 1 unit = 1 foot, but also multiplied by an arbitrary factor to make the scene look better
       const arbitraryFactor = 10.0;
-      const kidHeight = 3.5 * arbitraryFactor; // feet
-      const judgeHeight = 5.5 * arbitraryFactor; // feet
+      const kidHeight = .5 * arbitraryFactor; // feet
+      const judgeHeight = 1.5 * arbitraryFactor; // feet
       const floorSize = 20 * arbitraryFactor; // feet
+      let kids, adults
 
       const timeStep = 1 / 60;
       const N = 20;
@@ -376,7 +377,7 @@
 
       function initThree() {
         camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.5, 10000);
-        camera.position.set(Math.cos(Math.PI / 5) * 30, 5, Math.sin(Math.PI / 5) * 30);
+        camera.position.set(Math.cos(Math.PI / 5) * 170, 15, Math.sin(Math.PI / 5) * 30);
 
         scene = new THREE.Scene();
         scene.fog = new THREE.Fog(0x000000, 500, 10000);
@@ -437,8 +438,6 @@
           scene.add(cubeMesh);
         }
 
-        // const particleGeometry = new THREE.SphereBufferGeometry(0.25, 8, 8);
-        // const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         for (let i = 0; i < MAX_PARTICLES; i++) {
           // const particle = new THREE.Mesh(particleGeometry, particleMaterial);
           // use SpriteText instead of Mesh for particles, a half moon emoji
@@ -506,11 +505,125 @@
         // Audience (simplified representation)
         const audienceGeometry = new THREE.PlaneGeometry(floorSize * .8, floorSize * .2);
         const audienceMaterial = new THREE.MeshBasicMaterial({ color: 0x444499, side: THREE.DoubleSide });
-        const audience = new THREE.Mesh(audienceGeometry, audienceMaterial);
-        audience.rotation.x = Math.PI / 2;
-        audience.position.set(0, 0.01, centerOfTheZones);
-        scene.add(audience);
+        const audienceMesh = new THREE.Mesh(audienceGeometry, audienceMaterial);
+        audienceMesh.rotation.x = Math.PI / 2;
+        audienceMesh.position.set(0, 0.01, centerOfTheZones);
+        scene.add(audienceMesh);
+
+        function createPersonSprite({ color = '#FFFFFF', height = 1, width = 0.6, headRatio = 0.25 }) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        
+        // Draw a simple stick figure
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        
+        const headSize = canvas.height * headRatio;
+        const bodyHeight = canvas.height - headSize;
+        
+        // Head
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, headSize / 2, headSize / 2 - 2, 0, Math.PI * 2);
+        ctx.fill(); // to fill it in, change stroke to fill
+        
+        // Body
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, headSize);
+        ctx.lineTo(canvas.width / 2, headSize + bodyHeight * 0.6);
+        
+        // Legs
+        ctx.lineTo(canvas.width / 3, canvas.height - 2);
+        ctx.moveTo(canvas.width / 2, headSize + bodyHeight * 0.6);
+        ctx.lineTo(canvas.width * 2 / 3, canvas.height - 2);
+        
+        // Arms
+        ctx.moveTo(canvas.width / 4, headSize + bodyHeight * 0.1);
+        ctx.lineTo(canvas.width * 3 / 4, headSize + bodyHeight * 0.1);
+        
+        ctx.stroke();
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(width, height, 1);
+        
+        return sprite;
       }
+
+      // Create audience
+      const audicenColor = [
+        '#FF0000', '#00FF00', '#0000FF', '#FFFF00'
+      ]
+
+      // Create audience, x rows of y columns situated over the audience area
+      const x = 24;
+      const y = 12;
+      const audience = [];
+      for (let i = 0; i < x; i++) {
+        for (let j = 0; j < y; j++) {
+          const audienceOptions = {
+            color: '#888888',
+            height: kidHeight * (1 + Math.random() * 0.5),
+            width: kidHeight * 0.4,
+            areaWidth: floorSize * 0.8,
+            areaDepth: floorSize * 0.2
+          };
+          const audienceMember = createPersonSprite(audienceOptions);
+          audienceMember.position.set(
+            (i - x / 2) * audienceOptions.areaWidth / x,
+            audienceOptions.height / 2, 
+            (j - y / 2) * audienceOptions.areaDepth / y + centerOfTheZones
+          );
+          scene.add(audienceMember);
+          audience.push(audienceMember);
+        }
+      }
+
+
+      // Create kids
+      const kidColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00'];
+      kids = kidColors.map(color => {
+        const kidOptions = { color, height: kidHeight, width: kidHeight * 0.6 };
+        return createPersonSprite(kidOptions);
+      });
+      kids.forEach(kid => scene.add(kid));
+
+      // Create adults
+      const adultColors = ['#8B4513', '#4682B4'];
+      adults = adultColors.map(color => {
+        const adultOptions = { color, height: judgeHeight, width: judgeHeight * 0.5 };
+        return createPersonSprite(adultOptions);
+      });
+      adults.forEach(adult => scene.add(adult));
+}
+
+function animatePeople(time) {
+  // Animate kids
+  kids.forEach((kid, index) => {
+    const angle = time * 0.001 + index * Math.PI / 2;
+    const radius = floorSize * 0.3;
+    kid.position.set(
+      Math.cos(angle * .5) * radius,
+      kidHeight / 2,
+      Math.sin(angle) * radius - floorSize * 0.4
+    );
+  });
+  
+  // Animate adults
+  adults.forEach((adult, index) => {
+    const angle = time * 0.0005 + index * Math.PI;
+    const radius = floorSize * 0.4;
+    adult.position.set(
+      - floorSize * .25,
+      judgeHeight / 2,
+      Math.sin(angle) * radius - floorSize * 0.4
+    );
+  });
+}
 
       function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -564,6 +677,7 @@
         lastTime = currentTime;
 
         updateParticles(deltaTime);
+        animatePeople(currentTime);
         controls.update();
         renderer.render(scene, camera);
         stats.update();
@@ -574,8 +688,7 @@
           toggleAttraction();
         }
       });
-      // also toggle attraction every 10 seconds
-      // setInterval(toggleAttraction, 10000);
+      // also toggle attraction every 10 seconds // setInterval(toggleAttraction, 10000);
 
       function toggleAttraction() {
         worker.postMessage({ action: 'toggleAttraction' });
