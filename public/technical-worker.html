@@ -14,6 +14,7 @@
     <script id="worker1" type="text/js-worker">
       import * as CANNON from 'https://cdn.skypack.dev/cannon-es';
 
+      const boxSize = 0.2;
       const N = 20;
       const bodies = [];
       let originalPositions = [];
@@ -32,7 +33,7 @@
       groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
       world.addBody(groundBody);
 
-      const boxShape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
+      const boxShape = new CANNON.Box(new CANNON.Vec3(boxSize, boxSize, boxSize));
       for (let i = 0; i < N; i++) {
         const body = new CANNON.Body({ 
           mass: 1,
@@ -40,7 +41,7 @@
           angularDamping: 0.4
         });
         body.addShape(boxShape);
-        const position = new CANNON.Vec3(0, i * 1.1 + 0.5, 0);
+        const position = new CANNON.Vec3(0, i * boxSize * 2. +boxSize, 0);
         body.position.copy(position);
         body.fixedRotation = true; // Prevent rotation
         originalPositions.push(position.clone());
@@ -65,61 +66,67 @@
       }
 
       self.addEventListener('message', (event) => {
-        t += 0.01;
-        if (t > 5.0) toggleAttraction();
-        const { positions, quaternions, timeStep } = event.data;
+        if (event.data.action === 'toggleAttraction') {
+          toggleAttraction();
+        } else {
+          t += 0.01;
+          const { positions, quaternions, timeStep } = event.data;
 
-        world.fixedStep(timeStep);
+          world.fixedStep(timeStep);
 
-        if (isAttracted) {
+          if (isAttracted) {
+            for (let i = 0; i < bodies.length; i++) {
+              const body = bodies[i];
+              const targetPos = originalPositions[i];
+              // raise the target position by .01 per i biased towards low t
+              // targetPos.y += i/(1. + t) * 0.001;
+              const targetQuat = originalOrientations[i];
+              
+              // Position tweening
+              const positionDiff = targetPos.vsub(body.position);
+              const positionStep = positionDiff.scale(0.05 * t);
+              body.position.vadd(positionStep, body.position);
+
+              // Rotation tweening
+              const currentQuat = body.quaternion;
+              currentQuat.slerp(targetQuat, 0.1 * t, currentQuat);
+
+              // Apply a small upward force to counteract gravity
+              body.applyForce(new CANNON.Vec3(0, 1, 0).scale(body.mass * 9.82 * 1.1), body.position);
+            }
+          }
+
           for (let i = 0; i < bodies.length; i++) {
             const body = bodies[i];
-            const targetPos = originalPositions[i];
-            const targetQuat = originalOrientations[i];
-            
-            // Position tweening
-            const positionDiff = targetPos.vsub(body.position);
-            const positionStep = positionDiff.scale(0.05 * t);
-            body.position.vadd(positionStep, body.position);
-
-            // Rotation tweening
-            const currentQuat = body.quaternion;
-            currentQuat.slerp(targetQuat, 0.1 * t, currentQuat);
-
-            // Apply a small upward force to counteract gravity
-            body.applyForce(new CANNON.Vec3(0, 1, 0).scale(body.mass * 9.82 * 1.1), body.position);
+            positions[i * 3 + 0] = body.position.x;
+            positions[i * 3 + 1] = body.position.y;
+            positions[i * 3 + 2] = body.position.z;
+            quaternions[i * 4 + 0] = body.quaternion.x;
+            quaternions[i * 4 + 1] = body.quaternion.y;
+            quaternions[i * 4 + 2] = body.quaternion.z;
+            quaternions[i * 4 + 3] = body.quaternion.w;
           }
-        }
 
-        for (let i = 0; i < bodies.length; i++) {
-          const body = bodies[i];
-          positions[i * 3 + 0] = body.position.x;
-          positions[i * 3 + 1] = body.position.y;
-          positions[i * 3 + 2] = body.position.z;
-          quaternions[i * 4 + 0] = body.quaternion.x;
-          quaternions[i * 4 + 1] = body.quaternion.y;
-          quaternions[i * 4 + 2] = body.quaternion.z;
-          quaternions[i * 4 + 3] = body.quaternion.w;
+          self.postMessage(
+            {
+              positions,
+              quaternions,
+              isAttracted
+            },
+            [positions.buffer, quaternions.buffer]
+          );
         }
-
-        self.postMessage(
-          {
-            positions,
-            quaternions,
-            isAttracted
-          },
-          [positions.buffer, quaternions.buffer]
-        );
       });
     </script>
 
     <script type="module">
-       import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+      import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
       import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.112.1/examples/jsm/controls/OrbitControls.js';
       import Stats from 'https://unpkg.com/three@0.122.0/examples/jsm/libs/stats.module.js';
 
       const timeStep = 1 / 60;
       const N = 20;
+      const boxSize = 0.2;
       const MAX_PARTICLES = 80;
       const PARTICLES_PER_BOX = 4;
 
@@ -143,7 +150,6 @@
             quaternions,
             isAttracted
           },
-          // this must be a Transferable[], so to get the boolean value across, we need to include it in the array like:
           [positions.buffer, quaternions.buffer]
         );
       }
@@ -168,24 +174,19 @@
             quaternions[i * 4 + 3]
           );
 
-          // Check if cube has come to rest on the ground plane
           const distanceToPrevious = meshes[i].position.distanceTo(prevPosition);
-          const rotationDiff = meshes[i].quaternion.angleTo(prevQuaternion)/Math.PI; // 0 to 1
+          const rotationDiff = meshes[i].quaternion.angleTo(prevQuaternion)/Math.PI;
           greatestDistance = Math.max(greatestDistance, distanceToPrevious);
           greatestRotation = Math.max(greatestRotation, rotationDiff);
-          if (
-            // Math.abs(meshes[i].position.y - 0.5) < 0.01 && 
-            distanceToPrevious < 0.01) {
+          if (distanceToPrevious < 0.01) {
             allRested = allRested && true;
           }
           highestY = Math.max(highestY, meshes[i].position.y);
         }
-        // if all have come to rest
-        // console.log("allRested: ", allRested, "isAttracted: ", isAttracted, "greatestDistance: ", greatestDistance, "greatestRotation: ", greatestRotation, "highestY: ", highestY); 
+
         if (greatestDistance < .0001 && !isAttracted && greatestRotation < .0005 && highestY < 3.1) {
-          // emit particles from all boxes
           meshes.forEach(mesh=>{
-            if (Math.abs(mesh.position.y - 0.5) < 0.01) emitParticlesForBox(mesh);
+            if (Math.abs(mesh.position.y - boxSize) < 0.01) emitParticlesForBox(mesh);
           });
         }
 
@@ -205,6 +206,21 @@
       initThree();
       animate();
       requestDataFromWorker();
+
+      function createNumberTexture(number) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const context = canvas.getContext('2d');
+        context.fillStyle = 'white';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = 'black';
+        context.font = '48px Arial';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(number, canvas.width / 2, canvas.height / 2);
+        return new THREE.CanvasTexture(canvas);
+      }
 
       function initThree() {
         camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.5, 10000);
@@ -255,17 +271,27 @@
         floor.receiveShadow = true;
         scene.add(floor);
 
-        const cubeGeometry = new THREE.BoxBufferGeometry(1, 1, 1, 10, 10);
-        const cubeMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
+        const cubeGeometry = new THREE.BoxBufferGeometry(boxSize*2.0, boxSize*2.0, boxSize*2.0, 10, 10);
+        const haloGeometry = new THREE.RingBufferGeometry(0.6, 0.8, 32);
+        const haloMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+
         for (let i = 0; i < N; i++) {
+          const numberTexture = createNumberTexture(i + 1);
+          const cubeMaterial = new THREE.MeshPhongMaterial({ map: numberTexture });
+
           const cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterial);
           cubeMesh.castShadow = true;
           cubeMesh.userData.particlesEmitted = 0;
+
+          const haloMesh = new THREE.Mesh(haloGeometry, haloMaterial);
+          haloMesh.position.set(0, -boxSize, 0);
+          haloMesh.rotation.x = Math.PI / 2;
+          cubeMesh.add(haloMesh);
+
           meshes.push(cubeMesh);
           scene.add(cubeMesh);
         }
 
-        // Create particle pool
         const particleGeometry = new THREE.SphereBufferGeometry(0.25, 8, 8);
         const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         for (let i = 0; i < MAX_PARTICLES; i++) {
@@ -276,6 +302,8 @@
         }
 
         window.addEventListener('resize', onWindowResize);
+
+
       }
 
       function onWindowResize() {
@@ -300,7 +328,7 @@
             Math.random() * 2 + 1,
             (Math.random() - 0.5) * 0.5
           );
-          particle.userData.lifetime = 2; // 2 seconds lifetime
+          particle.userData.lifetime = 2;
           particle.userData.originalBox = box;
           particles.push(particle);
           box.userData.particlesEmitted++;
@@ -334,9 +362,21 @@
         renderer.render(scene, camera);
         stats.update();
       }
-      /**
-       * todo: label boxes with numbers 1-20, 
-       * **/
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 't') {
+          toggleAttraction();
+        }
+      });
+      // also toggle attraction every 10 seconds
+      setInterval(toggleAttraction, 10000);
+
+      function toggleAttraction() {
+        worker.postMessage({ action: 'toggleAttraction' });
+        meshes.forEach(mesh => {
+          mesh.children[0].visible = !isAttracted;
+        });
+      }
     </script>
   </body>
 </html>
