@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Tech Challenge, Cannon, with webworker</title>
+    <title>Tech Challenge, Cannon, with webworker and improved stacking</title>
     <style>
       body { margin: 0; }
       canvas { display: block; }
@@ -14,255 +14,284 @@
     <script id="worker1" type="text/js-worker">
       import * as CANNON from 'https://cdn.skypack.dev/cannon-es';
 
-      // Number of objects, could be also sent via a
-      // first init message, to avoid duplicatoin
-      const N = 20
+      const N = 20;
+      const bodies = [];
+      let originalPositions = [];
+      let originalOrientations = [];
+      let isAttracted = true;
 
-      // The bodies shared with three.js
-      const bodies = []
+      const world = new CANNON.World();
+      world.gravity.set(0, -9.82, 0);
+      world.solver.iterations = 10;
+      world.solver.tolerance = 0.001;
 
-      // Setup world
-      const world = new CANNON.World()
-      world.gravity.set(0, -10, 0)
-      world.solver.tolerance = 0.001
+      const groundShape = new CANNON.Plane();
+      const groundBody = new CANNON.Body({ mass: 0 });
+      groundBody.addShape(groundShape);
+      groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+      world.addBody(groundBody);
 
-      // Ground plane
-      const groundShape = new CANNON.Plane()
-      const groundBody = new CANNON.Body({ mass: 0 })
-      groundBody.addShape(groundShape)
-      groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0)
-      world.addBody(groundBody)
-
-      // Create N cubes
-      const boxShape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5))
+      const boxShape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
       for (let i = 0; i < N; i++) {
-        const body = new CANNON.Body({ mass: 1 })
-        body.addShape(boxShape)
-        body.position.set(
-          0, 
-          i * 1. + 0.5, 
-          0
-        )
-        bodies.push(body)
-        world.addBody(body)
+        const body = new CANNON.Body({ 
+          mass: 1,
+          linearDamping: 0.4,
+          angularDamping: 0.4
+        });
+        body.addShape(boxShape);
+        const position = new CANNON.Vec3(0, i * 1.1 + 0.5, 0);
+        body.position.copy(position);
+        body.fixedRotation = true; // Prevent rotation
+        originalPositions.push(position.clone());
+        originalOrientations.push(body.quaternion.clone());
+        bodies.push(body);
+        world.addBody(body);
       }
 
-      self.addEventListener('message', (event) => {
-        const { positions, quaternions, timeStep } = event.data
-
-        // Step the world
-        world.fixedStep(timeStep)
-
-        // Copy the cannon.js data into the buffers
+      function toggleAttraction() {
+        isAttracted = !isAttracted;
         for (let i = 0; i < bodies.length; i++) {
-          const body = bodies[i]
+          const body = bodies[i];
+          if (isAttracted) {
+            body.mass = 0.1;
+            body.fixedRotation = true;
+          } else {
+            body.mass = 1;
+            body.fixedRotation = false;
+          }
+        }
+      }
 
-          positions[i * 3 + 0] = body.position.x
-          positions[i * 3 + 1] = body.position.y
-          positions[i * 3 + 2] = body.position.z
-          quaternions[i * 4 + 0] = body.quaternion.x
-          quaternions[i * 4 + 1] = body.quaternion.y
-          quaternions[i * 4 + 2] = body.quaternion.z
-          quaternions[i * 4 + 3] = body.quaternion.w
+      setInterval(toggleAttraction, 5000);
+
+      self.addEventListener('message', (event) => {
+        const { positions, quaternions, timeStep } = event.data;
+
+        world.fixedStep(timeStep);
+
+        if (isAttracted) {
+          for (let i = 0; i < bodies.length; i++) {
+            const body = bodies[i];
+            const targetPos = originalPositions[i];
+            const targetQuat = originalOrientations[i];
+            
+            // Position tweening
+            const positionDiff = targetPos.vsub(body.position);
+            const positionStep = positionDiff.scale(0.05);
+            body.position.vadd(positionStep, body.position);
+
+            // Rotation tweening
+            const currentQuat = body.quaternion;
+            currentQuat.slerp(targetQuat, 0.71, currentQuat);
+
+            // Apply a small upward force to counteract gravity
+            body.applyForce(new CANNON.Vec3(0, 1, 0).scale(body.mass * 9.82 * 1.1), body.position);
+          }
         }
 
-        // Send data back to the main thread
+        for (let i = 0; i < bodies.length; i++) {
+          const body = bodies[i];
+          positions[i * 3 + 0] = body.position.x;
+          positions[i * 3 + 1] = body.position.y;
+          positions[i * 3 + 2] = body.position.z;
+          quaternions[i * 4 + 0] = body.quaternion.x;
+          quaternions[i * 4 + 1] = body.quaternion.y;
+          quaternions[i * 4 + 2] = body.quaternion.z;
+          quaternions[i * 4 + 3] = body.quaternion.w;
+        }
+
         self.postMessage(
           {
             positions,
             quaternions,
           },
-          // Specify that we want actually transfer the memory, not copy it over. This is faster.
           [positions.buffer, quaternions.buffer]
-        )
-      })
+        );
+      });
     </script>
 
     <script type="module">
-      // import * as THREE from 'three';
-      // import { OrbitControls } from 'OrbitControls';
-      // import * as CANNON from 'cannon-es';
-      import Stats from 'https://unpkg.com/three@0.122.0/examples/jsm/libs/stats.module.js'
-
       import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
       import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.112.1/examples/jsm/controls/OrbitControls.js';
-      import * as CANNON from 'https://cdn.skypack.dev/cannon-es';
+      import Stats from 'https://unpkg.com/three@0.122.0/examples/jsm/libs/stats.module.js';
 
+      const timeStep = 1 / 60;
+      const N = 20;
 
-      // Parameters
-      const timeStep = 1 / 60
-      const N = 40 // number of objects
+      let lastTime = performance.now();
+      let positions = new Float32Array(N * 3);
+      let quaternions = new Float32Array(N * 4);
 
-      // Data arrays. Contains all our kinematic data we need for rendering.
-      // These will be replaced with the new arrays the worker will send us.
-      let positions = new Float32Array(N * 3)
-      let quaternions = new Float32Array(N * 4)
+      let workerScript = document.querySelector('#worker1').textContent;
+      const blob = new Blob([workerScript], { type: 'text/javascript' });
+      const worker = new Worker(window.URL.createObjectURL(blob), { type: 'module' });
 
-      // Get the worker code
-      let workerScript = document.querySelector('#worker1').textContent
+      let sendTime;
 
-      // BUG Relative urls don't currently work in an inline
-      // module worker in Chrome
-      // https://bugs.chromium.org/p/chromium/issues/detail?id=1161710
-      const href = window.location.href.replace('/examples/worker', '')
-      workerScript = workerScript
-        // .replace(/from '\.\.\//g, `from '${href}/`)
-        // .replace(/from '\.\//g, `from '${href}/examples/`)
-
-      // Create a blob for the inline worker code
-      const blob = new Blob([workerScript], { type: 'text/javascript' })
-
-      // Create worker
-      const worker = new Worker(window.URL.createObjectURL(blob), { type: 'module' })
-
-      // Time when we sent last message
-      let sendTime
-
-      // Send the array buffers that will be populated in the
-      // worker with cannon.js' data
       function requestDataFromWorker() {
-        sendTime = performance.now()
+        sendTime = performance.now();
         worker.postMessage(
           {
             timeStep,
             positions,
             quaternions,
           },
-          // Specify that we want actually transfer the memory, not copy it over. This is faster.
           [positions.buffer, quaternions.buffer]
-        )
+        );
       }
 
-      // The mutated position and quaternion data we
-      // get back from the worker
       worker.addEventListener('message', (event) => {
-        // Get fresh data from the worker
-        positions = event.data.positions
-        quaternions = event.data.quaternions
+        positions = event.data.positions;
+        quaternions = event.data.quaternions;
 
-        // Update the three.js meshes
         for (let i = 0; i < meshes.length; i++) {
-          meshes[i].position.set(positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2])
+          meshes[i].position.set(positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2]);
           meshes[i].quaternion.set(
             quaternions[i * 4 + 0],
             quaternions[i * 4 + 1],
             quaternions[i * 4 + 2],
             quaternions[i * 4 + 3]
-          )
+          );
+
+          // Check if cube touches the ground and emit particle
+          if (meshes[i].position.y <= 0.5) {
+            emitParticle(meshes[i].position);
+          }
         }
 
-        // Delay the next step by the amount of timeStep remaining,
-        // otherwise run it immediatly
-        const delay = timeStep * 1000 - (performance.now() - sendTime)
-        setTimeout(requestDataFromWorker, Math.max(delay, 0))
-      })
+        const delay = timeStep * 1000 - (performance.now() - sendTime);
+        setTimeout(requestDataFromWorker, Math.max(delay, 0));
+      });
 
       worker.addEventListener('error', (event) => {
-        console.error(event.message)
-      })
+        console.error(event.message);
+      });
 
-      // Initialize three.js
-      let camera, scene, renderer, stats
-      let controls
+      let camera, scene, renderer, stats, controls;
+      const meshes = [];
+      const particles = [];
+      const particlePool = [];
 
-      // The meshes that will be passed to cannon.js
-      const meshes = []
-
-      initThree()
-      animate()
-      // Start the worker!
-      requestDataFromWorker()
+      initThree();
+      animate();
+      requestDataFromWorker();
 
       function initThree() {
-        // Camera
-        camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.5, 10000)
-        camera.position.set(Math.cos(Math.PI / 5) * 30, 5, Math.sin(Math.PI / 5) * 30)
+        camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.5, 1000);
+        camera.position.set(Math.cos(Math.PI / 5) * 70, 15, Math.sin(Math.PI / 5) * 30);
 
-        // Scene
-        scene = new THREE.Scene()
-        scene.fog = new THREE.Fog(0x000000, 500, 10000)
+        scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x000000, 500, 10000);
 
-        // Renderer
-        renderer = new THREE.WebGLRenderer({ antialias: true })
-        renderer.setSize(window.innerWidth, window.innerHeight)
-        renderer.setClearColor(scene.fog.color)
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(scene.fog.color);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        document.body.appendChild(renderer.domElement);
 
-        renderer.shadowMap.enabled = true
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap
+        stats = new Stats();
+        document.body.appendChild(stats.dom);
 
-        renderer.outputEncoding = THREE.sRGBEncoding
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.enablePan = false;
+        controls.dampingFactor = 0.3;
+        controls.minDistance = 10;
+        controls.maxDistance = 500;
 
-        document.body.appendChild(renderer.domElement)
+        const ambientLight = new THREE.AmbientLight(0x666666);
+        scene.add(ambientLight);
 
-        Stats.js
-        stats = new Stats()
-        document.body.appendChild(stats.dom)
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.75);
+        const distance = 20;
+        directionalLight.position.set(distance, distance, distance);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 1024;
+        directionalLight.shadow.mapSize.height = 1024;
+        directionalLight.shadow.camera.left = -distance;
+        directionalLight.shadow.camera.right = distance;
+        directionalLight.shadow.camera.top = distance;
+        directionalLight.shadow.camera.bottom = -distance;
+        directionalLight.shadow.camera.far = 3 * distance;
+        directionalLight.shadow.camera.near = distance;
+        scene.add(directionalLight);
 
-        // Orbit controls
-        controls = new OrbitControls(camera, renderer.domElement)
-        controls.enableDamping = true
-        controls.enablePan = false
-        controls.dampingFactor = 0.3
-        controls.minDistance = 10
-        controls.maxDistance = 500
+        const floorGeometry = new THREE.PlaneBufferGeometry(100, 100, 1, 1);
+        floorGeometry.rotateX(-Math.PI / 2);
+        const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x777777 });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.receiveShadow = true;
+        scene.add(floor);
 
-        // Lights
-        const ambientLight = new THREE.AmbientLight(0x666666)
-        scene.add(ambientLight)
-
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.75)
-
-        const distance = 20
-        directionalLight.position.set(distance, distance, distance)
-
-        directionalLight.castShadow = true
-
-        directionalLight.shadow.mapSize.width = 1024
-        directionalLight.shadow.mapSize.height = 1024
-
-        directionalLight.shadow.camera.left = -distance
-        directionalLight.shadow.camera.right = distance
-        directionalLight.shadow.camera.top = distance
-        directionalLight.shadow.camera.bottom = -distance
-
-        directionalLight.shadow.camera.far = 3 * distance
-        directionalLight.shadow.camera.near = distance
-
-        scene.add(directionalLight)
-
-        // Floor
-        const floorGeometry = new THREE.PlaneBufferGeometry(100, 100, 1, 1)
-        floorGeometry.rotateX(-Math.PI / 2)
-        const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x777777 })
-        const floor = new THREE.Mesh(floorGeometry, floorMaterial)
-        floor.receiveShadow = true
-        scene.add(floor)
-
-        // Cubes
-        const cubeGeometry = new THREE.BoxBufferGeometry(1, 1, 1, 10, 10)
-        const cubeMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 })
+        const cubeGeometry = new THREE.BoxBufferGeometry(1, 1, 1, 10, 10);
+        const cubeMaterial = new THREE.MeshPhongMaterial({ color: 0x888888 });
         for (let i = 0; i < N; i++) {
-          const cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterial)
-          cubeMesh.castShadow = true
-          meshes.push(cubeMesh)
-          scene.add(cubeMesh)
+          const cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterial);
+          cubeMesh.castShadow = true;
+          meshes.push(cubeMesh);
+          scene.add(cubeMesh);
         }
 
-        window.addEventListener('resize', onWindowResize)
+        // Create particle pool
+        const particleGeometry = new THREE.SphereBufferGeometry(0.1, 8, 8);
+        const particleMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        for (let i = 0; i < 50; i++) {
+          const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+          particle.visible = false;
+          scene.add(particle);
+          particlePool.push(particle);
+        }
+
+        window.addEventListener('resize', onWindowResize);
       }
 
       function onWindowResize() {
-        camera.aspect = window.innerWidth / window.innerHeight
-        camera.updateProjectionMatrix()
-        renderer.setSize(window.innerWidth, window.innerHeight)
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      function emitParticle(position) {
+        let particle = particlePool.find(p => !p.visible);
+        if (!particle) return;
+
+        particle.position.copy(position);
+        particle.visible = true;
+        particle.userData.velocity = new THREE.Vector3(
+          (Math.random() - 0.5) * 0.5,
+          Math.random() * 2 + 1,
+          (Math.random() - 0.5) * 0.5
+        );
+        particle.userData.lifetime = 2; // 2 seconds lifetime
+        particles.push(particle);
+      }
+
+      function updateParticles(deltaTime) {
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const particle = particles[i];
+          particle.position.add(particle.userData.velocity.clone().multiplyScalar(deltaTime));
+          particle.userData.lifetime -= deltaTime;
+
+          if (particle.userData.lifetime <= 0) {
+            particle.visible = false;
+            particles.splice(i, 1);
+          }
+        }
       }
 
       function animate() {
-        requestAnimationFrame(animate)
+        requestAnimationFrame(animate);
 
-        controls.update()
-        renderer.render(scene, camera)
-        stats.update()
+        const currentTime = performance.now();
+        const deltaTime = (currentTime - lastTime) / 1000;
+        lastTime = currentTime;
+
+        updateParticles(deltaTime);
+        controls.update();
+        renderer.render(scene, camera);
+        stats.update();
       }
     </script>
   </body>
