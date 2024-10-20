@@ -6,27 +6,60 @@ export class EventSequence {
     this.particleSystem = particleSystem;
     this.scene = scene;
     this.events = [
-      { duration: 5, cam: { x: 0, y: 20, z: 30 }, lookAt: { x: 0, y: 0, z: 0 }, desc: "Initial setup", kidPositions: [{x: -10, y: 0, z: -10}], adultPositions: [{x: 10, y: 0, z: -10}] },
-      { duration: 3, cam: { x: 20, y: 100, z: -200 }, lookAt: "centerOfScene", desc: "Team enters", kidPositions: [{x: 0, y: 0, z: 0}], adultPositions: [{x: 5, y: 0, z: 0}] },
-      { duration: 4, cam: { x: 0, y: 15, z: 25 }, lookAt: "firstBox", desc: "Setup equipment", emitParticles: { pos: {x: 0, y: 1, z: 0}, emoji: "🔧", count: 2 } },
-      { duration: 5, cam: { x: -10, y: 10, z: 15 }, lookAt: { x: 0, y: 5, z: 0 }, desc: "Story begins - Wishful Scene", emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "💭", count: 1 } },
-      { duration: 2, cam: { x: 5, y: 8, z: 20 }, lookAt: "assemblyZone", desc: "Assembly Equipment activates", attraction: true, emitParticles: { pos: {x: -2, y: 1, z: 0}, emoji: "✨", count: 3 } },
-      { duration: 4, cam: { x: 0, y: 12, z: 18 }, lookAt: "topOfStack", desc: "Stack assembly", attraction: true },
-      { duration: 3, cam: { x: 15, y: 10, z: 15 }, lookAt: "teamChoiceElement1", desc: "Team Choice Element 1", emitParticles: { pos: {x: 5, y: 2, z: 0}, emoji: "🔮", count: 2 } },
-      { duration: 2, cam: { x: 0, y: 15, z: 20 }, lookAt: "topOfStack", desc: "Stack assembly completes", attraction: false },
-      { duration: 3, cam: { x: -10, y: 12, z: 15 }, lookAt: "kid1", desc: "Frustration Point", emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "😖", count: 1 } },
-      { duration: 2, cam: { x: 10, y: 8, z: 20 }, lookAt: "centerOfScene", desc: "Destruction Equipment activates", emitParticles: { pos: {x: 2, y: 1, z: 0}, emoji: "💥", count: 3 } },
-      { duration: 5, cam: { x: 0, y: 20, z: 25 }, lookAt: "centerOfScene", desc: "Stack Destruction", attraction: false },
-      { duration: 3, cam: { x: 0, y: 15, z: 30 }, lookAt: "centerOfScene", desc: "Items land in zones", emitParticles: [
+      { desc: "Initial setup", duration: 5, 
+        cam: { x: 0, y: 20, z: 30 }, lookAt: "judges", 
+        kidPositions: [{x: -100, y: 0, z: -100}], 
+        adultPositions: [{x: 10, y: 0, z: -10}] 
+    },
+      { desc: "Team enters", duration: 3, 
+        cam: { x: 20, y: 100, z: -200 }, lookAt: "centerOfScene", 
+        kidPositions: [{x: 0, y: 0, z: 0}], adultPositions: [{x: 5, y: 0, z: 0}] },
+      { desc: "Setup equipment", duration: 4, 
+        cam: { x: 0, y: 15, z: 25 }, lookAt: "firstBox", 
+            emitParticles: { pos: {x: 0, y: 1, z: 0}, emoji: "🔧", count: 2 } },
+      { desc: "Story begins - Wishful Scene", duration: 5, 
+        cam: { x: -10, y: 10, z: 15 }, lookAt: { x: 0, y: 5, z: 0 }, 
+        emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "💭", count: 1 } },
+      { desc: "Assembly Equipment activates", duration: 2, 
+        cam: { x: 5, y: 8, z: 20 }, lookAt: "assemblyZone", attraction: true, 
+        emitParticles: { pos: {x: -2, y: 1, z: 0}, emoji: "✨", count: 3 } },
+      { desc: "Stack assembly", duration: 4, 
+        cam: { x: 0, y: 12, z: 18 }, lookAt: "topOfStack", attraction: true },
+      { desc: "Team Choice Element 1", duration: 3, 
+        cam: { x: 15, y: 10, z: 15 }, lookAt: "teamChoiceElement1", 
+        emitParticles: { pos: {x: 5, y: 2, z: 0}, emoji: "🔮", count: 2 } },
+      { desc: "Stack assembly completes", duration: 2, 
+        cam: { x: 0, y: 15, z: 20 }, lookAt: "topOfStack", attraction: false },
+      { desc: "Frustration Point", duration: 3, 
+        cam: { x: -10, y: 12, z: 15 }, lookAt: "kid1", 
+        emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "😖", count: 1 } },
+      { desc: "Destruction Equipment activates", duration: 2, 
+        cam: { x: 10, y: 8, z: 20 }, lookAt: "centerOfScene", 
+        emitParticles: { pos: {x: 2, y: 1, z: 0}, emoji: "💥", count: 3 } },
+      { desc: "Stack Destruction", duration: 5, 
+        cam: { x: 0, y: 20, z: 25 }, lookAt: "centerOfScene", attraction: false },
+      { desc: "Items land in zones", duration: 3, 
+        cam: { x: 0, y: 15, z: 30 }, lookAt: "centerOfScene", 
+        emitParticles: [
         { pos: {x: -7, y: 0.5, z: -7}, emoji: "🌕", count: 2, lifetime: 5 },
         { pos: {x: -5, y: 0.5, z: -5}, emoji: "🌗", count: 2, lifetime: 4 },
         { pos: {x: -3, y: 0.5, z: -3}, emoji: "🌘", count: 1, lifetime: 3 },
       ]},
-      { duration: 4, cam: { x: 15, y: 10, z: 15 }, lookAt: "teamChoiceElement2", desc: "Team Choice Element 2", emitParticles: { pos: {x: 5, y: 2, z: 0}, emoji: "🎭", count: 2 } },
-      { duration: 5, cam: { x: -5, y: 12, z: 20 }, lookAt: "kid2", desc: "Story resolution", emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "😄", count: 1 } },
-      { duration: 2, cam: { x: 0, y: 18, z: 25 }, lookAt: "centerOfScene", desc: "Team calls TIME", emitParticles: { pos: {x: 0, y: 3, z: 0}, emoji: "⏰", count: 1 } },
-      { duration: 10, cam: { x: 10, y: 10, z: 30 }, lookAt: "judges", desc: "Judges ask questions", kidPositions: [{x: 0, y: 0, z: -5}], adultPositions: [{x: 0, y: 0, z: 5}] },
-      { duration: 5, cam: { x: 0, y: 25, z: 35 }, lookAt: "centerOfScene", desc: "Review points", emitParticles: { pos: {x: 0, y: 5, z: 0}, emoji: "🏆", count: 3 } },
+      { desc: "Team Choice Element 2", duration: 4, 
+        cam: { x: 15, y: 10, z: 15 }, lookAt: "teamChoiceElement2", 
+        emitParticles: { pos: {x: 5, y: 2, z: 0}, emoji: "🎭", count: 2 } },
+      { desc: "Story resolution", duration: 5, 
+        cam: { x: -5, y: 12, z: 20 }, lookAt: "kid2", 
+        emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "😄", count: 1 } },
+      { desc: "Team calls TIME", duration: 2, 
+        cam: { x: 0, y: 18, z: 25 }, lookAt: "centerOfScene", 
+        emitParticles: { pos: {x: 0, y: 3, z: 0}, emoji: "⏰", count: 1 } },
+      { desc: "Judges ask questions", duration: 10, 
+        cam: { x: 10, y: 10, z: 30 }, lookAt: "judges", 
+        kidPositions: [{x: 0, y: 0, z: -5}], adultPositions: [{x: 0, y: 0, z: 5}] },
+      { desc: "Review points", duration: 5, 
+        cam: { x: 0, y: 25, z: 35 }, lookAt: "centerOfScene", 
+        emitParticles: { pos: {x: 0, y: 5, z: 0}, emoji: "🏆", count: 3 } },
     ];
     this.currentEventIndex = 0;
     this.eventTimer = 0;
@@ -45,8 +78,8 @@ export class EventSequence {
     // Update camera lookAt
     const lookAtTarget = this.getLookAtTarget(currentEvent.lookAt);
     if (lookAtTarget) {
-        console.log('lookAtTarget', lookAtTarget);
-      camera.lookAt(lookAtTarget);
+        // console.log('lookAtTarget', lookAtTarget);
+    //   camera.lookAt(new THREE.Vector3(lookAtTarget.x, lookAtTarget.y, lookAtTarget.z));
     }
 
     // Handle particle emissions with cooldown
@@ -66,11 +99,18 @@ export class EventSequence {
       this.scene.kids.forEach((kid, i) => {
         if (currentEvent.kidPositions[i]) {
             // each kid should get an offset
-            const offset = new THREE.Vector3(i*.1, 0, 0);
-          kid.position.lerp(new THREE.Vector3(...Object.values(currentEvent.kidPositions[i])) + offset, 0.05);
+            // const offset = new THREE.Vector3(i*.1, 0, 0);
+            // console.log('kid', i, currentEvent.kidPositions[i]);
+          kid.position.lerp(new THREE.Vector3(...Object.values(currentEvent.kidPositions[i])), 0.0005);
         }
       });
+    } else {
+        // leave the kids in the same place
+        this.scene.kids.forEach((kid, i) => {
+            // console.log('kid(none)', i, kid.position);
+        });
     }
+
     if (currentEvent.adultPositions && this.scene.adults) {
       this.scene.adults.forEach((adult, i) => {
         if (currentEvent.adultPositions[i]) {
@@ -80,7 +120,8 @@ export class EventSequence {
     }
 
     // Move to next event
-    if (this.eventTimer >= currentEvent.duration) {
+    const durationMultiplier = 2.0;
+    if (this.eventTimer >= currentEvent.duration * durationMultiplier) {
       this.currentEventIndex = (this.currentEventIndex + 1) % this.events.length;
       this.eventTimer = 0;
       console.log('Switching to event', this.currentEventIndex, this.events[this.currentEventIndex].desc, this.events[this.currentEventIndex].lookAt);
@@ -103,6 +144,7 @@ export class EventSequence {
         case 'teamChoiceElement2':
           return this.scene.teamChoiceElement2 ? this.scene.teamChoiceElement2.position : null;
         case 'kid1':
+            console.log('kid1', this.scene.kids[0].position);
           return this.scene.kids[0] ? this.scene.kids[0].position : null;
         case 'kid2':
           return this.scene.kids[1] ? this.scene.kids[1].position : null;
