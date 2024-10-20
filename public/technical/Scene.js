@@ -162,8 +162,8 @@ export class Scene extends THREE.Scene {
   }
 
   initKidsAndAdults() {
-    const kidColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00'];
-    const adultColors = ['#8B4513', '#4682B4'];
+    const kidColors = ['#FF0000', '#00FF00', '#0000FF'];
+    const adultColors = ['#FF00FF', '#DD00DD'];
     const kidHeight = 0.5 * this.arbitraryFactor;
     const adultHeight = 1.5 * this.arbitraryFactor;
 

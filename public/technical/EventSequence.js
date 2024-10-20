@@ -2,44 +2,49 @@
 import * as THREE from 'three';
 
 export class EventSequence {
-  constructor(particleSystem, scene) {
+    constructor(particleSystem, scene, physicsWorker) {
     this.particleSystem = particleSystem;
     this.scene = scene;
+    this.physicsWorker = physicsWorker;
     this.events = [
-      { desc: "Initial setup", duration: 5, 
-        cam: { x: 0, y: 20, z: 30 }, lookAt: "judges", 
-        kidPositions: [{x: -100, y: 0, z: -100}], 
-        adultPositions: [{x: 10, y: 0, z: -10}] 
-    },
-      { desc: "Team enters", duration: 3, 
-        cam: { x: 20, y: 100, z: -200 }, lookAt: "centerOfScene", 
-        kidPositions: [{x: 0, y: 0, z: 0}], adultPositions: [{x: 5, y: 0, z: 0}] },
-      { desc: "Setup equipment", duration: 4, 
-        cam: { x: 0, y: 15, z: 25 }, lookAt: "firstBox", 
-            emitParticles: { pos: {x: 0, y: 1, z: 0}, emoji: "🔧", count: 2 } },
-      { desc: "Story begins - Wishful Scene", duration: 5, 
-        cam: { x: -10, y: 10, z: 15 }, lookAt: { x: 0, y: 5, z: 0 }, 
-        emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "💭", count: 1 } },
-      { desc: "Assembly Equipment activates", duration: 2, 
-        cam: { x: 5, y: 8, z: 20 }, lookAt: "assemblyZone", attraction: true, 
-        emitParticles: { pos: {x: -2, y: 1, z: 0}, emoji: "✨", count: 3 } },
-      { desc: "Stack assembly", duration: 4, 
-        cam: { x: 0, y: 12, z: 18 }, lookAt: "topOfStack", attraction: true },
+    //   { desc: "Initial setup", duration: 5, 
+    //     cam: { x: 0, y: 220, z: 230 }, lookAt: "kid1", attraction: false,
+    //     kidPositions: [{x: -100, y: 0, z: -100}, {x: -100, y: 0, z: -100}, {x: -100, y: 0, z: -100}], 
+    //     adultPositions: [{x: 10, y: 0, z: -10}], },
+    //   { desc: "Team enters", duration: 3, 
+    //     cam: { x: 20, y: 100, z: 180 }, lookAt: "centerOfScene", 
+    //     kidPositions: [{x: 40, y: 0, z: 0}, {x: 40, y: 0, z: 10}, {x: 130, y: 0, z: 20}], 
+    //     adultPositions: [{x: 5, y: 0, z: 0}] },
+    //   { desc: "Setup equipment", duration: 4, 
+    //     cam: { x: 110, y: 80, z: 25 }, lookAt: "firstBox", 
+    //     emitParticles: { pos: {x: 0, y: 1, z: 0}, emoji: "🔧", count: 2 } },
+    //   { desc: "Story begins - Wishful Scene", duration: 5, 
+    //     cam: { x: -100, y: 100, z: 80 }, lookAt: { x: 0, y: 5, z: 0 }, 
+    //     emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "💭", count: 1 } },
+    //   { desc: "Assembly Equipment activates", duration: 2, 
+    //     cam: { x: 5, y: 8, z: 20 }, lookAt: "kid1", 
+    //     attraction: true, 
+    //     emitParticles: { pos: {x: -2, y: 1, z: 0}, emoji: "✨", count: 3 } },
+      { desc: "Stack assembly (15/15 pts Design Assembly, my magic wand is designed well) (15/15 pts Innovation Assembly)", duration: 4, 
+        cam: { x: 40, y: 120, z: 0 }, lookAt: "topOfStack", 
+        attraction: true },
       { desc: "Team Choice Element 1", duration: 3, 
-        cam: { x: 15, y: 10, z: 15 }, lookAt: "teamChoiceElement1", 
+        cam: { x: 80, y: 100, z: 80 }, lookAt: "teamChoiceElement1", 
         emitParticles: { pos: {x: 5, y: 2, z: 0}, emoji: "🔮", count: 2 } },
       { desc: "Stack assembly completes", duration: 2, 
-        cam: { x: 0, y: 15, z: 20 }, lookAt: "topOfStack", attraction: false },
+        cam: { x: 0, y: 80, z: 20 }, lookAt: "topOfStack", },
       { desc: "Frustration Point", duration: 3, 
-        cam: { x: -10, y: 12, z: 15 }, lookAt: "kid1", 
+        cam: { x: -100, y: 12, z: 80 }, lookAt: "kid1", 
         emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "😖", count: 1 } },
       { desc: "Destruction Equipment activates", duration: 2, 
-        cam: { x: 10, y: 8, z: 20 }, lookAt: "centerOfScene", 
-        emitParticles: { pos: {x: 2, y: 1, z: 0}, emoji: "💥", count: 3 } },
+        cam: { x: 100, y: 8, z: 20 }, lookAt: "centerOfScene", 
+        emitParticles: { pos: {x: 2, y: 1, z: 0}, emoji: "💥", count: 3 }, 
+        attraction: false },
       { desc: "Stack Destruction", duration: 5, 
-        cam: { x: 0, y: 20, z: 25 }, lookAt: "centerOfScene", attraction: false },
+        cam: { x: 0, y: 20, z: 25 }, lookAt: "centerOfScene", 
+        attraction: false },
       { desc: "Items land in zones", duration: 3, 
-        cam: { x: 0, y: 15, z: 30 }, lookAt: "centerOfScene", 
+        cam: { x: 0, y: 80, z: 30 }, lookAt: "centerOfScene", 
         emitParticles: [
         { pos: {x: -7, y: 0.5, z: -7}, emoji: "🌕", count: 2, lifetime: 5 },
         { pos: {x: -5, y: 0.5, z: -5}, emoji: "🌗", count: 2, lifetime: 4 },
@@ -56,7 +61,8 @@ export class EventSequence {
         emitParticles: { pos: {x: 0, y: 3, z: 0}, emoji: "⏰", count: 1 } },
       { desc: "Judges ask questions", duration: 10, 
         cam: { x: 10, y: 10, z: 30 }, lookAt: "judges", 
-        kidPositions: [{x: 0, y: 0, z: -5}], adultPositions: [{x: 0, y: 0, z: 5}] },
+        kidPositions: [{x: 0, y: 0, z: -5}], adultPositions: [{x: 0, y: 0, z: 5}],
+        emitParticles: { pos: {x: 0, y: 5, z: 0}, emoji: "❓", count: 3 } },
       { desc: "Review points", duration: 5, 
         cam: { x: 0, y: 25, z: 35 }, lookAt: "centerOfScene", 
         emitParticles: { pos: {x: 0, y: 5, z: 0}, emoji: "🏆", count: 3 } },
@@ -74,12 +80,15 @@ export class EventSequence {
 
     // Update camera position
     camera.position.lerp(new THREE.Vector3(currentEvent.cam.x, currentEvent.cam.y, currentEvent.cam.z), 0.05);
+    console.log('camera', camera);
 
     // Update camera lookAt
     const lookAtTarget = this.getLookAtTarget(currentEvent.lookAt);
     if (lookAtTarget) {
-        // console.log('lookAtTarget', lookAtTarget);
-    //   camera.lookAt(new THREE.Vector3(lookAtTarget.x, lookAtTarget.y, lookAtTarget.z));
+        const vec = new THREE.Vector3(lookAtTarget.x, lookAtTarget.y, lookAtTarget.z)
+        console.log('lookAtTarget', lookAtTarget, vec);
+        camera.lookAt(lookAtTarget);
+        camera.lookAtTarget = lookAtTarget;
     }
 
     // Handle particle emissions with cooldown
@@ -94,6 +103,12 @@ export class EventSequence {
       this.particleCooldown = this.particleCooldownTime;
     }
 
+    // Toggle attraction if specified in the event
+    if (currentEvent.attraction !== undefined) {
+        const currentAttraction = this.physicsWorker.isAttracted;
+        if (currentAttraction !== currentEvent.attraction)this.toggleAttraction(currentEvent.attraction);
+    }
+
     // Update character positions
     if (currentEvent.kidPositions && this.scene.kids) {
       this.scene.kids.forEach((kid, i) => {
@@ -101,7 +116,9 @@ export class EventSequence {
             // each kid should get an offset
             // const offset = new THREE.Vector3(i*.1, 0, 0);
             // console.log('kid', i, currentEvent.kidPositions[i]);
-          kid.position.lerp(new THREE.Vector3(...Object.values(currentEvent.kidPositions[i])), 0.0005);
+            const target =  new THREE.Vector3(...Object.values(currentEvent.kidPositions[i]));
+            console.log('kid', i, target);
+          kid.position.lerp(target, 0.005);
         }
       });
     } else {
@@ -128,6 +145,12 @@ export class EventSequence {
     }
   }
 
+  toggleAttraction(isAttracted) {
+    console.log('toggleAttraction', isAttracted);
+    this.physicsWorker.toggleAttraction(isAttracted);
+    this.scene.toggleAttractionVisuals(isAttracted);
+  }
+
   getLookAtTarget(lookAt) {
     if (typeof lookAt === 'string') {
       switch (lookAt) {
@@ -144,7 +167,6 @@ export class EventSequence {
         case 'teamChoiceElement2':
           return this.scene.teamChoiceElement2 ? this.scene.teamChoiceElement2.position : null;
         case 'kid1':
-            console.log('kid1', this.scene.kids[0].position);
           return this.scene.kids[0] ? this.scene.kids[0].position : null;
         case 'kid2':
           return this.scene.kids[1] ? this.scene.kids[1].position : null;

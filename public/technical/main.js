@@ -12,8 +12,8 @@ export class Main {
     constructor() {
         this.scene = new Scene();
         this.particleSystem = new ParticleSystem(this.scene);
-        this.eventSequence = new EventSequence(this.particleSystem, this.scene);
         this.physicsWorker = new PhysicsWorker();
+        this.eventSequence = new EventSequence(this.particleSystem, this.scene, this.physicsWorker);
         this.clock = new THREE.Clock();
     
         this.init();
@@ -31,19 +31,26 @@ export class Main {
   }
 
   createTextOverlays() {
-    // Add a fixed overlay
-    this.textOverlaySystem.addFixedOverlay('Tech Challenge Simulation', 10, 100, {
+    this.textOverlaySystem.addFixedOverlay('Tech Challenge Simulation', 10, 80, {
       fontSize: '20px',
       fontWeight: 'bold',
+        textAlign: 'left',
+        width: '300px',
+
     });
 
     // Add an overlay for each box
-    this.scene.meshes.forEach((mesh, index) => {
-      this.textOverlaySystem.addObject3DOverlay(`Box ${index + 1}`, mesh, { x: 0, y: -30 });
-    });
+    // this.scene.meshes.forEach((mesh, index) => {
+    //   this.textOverlaySystem.addObject3DOverlay(`Box ${index + 1}`, mesh, { x: 0, y: -30 });
+    // });
 
     // Add an overlay for the current event
-    this.currentEventOverlay = this.textOverlaySystem.addFixedOverlay('', 10, 240);
+    this.currentEventOverlay = this.textOverlaySystem.addFixedOverlay('', 10, 120, {
+        fontSize: '16px',
+        textAlign: 'left',
+        width: '300px',
+
+    });
   }
 
 
@@ -69,6 +76,8 @@ export class Main {
     this.controls.dampingFactor = 0.3;
     this.controls.minDistance = 10;
     this.controls.maxDistance = 500;
+    // to set an orbit controlled camera to "look at a thing", set the target:
+    // this.controls.target.set(0, 0, 0);
   }
 
   initStats() {
@@ -106,6 +115,9 @@ export class Main {
     this.updatePhysics();
     this.particleSystem.update(deltaTime);
     this.eventSequence.update(deltaTime, this.camera, this.scene, this.particleSystem);  // Pass particleSystem here
+    if(this.scene.camera && this.scene.camera.lookAtTarget) {
+        this.controls.target.set(this.scene.camera.lookAtTarget.x, this.scene.camera.lookAtTarget.y, this.scene.camera.lookAtTarget.z);
+    }
     this.controls.update();
 
     this.textOverlaySystem.update();
