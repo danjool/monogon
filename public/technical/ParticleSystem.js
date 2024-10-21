@@ -64,7 +64,7 @@ export class ParticleSystem {
       let particle = this.getParticle();
       if (!particle) break; // Stop if we can't get more particles
 
-      particle.text = '🌓';
+      particle.text = '💰';
       particle.position.copy(box.position);
       particle.visible = true;
       particle.userData.velocity = new THREE.Vector3(

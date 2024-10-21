@@ -68,7 +68,7 @@ export class Scene extends THREE.Scene {
   }
 
   initAssemblyZone() {
-    const assemblyZoneHeight = 100;
+    const assemblyZoneHeight = .1;
     const assemblyZoneGeometry = new THREE.BoxGeometry(this.targetZoneSizesImperial[3] * this.arbitraryFactor, assemblyZoneHeight, this.targetZoneSizesImperial[3] * this.arbitraryFactor);
     const assemblyZoneMaterial = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.5 });
     this.assemblyZone = new THREE.Mesh(assemblyZoneGeometry, assemblyZoneMaterial);
@@ -151,13 +151,13 @@ export class Scene extends THREE.Scene {
     const icosahedronGeometry = new THREE.IcosahedronGeometry(1);
     const icosahedronMaterial = new THREE.MeshBasicMaterial({ color: 0x3498db });
     this.teamChoiceElement1 = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
-    this.teamChoiceElement1.position.set(-5, 0.5, 0);
+    this.teamChoiceElement1.position.set(-5, 0.5, -16);
     this.add(this.teamChoiceElement1);
 
     const dodecahedronGeometry = new THREE.DodecahedronGeometry(1);
     const dodecahedronMaterial = new THREE.MeshBasicMaterial({ color: 0xf4d84b });
     this.teamChoiceElement2 = new THREE.Mesh(dodecahedronGeometry, dodecahedronMaterial);
-    this.teamChoiceElement2.position.set(5, 0.5, 0);
+    this.teamChoiceElement2.position.set(5, 0.5, -16);
     this.add(this.teamChoiceElement2);
   }
 
@@ -195,10 +195,10 @@ export class Scene extends THREE.Scene {
       cubeMesh.castShadow = true;
       cubeMesh.userData.particlesEmitted = 0;
 
-      const haloMesh = new THREE.Mesh(haloGeometry, haloMaterial);
-      haloMesh.position.set(0, -this.boxSize, 0);
-      haloMesh.rotation.x = Math.PI / 2;
-      cubeMesh.add(haloMesh);
+    //   const haloMesh = new THREE.Mesh(haloGeometry, haloMaterial);
+    //   haloMesh.position.set(0, -this.boxSize, 0);
+    //   haloMesh.rotation.x = Math.PI / 2;
+    //   cubeMesh.add(haloMesh);
 
       this.meshes.push(cubeMesh);
       this.add(cubeMesh);
