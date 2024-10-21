@@ -2,70 +2,128 @@
 import * as THREE from 'three';
 
 export class EventSequence {
-    constructor(particleSystem, scene, physicsWorker) {
+    constructor(particleSystem, scene, physicsWorker, controls) {
     this.particleSystem = particleSystem;
     this.scene = scene;
     this.physicsWorker = physicsWorker;
+    this.controls = controls;
     this.events = [
-    //   { desc: "Initial setup", duration: 5, 
-    //     cam: { x: 0, y: 220, z: 230 }, lookAt: "kid1", attraction: false,
-    //     kidPositions: [{x: -100, y: 0, z: -100}, {x: -100, y: 0, z: -100}, {x: -100, y: 0, z: -100}], 
-    //     adultPositions: [{x: 10, y: 0, z: -10}], },
-    //   { desc: "Team enters", duration: 3, 
-    //     cam: { x: 20, y: 100, z: 180 }, lookAt: "centerOfScene", 
-    //     kidPositions: [{x: 40, y: 0, z: 0}, {x: 40, y: 0, z: 10}, {x: 130, y: 0, z: 20}], 
-    //     adultPositions: [{x: 5, y: 0, z: 0}] },
-    //   { desc: "Setup equipment", duration: 4, 
-    //     cam: { x: 110, y: 80, z: 25 }, lookAt: "firstBox", 
-    //     emitParticles: { pos: {x: 0, y: 1, z: 0}, emoji: "🔧", count: 2 } },
-    //   { desc: "Story begins - Wishful Scene", duration: 5, 
-    //     cam: { x: -100, y: 100, z: 80 }, lookAt: { x: 0, y: 5, z: 0 }, 
-    //     emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "💭", count: 1 } },
-    //   { desc: "Assembly Equipment activates", duration: 2, 
-    //     cam: { x: 5, y: 8, z: 20 }, lookAt: "kid1", 
-    //     attraction: true, 
-    //     emitParticles: { pos: {x: -2, y: 1, z: 0}, emoji: "✨", count: 3 } },
-      { desc: "Stack assembly (15/15 pts Design Assembly, my magic wand is designed well) (15/15 pts Innovation Assembly)", duration: 4, 
-        cam: { x: 40, y: 120, z: 0 }, lookAt: "topOfStack", 
-        attraction: true },
-      { desc: "Team Choice Element 1", duration: 3, 
-        cam: { x: 80, y: 100, z: 80 }, lookAt: "teamChoiceElement1", 
-        emitParticles: { pos: {x: 5, y: 2, z: 0}, emoji: "🔮", count: 2 } },
-      { desc: "Stack assembly completes", duration: 2, 
-        cam: { x: 0, y: 80, z: 20 }, lookAt: "topOfStack", },
-      { desc: "Frustration Point", duration: 3, 
-        cam: { x: -100, y: 12, z: 80 }, lookAt: "kid1", 
-        emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "😖", count: 1 } },
-      { desc: "Destruction Equipment activates", duration: 2, 
-        cam: { x: 100, y: 8, z: 20 }, lookAt: "centerOfScene", 
-        emitParticles: { pos: {x: 2, y: 1, z: 0}, emoji: "💥", count: 3 }, 
-        attraction: false },
-      { desc: "Stack Destruction", duration: 5, 
-        cam: { x: 0, y: 20, z: 25 }, lookAt: "centerOfScene", 
-        attraction: false },
-      { desc: "Items land in zones", duration: 3, 
-        cam: { x: 0, y: 80, z: 30 }, lookAt: "centerOfScene", 
-        emitParticles: [
-        { pos: {x: -7, y: 0.5, z: -7}, emoji: "🌕", count: 2, lifetime: 5 },
-        { pos: {x: -5, y: 0.5, z: -5}, emoji: "🌗", count: 2, lifetime: 4 },
-        { pos: {x: -3, y: 0.5, z: -3}, emoji: "🌘", count: 1, lifetime: 3 },
-      ]},
-      { desc: "Team Choice Element 2", duration: 4, 
-        cam: { x: 15, y: 10, z: 15 }, lookAt: "teamChoiceElement2", 
-        emitParticles: { pos: {x: 5, y: 2, z: 0}, emoji: "🎭", count: 2 } },
-      { desc: "Story resolution", duration: 5, 
-        cam: { x: -5, y: 12, z: 20 }, lookAt: "kid2", 
-        emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "😄", count: 1 } },
-      { desc: "Team calls TIME", duration: 2, 
-        cam: { x: 0, y: 18, z: 25 }, lookAt: "centerOfScene", 
-        emitParticles: { pos: {x: 0, y: 3, z: 0}, emoji: "⏰", count: 1 } },
-      { desc: "Judges ask questions", duration: 10, 
-        cam: { x: 10, y: 10, z: 30 }, lookAt: "judges", 
-        kidPositions: [{x: 0, y: 0, z: -5}], adultPositions: [{x: 0, y: 0, z: 5}],
-        emitParticles: { pos: {x: 0, y: 5, z: 0}, emoji: "❓", count: 3 } },
-      { desc: "Review points", duration: 5, 
-        cam: { x: 0, y: 25, z: 35 }, lookAt: "centerOfScene", 
-        emitParticles: { pos: {x: 0, y: 5, z: 0}, emoji: "🏆", count: 3 } },
+        // { desc: "Overview", duration: 10, 
+        //     cam: { x: -60, y: 17, z: -90 }, lookAt: "firstBox", attraction: false,
+        //     kidPositions: [
+        //         {x: -45, y: 5, z: -50}, 
+        //         {x: -50, y: 5, z: -50}, 
+        //         {x: -55, y: 5, z: -50}, 
+        //     ], 
+        //     adultPositions: [
+        //         {x: 20, y: 7.5, z: -10},
+        //         {x: 20, y: 7.5, z: -20}
+        //     ], 
+        // },
+        // { desc: "Overview", duration: 10, 
+        //     cam: { x: -60, y: 17, z: -90 }, lookAt: "firstBox", attraction: true,
+        //     kidPositions: [
+        //         {x: -45, y: 5, z: -50}, 
+        //         {x: -50, y: 5, z: -50}, 
+        //         {x: -55, y: 5, z: -50}, 
+        //     ], 
+        //     adultPositions: [
+        //         {x: 20, y: 7.5, z: -10},
+        //         {x: 20, y: 7.5, z: -20}
+        //     ], 
+        // },
+        { desc: "Initial setup", duration: 5, 
+            cam: { x: -60, y: 20, z: 130 }, lookAt: "kid1", attraction: false,
+            kidPositions: [
+                {x: -45, y: 5, z: -50}, 
+                {x: -50, y: 5, z: -50}, 
+                {x: -55, y: 5, z: -50}, 
+            ], 
+            adultPositions: [
+                {x: 20, y: 7.5, z: -10},
+                {x: 20, y: 7.5, z: -20}
+            ], 
+        },
+        { desc: "Team enters", duration: 5, 
+            cam: { x: -60, y: 20, z: 130 }, lookAt: "kid1", attraction: false,
+            kidPositions: [
+                {x: -10, y: 5, z: -15}, 
+                {x: -10, y: 5, z: -5}, 
+                {x: -10, y: 5, z: -10}, 
+            ], 
+        },
+      { desc: "Setup equipment", duration: 4, 
+        cam: { x: -60, y: 20, z: 130 }, lookAt: "kid1", attraction: false,
+        kidPositions: [
+            {x: -10, y: 5, z: -15}, 
+            {x: -10, y: 5, z: -5}, 
+            {x: -10, y: 5, z: -10}, 
+        ], 
+    },
+      { desc: "Story begins - Wishful Scene", duration: 5, 
+        cam: { x: -60, y: 20, z: 130 }, lookAt: "kid1", attraction: false,
+        kidPositions: [
+            {x: -10, y: 5, z: -15}, 
+            {x: -10, y: 5, z: -5}, 
+            {x: -10, y: 5, z: -10}, 
+        ], 
+    },
+      { desc: "Assembly Equipment activates", duration: 2, 
+        cam: { x: -60, y: 20, z: 130 }, lookAt: "kid1", attraction: false,
+        kidPositions: [
+            {x: -10, y: 5, z: -15}, 
+            {x: -10, y: 5, z: -5}, 
+            {x: -10, y: 5, z: -10}, 
+        ], 
+            attraction: true, 
+            emitParticles: { pos: {x: -2, y: 1, z: 0}, emoji: "✨", count: 3 } 
+    },
+    { desc: "Stack assembly (15/15 pts Design Assembly, my magic wand is designed well) (15/15 pts Innovation Assembly)", duration: 4, 
+    cam: { x: -60, y: 20, z: 130 }, lookAt: "kid1", attraction: false,
+        kidPositions: [
+            {x: -10, y: 5, z: -15}, 
+            {x: -10, y: 5, z: -5}, 
+            {x: -10, y: 5, z: -10}, 
+        ], 
+    },
+    //   { desc: "Team Choice Element 1", duration: 3, 
+    //     cam: { x: 80, y: 100, z: 80 }, lookAt: "teamChoiceElement1", 
+    //     emitParticles: { pos: {x: 5, y: 2, z: 0}, emoji: "🔮", count: 2 } },
+    //   { desc: "Stack assembly completes", duration: 2, 
+    //     cam: { x: 0, y: 80, z: 20 }, lookAt: "topOfStack", },
+    //   { desc: "Frustration Point", duration: 3, 
+    //     cam: { x: -100, y: 12, z: 80 }, lookAt: "kid1", 
+    //     emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "😖", count: 1 } },
+    //   { desc: "Destruction Equipment activates", duration: 2, 
+    //     cam: { x: 100, y: 8, z: 20 }, lookAt: "centerOfScene", 
+    //     emitParticles: { pos: {x: 2, y: 1, z: 0}, emoji: "💥", count: 3 }, 
+    //     attraction: false },
+    //   { desc: "Stack Destruction", duration: 5, 
+    //     cam: { x: 0, y: 20, z: 25 }, lookAt: "centerOfScene", 
+    //     attraction: false },
+    //   { desc: "Items land in zones", duration: 3, 
+    //     cam: { x: 0, y: 80, z: 30 }, lookAt: "centerOfScene", 
+    //     emitParticles: [
+    //     { pos: {x: -7, y: 0.5, z: -7}, emoji: "🌕", count: 2, lifetime: 5 },
+    //     { pos: {x: -5, y: 0.5, z: -5}, emoji: "🌗", count: 2, lifetime: 4 },
+    //     { pos: {x: -3, y: 0.5, z: -3}, emoji: "🌘", count: 1, lifetime: 3 },
+    //   ]},
+    //   { desc: "Team Choice Element 2", duration: 4, 
+    //     cam: { x: 15, y: 10, z: 15 }, lookAt: "teamChoiceElement2", 
+    //     emitParticles: { pos: {x: 5, y: 2, z: 0}, emoji: "🎭", count: 2 } },
+    //   { desc: "Story resolution", duration: 5, 
+    //     cam: { x: -5, y: 12, z: 20 }, lookAt: "kid2", 
+    //     emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "😄", count: 1 } },
+    //   { desc: "Team calls TIME", duration: 2, 
+    //     cam: { x: 0, y: 18, z: 25 }, lookAt: "centerOfScene", 
+    //     emitParticles: { pos: {x: 0, y: 3, z: 0}, emoji: "⏰", count: 1 } },
+    //   { desc: "Judges ask questions", duration: 10, 
+    //     cam: { x: 10, y: 10, z: 30 }, lookAt: "judges", 
+    //     kidPositions: [{x: 0, y: 0, z: -5}], adultPositions: [{x: 0, y: 0, z: 5}],
+    //     emitParticles: { pos: {x: 0, y: 5, z: 0}, emoji: "❓", count: 3 } },
+    //   { desc: "Review points", duration: 5, 
+    //     cam: { x: 0, y: 25, z: 35 }, lookAt: "centerOfScene", 
+    //     emitParticles: { pos: {x: 0, y: 5, z: 0}, emoji: "🏆", count: 3 } },
     ];
     this.currentEventIndex = 0;
     this.eventTimer = 0;
@@ -80,15 +138,15 @@ export class EventSequence {
 
     // Update camera position
     camera.position.lerp(new THREE.Vector3(currentEvent.cam.x, currentEvent.cam.y, currentEvent.cam.z), 0.05);
-    console.log('camera', camera);
 
     // Update camera lookAt
     const lookAtTarget = this.getLookAtTarget(currentEvent.lookAt);
     if (lookAtTarget) {
         const vec = new THREE.Vector3(lookAtTarget.x, lookAtTarget.y, lookAtTarget.z)
-        console.log('lookAtTarget', lookAtTarget, vec);
+        // console.log('lookAtTarget', lookAtTarget, vec);
         camera.lookAt(lookAtTarget);
         camera.lookAtTarget = lookAtTarget;
+        this.controls.target.set(lookAtTarget.x, lookAtTarget.y, lookAtTarget.z);
     }
 
     // Handle particle emissions with cooldown
@@ -117,7 +175,6 @@ export class EventSequence {
             // const offset = new THREE.Vector3(i*.1, 0, 0);
             // console.log('kid', i, currentEvent.kidPositions[i]);
             const target =  new THREE.Vector3(...Object.values(currentEvent.kidPositions[i]));
-            console.log('kid', i, target);
           kid.position.lerp(target, 0.005);
         }
       });

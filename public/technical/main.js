@@ -13,10 +13,10 @@ export class Main {
         this.scene = new Scene();
         this.particleSystem = new ParticleSystem(this.scene);
         this.physicsWorker = new PhysicsWorker();
-        this.eventSequence = new EventSequence(this.particleSystem, this.scene, this.physicsWorker);
         this.clock = new THREE.Clock();
-    
+        
         this.init();
+        this.eventSequence = new EventSequence(this.particleSystem, this.scene, this.physicsWorker, this.controls);
         this.createTextOverlays();
         this.animate();
       }
@@ -24,8 +24,8 @@ export class Main {
   init() {
     this.initRenderer();
     this.initCamera();
-    this.initControls();
-    this.initStats();
+    this.controls = this.initControls();
+    // this.initStats();
     this.initEventListeners();
     this.textOverlaySystem = new TextOverlaySystem(this.scene, this.camera, this.renderer);
   }
@@ -78,12 +78,13 @@ export class Main {
     this.controls.maxDistance = 500;
     // to set an orbit controlled camera to "look at a thing", set the target:
     // this.controls.target.set(0, 0, 0);
+    return this.controls;
   }
 
-  initStats() {
-    this.stats = new Stats();
-    document.body.appendChild(this.stats.dom);
-  }
+//   initStats() {
+//     this.stats = new Stats();
+//     document.body.appendChild(this.stats.dom);
+//   }
 
   initEventListeners() {
     window.addEventListener('resize', this.onWindowResize.bind(this));
@@ -117,7 +118,7 @@ export class Main {
     this.eventSequence.update(deltaTime, this.camera, this.scene, this.particleSystem);  // Pass particleSystem here
     if(this.scene.camera && this.scene.camera.lookAtTarget) {
         this.controls.target.set(this.scene.camera.lookAtTarget.x, this.scene.camera.lookAtTarget.y, this.scene.camera.lookAtTarget.z);
-    }
+    }    
     this.controls.update();
 
     this.textOverlaySystem.update();
@@ -125,7 +126,7 @@ export class Main {
     this.currentEventOverlay.element.textContent = `Current Event: ${currentEvent.desc}`;
 
     this.renderer.render(this.scene, this.camera);
-    this.stats.update();
+    // this.stats.update();
   }
 
   updatePhysics() {

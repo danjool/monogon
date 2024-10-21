@@ -27,7 +27,6 @@ export class TextOverlaySystem {
     element.style.position = 'absolute';
     element.style.left = `${x}px`;
     element.style.top = `${y}px`;
-    // set a width to prevent text from wrapping and overflowing as often
     element.style.width = '200px';
     this.applyStyle(element, style);
     this.container.appendChild(element);
