@@ -12,13 +12,30 @@ export class EventSequence {
     this.controls = controls;
     this.textOverlays = []
     this.textOverlaySystem = new TextOverlaySystem(this.scene, this.camera, this.renderer);
+    // for reference, the zones after arbitraryFactor are: 10 assembly, 25 tgt1, 35 tgt2, 40 tgt3, 100 presentation area
     this.events = [
+        { desc: "Checkout new Models", duration: 200, 
+            cam: { x: -40, y: 2, z: 54 }, lookAt: "kid1", 
+            attraction: false,
+            camLerpSpeed: undefined,
+            kidPositions: [
+                {x: -40, y: 1, z: 40}, 
+                {x: -50, y: 1, z: -50}, 
+                {x: -55, y: 1, z: -50}, 
+            ], 
+            appraiserPositions: [
+                {x: 20, y: 1, z: -10},
+                {x: 20, y: 1, z: -20}
+            ], 
+            fixedOverlays: [],
+            object3DOverlays: [],
+        },
         { desc: "Overview", duration: 5, 
             cam: { x: 0, y: 460, z: -40 }, lookAt: { x: 0, y: 0, z: -40 },
             camLerpSpeed: undefined,  // No lerp
             attraction: false,
             kidPositions: [
-                {x: -45, y: 5, z: -50}, 
+                {x: -40, y: 1, z: 40}, 
                 {x: -50, y: 5, z: -50}, 
                 {x: -55, y: 5, z: -50}, 
             ], 
@@ -172,6 +189,11 @@ export class EventSequence {
                 this.textOverlays.push(element);
             });
         }
+
+        // new way, using PersonSystem
+        if(currentEvent.kidPositions) this.scene.personSystem.movePeople('kids', currentEvent.kidPositions);
+        if(currentEvent.appraiserPositions) this.scene.personSystem.movePeople('appraisers', currentEvent.appraiserPositions);
+        if(currentEvent.audiencePositions) this.scene.personSystem.movePeople('audience', currentEvent.audiencePositions);
     }
 
     if(currentEvent.camLerpSpeed !== undefined) {
@@ -210,24 +232,13 @@ export class EventSequence {
         if (currentAttraction !== currentEvent.attraction)this.toggleAttraction(currentEvent.attraction);
     }
 
-    // Update character positions
-    ['kid', 'appraiser'].forEach(type => {
-        if (currentEvent[`${type}Positions`]) {
-            this.scene[type+'s'].forEach((actor, i) => {
-                const pos = currentEvent[`${type}Positions`][i];
-                if (pos) actor.position.lerp(new THREE.Vector3(pos.x, pos.y, pos.z), 0.05);
-            });
-        }
-    });
-
-
     // Move to next event
     const durationMultiplier = 2.0;
     if (this.eventTimer >= currentEvent.duration * durationMultiplier) {
         this.currentEventIndex = (this.currentEventIndex + 1) % this.events.length;
         currentEvent = this.events[this.currentEventIndex];
         this.eventTimer = 0;
-        console.log('Switching to event', this.currentEventIndex, this.events[this.currentEventIndex].desc, this.events[this.currentEventIndex].lookAt);
+        console.log('Switching to event', this.currentEventIndex, this.events[this.currentEventIndex].desc, this.events[this.currentEventIndex].lookAt);        
     }
   }
 
