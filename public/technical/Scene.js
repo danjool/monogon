@@ -1,6 +1,7 @@
 // Scene.js
 import * as THREE from 'three';
 import { SpriteText } from './SpriteText.js';
+import { PersonSystem } from './PersonSystem.js';
 
 export class Scene extends THREE.Scene {
   constructor() {
@@ -22,11 +23,41 @@ export class Scene extends THREE.Scene {
     this.initTargetZones();
     this.initAssemblyZone();
     this.initAudienceZone();
-    this.initAudienceMembers();
     this.initTeamChoiceElements();
     this.initStackables();
-    this.initKidsAndAppraisers();
+
+    this.personSystem = new PersonSystem(this);
+    this.initPeople();
   }
+
+    initPeople() {
+        // Create kids with different colors
+        const kidColors = ['#FF0000', '#990099', '#0000FF'];
+        kidColors.forEach((color, i) => {
+            this.personSystem.createKid({
+                color,
+                position: new THREE.Vector3(-5 + i * 2, 0, -5)
+            });
+        });
+
+        // Create appraisers
+        const appraiserColors = ['#00FFFF', '#00DDDD'];
+        appraiserColors.forEach((color, i) => {
+            this.personSystem.createAppraiser({
+                color,
+                position: new THREE.Vector3(-2 + i * 4, 0, 5)
+            });
+        });
+
+        // Create audience
+        this.personSystem.createAudience(
+            24 * 12,  // total audience
+            12,       // rows
+            this.presentationAreaSize * 0.8,
+            this.presentationAreaSize * 0.2,
+            this.presentationAreaSize / 2 - this.targetZoneSizesImperial[0] * this.arbitraryFactor / 2
+        );
+    }
 
   initLights() {
     const ambientLight = new THREE.AmbientLight(0x666666);
@@ -88,64 +119,7 @@ export class Scene extends THREE.Scene {
     this.add(audienceMesh);
   }
 
-  initAudienceMembers() {
-    const x = 24;
-    const y = 12;
-    for (let i = 0; i < x; i++) {
-      for (let j = 0; j < y; j++) {
-        const audienceOptions = {
-          color: '#888888',
-          height: this.arbitraryFactor * 0.5 * (1 + Math.random() * 0.5),
-          width: this.arbitraryFactor * 0.5 * 0.4,
-          areaWidth: this.presentationAreaSize * 0.8,
-          areaDepth: this.presentationAreaSize * 0.2
-        };
-        const audienceMember = this.createPersonSprite(audienceOptions);
-        audienceMember.position.set(
-          (i - x / 2) * audienceOptions.areaWidth / x + 3,
-          audienceOptions.height / 2,
-          (j - y / 2) * audienceOptions.areaDepth / y + this.presentationAreaSize / 2 - this.targetZoneSizesImperial[0] * this.arbitraryFactor / 2
-        );
-        this.add(audienceMember);
-      }
-    }
-  }
-
-  createPersonSprite({ color = '#FFFFFF', height = 1, width = 0.6, headRatio = 0.25 }) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 64;
-    canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    
-    const headSize = canvas.height * headRatio;
-    const bodyHeight = canvas.height - headSize;
-    
-    ctx.beginPath();
-    ctx.arc(canvas.width / 2, headSize / 2, headSize / 2 - 2, 0, Math.PI * 2);
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.moveTo(canvas.width / 2, headSize);
-    ctx.lineTo(canvas.width / 2, headSize + bodyHeight * 0.6);
-    ctx.lineTo(canvas.width / 3, canvas.height - 2);
-    ctx.moveTo(canvas.width / 2, headSize + bodyHeight * 0.6);
-    ctx.lineTo(canvas.width * 2 / 3, canvas.height - 2);
-    ctx.moveTo(canvas.width / 4, headSize + bodyHeight * 0.1);
-    ctx.lineTo(canvas.width * 3 / 4, headSize + bodyHeight * 0.1);
-    ctx.stroke();
-    
-    const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.SpriteMaterial({ map: texture });
-    const sprite = new THREE.Sprite(material);
-    sprite.scale.set(width, height, 1);
-    
-    return sprite;
-  }
+  
 
   initTeamChoiceElements() {
     const icosahedronGeometry = new THREE.IcosahedronGeometry(1);
@@ -161,26 +135,6 @@ export class Scene extends THREE.Scene {
     this.add(this.teamChoiceElement2);
   }
 
-  initKidsAndAppraisers() {
-    const kidColors = ['#FF0000', '#00FF00', '#0000FF'];
-    const appraiserColors = ['#FF00FF', '#DD00DD'];
-    const kidHeight = 0.5 * this.arbitraryFactor;
-    const appraiserHeight = 1.0 * this.arbitraryFactor;
-
-    kidColors.forEach((color, index) => {
-      const kid = this.createPersonSprite({ color, height: kidHeight, width: kidHeight * 0.6 });
-      kid.position.set(-5 + index * 2, kidHeight / 2, -5);
-      this.kids.push(kid);
-      this.add(kid);
-    });
-
-    appraiserColors.forEach((color, index) => {
-      const appraiser = this.createPersonSprite({ color, height: appraiserHeight, width: appraiserHeight * 0.5 });
-      appraiser.position.set(-2 + index * 4, appraiserHeight / 2, 5);
-      this.appraisers.push(appraiser);
-      this.add(appraiser);
-    });
-  }
 
   initStackables() {
     const stackableGeometry = new THREE.BoxBufferGeometry(this.boxSize * 2.0, this.boxSize * 2.0, this.boxSize * 2.0, 10, 10);
@@ -220,12 +174,16 @@ export class Scene extends THREE.Scene {
     return new THREE.CanvasTexture(canvas);
   }
 
-  updateMeshes(positions, quaternions) {
-    for (let i = 0; i < this.meshes.length; i++) {
-      this.meshes[i].position.set(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
-      this.meshes[i].quaternion.set(quaternions[i * 4], quaternions[i * 4 + 1], quaternions[i * 4 + 2], quaternions[i * 4 + 3]);
+    updateMeshes(positions, quaternions) {
+        for (let i = 0; i < this.meshes.length; i++) {
+            this.meshes[i].position.set(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
+            this.meshes[i].quaternion.set(quaternions[i * 4], quaternions[i * 4 + 1], quaternions[i * 4 + 2], quaternions[i * 4 + 3]);
+        }
     }
-  }
+
+    update(deltaTime) {
+        this.personSystem.update(deltaTime);
+    }
 
   toggleAttractionVisuals() {
     this.meshes.forEach(mesh => {

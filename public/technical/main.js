@@ -25,7 +25,7 @@ export class Main {
     this.initRenderer();
     this.initCamera();
     this.controls = this.initControls();
-    // this.initStats();
+    this.initStats();
     this.initEventListeners();
     this.textOverlaySystem = new TextOverlaySystem(this.scene, this.camera, this.renderer);
   }
@@ -64,7 +64,7 @@ export class Main {
 
   initCamera() {
     this.camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.5, 10000);
-    this.camera.position.set(Math.cos(Math.PI / 5) * 170, 15, Math.sin(Math.PI / 5) * 30);
+    // this.camera.position.set(Math.cos(Math.PI / 5) * 170, 15, Math.sin(Math.PI / 5) * 30);
   }
 
   initControls() {
@@ -79,10 +79,10 @@ export class Main {
     return this.controls;
   }
 
-//   initStats() {
-//     this.stats = new Stats();
-//     document.body.appendChild(this.stats.dom);
-//   }
+  initStats() {
+    this.stats = new Stats();
+    document.body.appendChild(this.stats.dom);
+  }
 
   initEventListeners() {
     window.addEventListener('resize', this.onWindowResize.bind(this));
@@ -113,6 +113,7 @@ export class Main {
 
     this.updatePhysics();
     this.particleSystem.update(deltaTime);
+    this.scene.update(deltaTime);
     this.eventSequence.update(deltaTime, this.camera, this.scene, this.particleSystem);  // Pass particleSystem here
     if(this.scene.camera && this.scene.camera.lookAtTarget) {
         this.controls.target.set(this.scene.camera.lookAtTarget.x, this.scene.camera.lookAtTarget.y, this.scene.camera.lookAtTarget.z);
@@ -124,7 +125,7 @@ export class Main {
     this.currentEventOverlay.element.textContent = `Current Event: ${currentEvent.desc}`;
 
     this.renderer.render(this.scene, this.camera);
-    // this.stats.update();
+    this.stats.update();
   }
 
   updatePhysics() {
