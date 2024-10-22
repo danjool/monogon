@@ -21,7 +21,9 @@ export class TextOverlaySystem {
     window.addEventListener('resize', this.onWindowResize.bind(this));
   }
 
-  addFixedOverlay(text, x, y, style = {}) {
+  addFixedOverlay(text, x, y, style = {
+    fontSize: '20px',textAlign: 'left',width: '300px'
+  }) {
     const element = document.createElement('div');
     element.textContent = text;
     element.style.position = 'absolute';

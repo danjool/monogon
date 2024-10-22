@@ -6,24 +6,26 @@ export class Scene extends THREE.Scene {
   constructor() {
     super();
     this.kids = [];
-    this.adults = [];
+    this.appraisers = [];
+    this.presentationArea;
     this.fog = new THREE.Fog(0x000000, 500, 10000);
     this.boxSize = 0.5;
     this.N = 20;
     this.arbitraryFactor = 10.0;
-    this.floorSize = 20 * this.arbitraryFactor;
+    this.presentationAreaSize = 20 * this.arbitraryFactor;
     this.targetZoneSizesImperial = [8, 7, 5, 2];
     this.targetZoneColors = [0x00ff00, 0x00cc00, 0x009900, 0xff6600];
     this.meshes = [];
 
     this.initLights();
-    this.initFloor();
+    this.initPresentationArea();
     this.initTargetZones();
     this.initAssemblyZone();
-    this.initAudience();
+    this.initAudienceZone();
+    this.initAudienceMembers();
     this.initTeamChoiceElements();
-    this.initBoxes();
-    this.initKidsAndAdults();
+    this.initStackables();
+    this.initKidsAndAppraisers();
   }
 
   initLights() {
@@ -45,14 +47,14 @@ export class Scene extends THREE.Scene {
     this.add(directionalLight);
   }
 
-  initFloor() {
-    const floorGeometry = new THREE.PlaneBufferGeometry(this.floorSize, this.floorSize, 1, 1);
-    floorGeometry.rotateX(-Math.PI / 2);
-    const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x777777 });
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.position.z = -this.floorSize / 2 + this.targetZoneSizesImperial[0] * this.arbitraryFactor / 2;
-    floor.receiveShadow = true;
-    this.add(floor);
+  initPresentationArea() {
+    const presentationAreaGeometry = new THREE.PlaneBufferGeometry(this.presentationAreaSize, this.presentationAreaSize, 1, 1);
+    presentationAreaGeometry.rotateX(-Math.PI / 2);
+    const presentationAreaMaterial = new THREE.MeshLambertMaterial({ color: 0x777777 });
+    this.presentationArea = new THREE.Mesh(presentationAreaGeometry, presentationAreaMaterial);
+    this.presentationArea.position.z = -this.presentationAreaSize / 2 + this.targetZoneSizesImperial[0] * this.arbitraryFactor / 2;
+    this.presentationArea.receiveShadow = true;
+    this.add(this.presentationArea);
   }
 
   initTargetZones() {
@@ -61,7 +63,7 @@ export class Scene extends THREE.Scene {
       const targetZoneMaterial = new THREE.MeshBasicMaterial({ color: this.targetZoneColors[index], side: THREE.DoubleSide, transparent: true, opacity: .9 });
       const targetZone = new THREE.Mesh(targetZoneGeometry, targetZoneMaterial);
       targetZone.rotation.x = Math.PI / 2;
-      targetZone.position.y = 0.01 + index * 0.01;
+      targetZone.position.y = 0.01 + index * 0.4;
       targetZone.renderOrder = -1;
       this.add(targetZone);
     });
@@ -77,18 +79,16 @@ export class Scene extends THREE.Scene {
     this.add(this.assemblyZone);
   }
 
-  initAudience() {
-    const audienceGeometry = new THREE.PlaneGeometry(this.floorSize * .8, this.floorSize * .2);
+  initAudienceZone() {
+    const audienceGeometry = new THREE.PlaneGeometry(this.presentationAreaSize * .8, this.presentationAreaSize * .2);
     const audienceMaterial = new THREE.MeshBasicMaterial({ color: 0x444499, side: THREE.DoubleSide });
     const audienceMesh = new THREE.Mesh(audienceGeometry, audienceMaterial);
     audienceMesh.rotation.x = Math.PI / 2;
-    audienceMesh.position.set(0, 0.01, this.floorSize / 2 - this.targetZoneSizesImperial[0] * this.arbitraryFactor / 2);
+    audienceMesh.position.set(0, 0.01, this.presentationAreaSize / 2 - this.targetZoneSizesImperial[0] * this.arbitraryFactor / 2);
     this.add(audienceMesh);
-
-    this.createAudienceMembers();
   }
 
-  createAudienceMembers() {
+  initAudienceMembers() {
     const x = 24;
     const y = 12;
     for (let i = 0; i < x; i++) {
@@ -97,14 +97,14 @@ export class Scene extends THREE.Scene {
           color: '#888888',
           height: this.arbitraryFactor * 0.5 * (1 + Math.random() * 0.5),
           width: this.arbitraryFactor * 0.5 * 0.4,
-          areaWidth: this.floorSize * 0.8,
-          areaDepth: this.floorSize * 0.2
+          areaWidth: this.presentationAreaSize * 0.8,
+          areaDepth: this.presentationAreaSize * 0.2
         };
         const audienceMember = this.createPersonSprite(audienceOptions);
         audienceMember.position.set(
-          (i - x / 2) * audienceOptions.areaWidth / x,
+          (i - x / 2) * audienceOptions.areaWidth / x + 3,
           audienceOptions.height / 2,
-          (j - y / 2) * audienceOptions.areaDepth / y + this.floorSize / 2 - this.targetZoneSizesImperial[0] * this.arbitraryFactor / 2
+          (j - y / 2) * audienceOptions.areaDepth / y + this.presentationAreaSize / 2 - this.targetZoneSizesImperial[0] * this.arbitraryFactor / 2
         );
         this.add(audienceMember);
       }
@@ -151,21 +151,21 @@ export class Scene extends THREE.Scene {
     const icosahedronGeometry = new THREE.IcosahedronGeometry(1);
     const icosahedronMaterial = new THREE.MeshBasicMaterial({ color: 0x3498db });
     this.teamChoiceElement1 = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
-    this.teamChoiceElement1.position.set(-5, 0.5, -16);
+    this.teamChoiceElement1.position.set(-5, 0.5, -64);
     this.add(this.teamChoiceElement1);
 
     const dodecahedronGeometry = new THREE.DodecahedronGeometry(1);
     const dodecahedronMaterial = new THREE.MeshBasicMaterial({ color: 0xf4d84b });
     this.teamChoiceElement2 = new THREE.Mesh(dodecahedronGeometry, dodecahedronMaterial);
-    this.teamChoiceElement2.position.set(5, 0.5, -16);
+    this.teamChoiceElement2.position.set(5, 0.5, -64);
     this.add(this.teamChoiceElement2);
   }
 
-  initKidsAndAdults() {
+  initKidsAndAppraisers() {
     const kidColors = ['#FF0000', '#00FF00', '#0000FF'];
-    const adultColors = ['#FF00FF', '#DD00DD'];
+    const appraiserColors = ['#FF00FF', '#DD00DD'];
     const kidHeight = 0.5 * this.arbitraryFactor;
-    const adultHeight = 1.5 * this.arbitraryFactor;
+    const appraiserHeight = 1.0 * this.arbitraryFactor;
 
     kidColors.forEach((color, index) => {
       const kid = this.createPersonSprite({ color, height: kidHeight, width: kidHeight * 0.6 });
@@ -174,34 +174,34 @@ export class Scene extends THREE.Scene {
       this.add(kid);
     });
 
-    adultColors.forEach((color, index) => {
-      const adult = this.createPersonSprite({ color, height: adultHeight, width: adultHeight * 0.5 });
-      adult.position.set(-2 + index * 4, adultHeight / 2, 5);
-      this.adults.push(adult);
-      this.add(adult);
+    appraiserColors.forEach((color, index) => {
+      const appraiser = this.createPersonSprite({ color, height: appraiserHeight, width: appraiserHeight * 0.5 });
+      appraiser.position.set(-2 + index * 4, appraiserHeight / 2, 5);
+      this.appraisers.push(appraiser);
+      this.add(appraiser);
     });
   }
 
-  initBoxes() {
-    const cubeGeometry = new THREE.BoxBufferGeometry(this.boxSize * 2.0, this.boxSize * 2.0, this.boxSize * 2.0, 10, 10);
-    const haloGeometry = new THREE.RingBufferGeometry(0.6, 0.8, 32);
-    const haloMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+  initStackables() {
+    const stackableGeometry = new THREE.BoxBufferGeometry(this.boxSize * 2.0, this.boxSize * 2.0, this.boxSize * 2.0, 10, 10);
+    // const haloGeometry = new THREE.RingBufferGeometry(0.6, 0.8, 32);
+    // const haloMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
 
     for (let i = 0; i < this.N; i++) {
       const numberTexture = this.createNumberTexture(i + 1);
-      const cubeMaterial = new THREE.MeshPhongMaterial({ map: numberTexture });
+      const stackableMaterial = new THREE.MeshPhongMaterial({ map: numberTexture });
 
-      const cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterial);
-      cubeMesh.castShadow = true;
-      cubeMesh.userData.particlesEmitted = 0;
+      const stackableMesh = new THREE.Mesh(stackableGeometry, stackableMaterial);
+      stackableMesh.castShadow = true;
+      stackableMesh.userData.particlesEmitted = 0;
 
     //   const haloMesh = new THREE.Mesh(haloGeometry, haloMaterial);
     //   haloMesh.position.set(0, -this.boxSize, 0);
     //   haloMesh.rotation.x = Math.PI / 2;
     //   cubeMesh.add(haloMesh);
 
-      this.meshes.push(cubeMesh);
-      this.add(cubeMesh);
+      this.meshes.push(stackableMesh);
+      this.add(stackableMesh);
     }
   }
 

@@ -1,25 +1,42 @@
 // EventSequence.js
 import * as THREE from 'three';
+import { TextOverlaySystem } from './TextOverlaySystem.js';
 
 export class EventSequence {
-    constructor(particleSystem, scene, physicsWorker, controls) {
+    constructor(particleSystem, scene, physicsWorker, controls, renderer, camera) {
     this.particleSystem = particleSystem;
     this.scene = scene;
+    this.camera = camera;
+    this.renderer = renderer;
     this.physicsWorker = physicsWorker;
     this.controls = controls;
+    this.textOverlays = []
+    this.textOverlaySystem = new TextOverlaySystem(this.scene, this.camera, this.renderer);
     this.events = [
-        // { desc: "Overview", duration: 10, 
-        //     cam: { x: -60, y: 17, z: -90 }, lookAt: "firstBox", attraction: false,
-        //     kidPositions: [
-        //         {x: -45, y: 5, z: -50}, 
-        //         {x: -50, y: 5, z: -50}, 
-        //         {x: -55, y: 5, z: -50}, 
-        //     ], 
-        //     adultPositions: [
-        //         {x: 20, y: 7.5, z: -10},
-        //         {x: 20, y: 7.5, z: -20}
-        //     ], 
-        // },
+        { desc: "Overview", duration: 5, 
+            cam: { x: 0, y: 460, z: -40 }, lookAt: { x: 0, y: 0, z: -40 },
+            camLerpSpeed: undefined,  // No lerp
+            attraction: false,
+            kidPositions: [
+                {x: -45, y: 5, z: -50}, 
+                {x: -50, y: 5, z: -50}, 
+                {x: -55, y: 5, z: -50}, 
+            ], 
+            appraiserPositions: [
+                {x: 20, y: 7.5, z: -10},
+                {x: 20, y: 7.5, z: -20}
+            ], 
+            fixedOverlays: [],
+            object3DOverlays: [
+                { text: 'Presentation Area', object3D: this.scene.presentationArea, offset: { x: 0, y: -40 } },
+                { text: '20ftx20ft', object3D: this.scene.presentationArea, offset: { x: 0, y: 20 } },
+                // { text: 'Kid1', object3D: this.scene.kids[0], offset: { x: 0, y: -30 } },
+                // { text: 'Kid2', object3D: this.scene.kids[1], offset: { x: 0, y: -30 } },
+                // { text: 'Kid3', object3D: this.scene.kids[2], offset: { x: 0, y: -30 } },
+                // { text: 'Appraiser1', object3D: this.scene.appraisers[0], offset: { x: 0, y: -30 } },
+                // { text: 'Appraiser2', object3D: this.scene.appraisers[1], offset: { x: 0, y: -30 } },
+            ],
+        },
         // { desc: "Overview", duration: 10, 
         //     cam: { x: -60, y: 17, z: -90 }, lookAt: "firstBox", attraction: true,
         //     kidPositions: [
@@ -27,19 +44,22 @@ export class EventSequence {
         //         {x: -50, y: 5, z: -50}, 
         //         {x: -55, y: 5, z: -50}, 
         //     ], 
-        //     adultPositions: [
+        //     appraiserPositions: [
         //         {x: 20, y: 7.5, z: -10},
         //         {x: 20, y: 7.5, z: -20}
         //     ], 
         // },
         { desc: "Initial setup", duration: 5, 
-            cam: { x: -60, y: 20, z: 130 }, lookAt: "kid1", attraction: false,
+            cam: { x: -60, y: 20, z: 130 }, lookAt: "kid1", 
+            fixedOverlays: [],
+            attraction: false,
+            camLerpSpeed: 0.05,
             kidPositions: [
                 {x: -45, y: 5, z: -50}, 
                 {x: -50, y: 5, z: -50}, 
                 {x: -55, y: 5, z: -50}, 
             ], 
-            adultPositions: [
+            appraiserPositions: [
                 {x: 20, y: 7.5, z: -10},
                 {x: 20, y: 7.5, z: -20}
             ], 
@@ -119,7 +139,7 @@ export class EventSequence {
     //     emitParticles: { pos: {x: 0, y: 3, z: 0}, emoji: "⏰", count: 1 } },
     //   { desc: "Judges ask questions", duration: 10, 
     //     cam: { x: 10, y: 10, z: 30 }, lookAt: "judges", 
-    //     kidPositions: [{x: 0, y: 0, z: -5}], adultPositions: [{x: 0, y: 0, z: 5}],
+    //     kidPositions: [{x: 0, y: 0, z: -5}], appraiserPositions: [{x: 0, y: 0, z: 5}],
     //     emitParticles: { pos: {x: 0, y: 5, z: 0}, emoji: "❓", count: 3 } },
     //   { desc: "Review points", duration: 5, 
     //     cam: { x: 0, y: 25, z: 35 }, lookAt: "centerOfScene", 
@@ -132,14 +152,46 @@ export class EventSequence {
   }
 
   update(deltaTime, camera) {
-    const currentEvent = this.events[this.currentEventIndex];
+    this.textOverlaySystem.update();
+    let currentEvent = this.events[this.currentEventIndex];
     this.eventTimer += deltaTime;
     this.particleCooldown -= deltaTime;
 
-    // Update camera position
-    camera.position.lerp(new THREE.Vector3(currentEvent.cam.x, currentEvent.cam.y, currentEvent.cam.z), 0.05);
+    // console.log('update', this.currentEventIndex, currentEvent);
 
-    // Update camera lookAt
+    if(deltaTime === this.eventTimer) { // First frame of new event
+        
+        if (currentEvent.fixedOverlays) {
+            if (currentEvent.fixedOverlays.length < 1) {
+                console.log('Removing all Fixed Overlays');
+                this.textOverlays.forEach(overlay => {
+                    this.textOverlaySystem.removeOverlay(overlay);
+                });
+            }
+            currentEvent.fixedOverlays.forEach(overlay => {
+                console.log('Adding Fixed Overlay', overlay.text);
+                const element = this.textOverlaySystem.addFixedOverlay(...Object.values(overlay));
+                this.textOverlays.push(element);
+            });
+        }
+        if (currentEvent.object3DOverlays) {
+            currentEvent.object3DOverlays.forEach(overlay => {
+                console.log('Adding 3DOverlay', overlay.text);
+                const element = this.textOverlaySystem.addObject3DOverlay(...Object.values(overlay));
+                this.textOverlays.push(element);
+            });
+        }
+    }
+
+    if(currentEvent.camLerpSpeed !== undefined) {
+        camera.position.lerp(
+            new THREE.Vector3(currentEvent.cam.x, currentEvent.cam.y, currentEvent.cam.z), 
+            currentEvent.camLerpSpeed
+        );
+    } else {
+        camera.position.set(currentEvent.cam.x, currentEvent.cam.y, currentEvent.cam.z);
+    }
+
     const lookAtTarget = this.getLookAtTarget(currentEvent.lookAt);
     if (lookAtTarget) {
         const vec = new THREE.Vector3(lookAtTarget.x, lookAtTarget.y, lookAtTarget.z)
@@ -185,10 +237,10 @@ export class EventSequence {
         });
     }
 
-    if (currentEvent.adultPositions && this.scene.adults) {
-      this.scene.adults.forEach((adult, i) => {
-        if (currentEvent.adultPositions[i]) {
-          adult.position.lerp(new THREE.Vector3(...Object.values(currentEvent.adultPositions[i])), 0.05);
+    if (currentEvent.appraiserPositions && this.scene.appraisers) {
+      this.scene.appraisers.forEach((adult, i) => {
+        if (currentEvent.appraiserPositions[i]) {
+          adult.position.lerp(new THREE.Vector3(...Object.values(currentEvent.appraiserPositions[i])), 0.05);
         }
       });
     }
@@ -196,9 +248,10 @@ export class EventSequence {
     // Move to next event
     const durationMultiplier = 2.0;
     if (this.eventTimer >= currentEvent.duration * durationMultiplier) {
-      this.currentEventIndex = (this.currentEventIndex + 1) % this.events.length;
-      this.eventTimer = 0;
-      console.log('Switching to event', this.currentEventIndex, this.events[this.currentEventIndex].desc, this.events[this.currentEventIndex].lookAt);
+        this.currentEventIndex = (this.currentEventIndex + 1) % this.events.length;
+        currentEvent = this.events[this.currentEventIndex];
+        this.eventTimer = 0;
+        console.log('Switching to event', this.currentEventIndex, this.events[this.currentEventIndex].desc, this.events[this.currentEventIndex].lookAt);
     }
   }
 
@@ -228,7 +281,7 @@ export class EventSequence {
         case 'kid2':
           return this.scene.kids[1] ? this.scene.kids[1].position : null;
         case 'judges':
-          return this.scene.adults[0] ? this.scene.adults[0].position : null;
+          return this.scene.appraisers[0] ? this.scene.appraisers[0].position : null;
         default:
           console.warn(`Unknown lookAt target: ${lookAt}`);
           return null;

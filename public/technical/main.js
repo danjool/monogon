@@ -16,7 +16,7 @@ export class Main {
         this.clock = new THREE.Clock();
         
         this.init();
-        this.eventSequence = new EventSequence(this.particleSystem, this.scene, this.physicsWorker, this.controls);
+        this.eventSequence = new EventSequence(this.particleSystem, this.scene, this.physicsWorker, this.controls, this.renderer, this.camera);
         this.createTextOverlays();
         this.animate();
       }
@@ -36,7 +36,6 @@ export class Main {
       fontWeight: 'bold',
         textAlign: 'left',
         width: '300px',
-
     });
 
     // Add an overlay for each box
@@ -49,7 +48,6 @@ export class Main {
         fontSize: '16px',
         textAlign: 'left',
         width: '300px',
-
     });
   }
 
