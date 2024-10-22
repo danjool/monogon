@@ -211,30 +211,15 @@ export class EventSequence {
     }
 
     // Update character positions
-    if (currentEvent.kidPositions && this.scene.kids) {
-      this.scene.kids.forEach((kid, i) => {
-        if (currentEvent.kidPositions[i]) {
-            // each kid should get an offset
-            // const offset = new THREE.Vector3(i*.1, 0, 0);
-            // console.log('kid', i, currentEvent.kidPositions[i]);
-            const target =  new THREE.Vector3(...Object.values(currentEvent.kidPositions[i]));
-          kid.position.lerp(target, 0.005);
+    ['kid', 'appraiser'].forEach(type => {
+        if (currentEvent[`${type}Positions`]) {
+            this.scene[type+'s'].forEach((actor, i) => {
+                const pos = currentEvent[`${type}Positions`][i];
+                if (pos) actor.position.lerp(new THREE.Vector3(pos.x, pos.y, pos.z), 0.05);
+            });
         }
-      });
-    } else {
-        // leave the kids in the same place
-        this.scene.kids.forEach((kid, i) => {
-            // console.log('kid(none)', i, kid.position);
-        });
-    }
+    });
 
-    if (currentEvent.appraiserPositions && this.scene.appraisers) {
-      this.scene.appraisers.forEach((adult, i) => {
-        if (currentEvent.appraiserPositions[i]) {
-          adult.position.lerp(new THREE.Vector3(...Object.values(currentEvent.appraiserPositions[i])), 0.05);
-        }
-      });
-    }
 
     // Move to next event
     const durationMultiplier = 2.0;
