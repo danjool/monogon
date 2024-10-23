@@ -15,7 +15,7 @@ export class EventSequence {
     // for reference, the zones after arbitraryFactor are: 10 assembly, 25 tgt1, 35 tgt2, 40 tgt3, 100 presentation area
     this.events = [
         { desc: "Checkout new Models", duration: 200, 
-            cam: { x: -40, y: 2, z: 54 }, lookAt: "kid1", 
+            cam: { x: -43, y: 4, z: 56 }, lookAt: "kid1", 
             attraction: false,
             camLerpSpeed: undefined,
             kidPositions: [
@@ -23,12 +23,17 @@ export class EventSequence {
                 {x: -50, y: 1, z: -50}, 
                 {x: -55, y: 1, z: -50}, 
             ], 
+            kidLookAt: 'appraisers',
             appraiserPositions: [
-                {x: 20, y: 1, z: -10},
+                {x: -38, y: 1, z: 40}, 
                 {x: 20, y: 1, z: -20}
             ], 
             fixedOverlays: [],
             object3DOverlays: [],
+            speechEvents: [
+                { group: 'kids', index: 0, emoji: '👋', duration: 2 },
+                { group: 'appraisers', index: 0, emoji: '👋', duration: 2 }
+            ]
         },
         { desc: "Overview", duration: 5, 
             cam: { x: 0, y: 460, z: -40 }, lookAt: { x: 0, y: 0, z: -40 },
@@ -138,8 +143,8 @@ export class EventSequence {
       { desc: "Team calls TIME", duration: 2, 
         cam: { x: 0, y: 18, z: 25 }, lookAt: "centerOfScene", 
         emitParticles: { pos: {x: 0, y: 3, z: 0}, emoji: "⏰", count: 1 } },
-      { desc: "Judges ask questions", duration: 10, 
-        cam: { x: 10, y: 10, z: 30 }, lookAt: "judges", 
+      { desc: "Appraisers ask questions", duration: 10, 
+        cam: { x: 10, y: 10, z: 30 }, lookAt: "appraisers", 
         kidPositions: [{x: 0, y: 0, z: -5}], appraiserPositions: [{x: 0, y: 0, z: 5}],
         emitParticles: { pos: {x: 0, y: 5, z: 0}, emoji: "❓", count: 3 } },
       { desc: "Review points", duration: 5, 
@@ -194,7 +199,32 @@ export class EventSequence {
         if(currentEvent.kidPositions) this.scene.personSystem.movePeople('kids', currentEvent.kidPositions);
         if(currentEvent.appraiserPositions) this.scene.personSystem.movePeople('appraisers', currentEvent.appraiserPositions);
         if(currentEvent.audiencePositions) this.scene.personSystem.movePeople('audience', currentEvent.audiencePositions);
-    }
+
+        // use makeGroupLookAt to have the kids look at the appraisers
+        if(currentEvent.kidLookAt) this.scene.personSystem.makeGroupLookAt('kids', this.getLookAtTarget(currentEvent.kidLookAt));
+        if(currentEvent.appraiserLookAt) this.scene.personSystem.makeGroupLookAt('appraisers', this.getLookAtTarget(currentEvent.appraiserLookAt));
+
+        // Handle speech events
+        if(currentEvent.speechEvents) {
+            currentEvent.speechEvents.forEach(speech => {
+                if(speech.index !== undefined) {
+                    this.scene.personSystem.makePersonSpeak(
+                        speech.group,
+                        speech.index,
+                        speech.emoji,
+                        speech.duration
+                    );
+                } else {
+                    this.scene.personSystem.makeGroupSpeak(
+                        speech.group,
+                        speech.emoji,
+                        speech.duration
+                    );
+                }
+            });
+        }
+
+    } // end of first frame of new event
 
     if(currentEvent.camLerpSpeed !== undefined) {
         camera.position.lerp(
@@ -267,7 +297,7 @@ export class EventSequence {
           return this.scene.kids[0] ? this.scene.kids[0].position : null;
         case 'kid2':
           return this.scene.kids[1] ? this.scene.kids[1].position : null;
-        case 'judges':
+        case 'appraisers':
           return this.scene.appraisers[0] ? this.scene.appraisers[0].position : null;
         default:
           console.warn(`Unknown lookAt target: ${lookAt}`);

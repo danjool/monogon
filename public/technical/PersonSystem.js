@@ -40,6 +40,12 @@ class Person extends THREE.Group {
         this.armSwingAmount = Math.PI / 4; // 45 degrees
         this.isWalking = false;
         this.timeOffset = Math.random() * Math.PI * 2; // Random starting phase
+
+        // Add speech properties
+        this.isSpeaking = false;
+        this.speechTimer = 0;
+        this.speechInterval = 0.5; // Time between speech particles
+        this.currentSpeechEmoji = '💭';
     }
 
     initHead() {
@@ -133,6 +139,28 @@ class Person extends THREE.Group {
         this.add(this.body);
     }
 
+    getSpeechPosition() {
+        // Return position above the person's head
+        return new THREE.Vector3(
+            this.position.x,
+            this.position.y + this.bodyHeight + this.headRadius * 2,
+            this.position.z
+        );
+    }
+
+    startSpeaking(emoji = '💭', duration = 3) {
+        console.log('startSpeaking', emoji, duration, this);
+        this.isSpeaking = true;
+        this.currentSpeechEmoji = emoji;
+        setTimeout(() => {
+            this.isSpeaking = false;
+        }, duration * 1000);
+    }
+
+    stopSpeaking() {
+        this.isSpeaking = false;
+    }
+
     update(deltaTime) {
         const time = performance.now() / 1000 + this.timeOffset;
 
@@ -158,6 +186,15 @@ class Person extends THREE.Group {
         this.head.position.x = Math.sin(time * this.headWobbleSpeed) * this.headWobbleAmount;
         this.head.position.y = this.bodyHeight + this.neckDistance + 
             Math.abs(Math.sin(time * this.headWobbleSpeed * 2)) * this.headWobbleAmount;
+
+        if (this.isSpeaking) {
+            this.speechTimer += deltaTime;
+            if (this.speechTimer >= this.speechInterval) {
+                this.speechTimer = 0;
+                return { shouldEmit: true, emoji: this.currentSpeechEmoji };
+            }
+        }
+        return { shouldEmit: false };
     }
 
     startWalking() {
@@ -244,9 +281,18 @@ export class PersonSystem {
     }
 
     update(deltaTime) {
-        // Update all people
+        // Update all people and handle speech bubbles
         Object.values(this.people).flat().forEach(person => {
-            person.update(deltaTime);
+            const updateResult = person.update(deltaTime);
+            if (updateResult.shouldEmit && this.particleSystem) {
+                const speechPos = person.getSpeechPosition();
+                this.particleSystem.emitEmojiParticles(
+                    { x: speechPos.x, y: speechPos.y, z: speechPos.z },
+                    updateResult.emoji,
+                    1,  // emit one particle at a time
+                    2   // particle lifetime in seconds
+                );
+            }
         });
     }
 
@@ -323,7 +369,7 @@ export class PersonSystem {
         if (this.people[group]) {
             console.log('people', this.people[group]);
             this.people[group].forEach(person => {
-                person.lookAt(target);
+                // person.lookAt(target); // busted for now
             });
         }
     }
@@ -364,5 +410,41 @@ export class PersonSystem {
                 person.stopWaving();
             });
         }
+    }
+
+    // New method to make a specific person speak
+    makePersonSpeak(group, index, emoji = '💭', duration = 3) {
+        if (this.people[group] && this.people[group][index]) {
+            this.people[group][index].startSpeaking(emoji, duration);
+        }
+    }
+
+    // New method to make a group speak
+    makeGroupSpeak(group, emoji = '💭', duration = 3) {
+        if (this.people[group]) {
+            this.people[group].forEach(person => {
+                person.startSpeaking(emoji, duration);
+            });
+        }
+    }
+
+    // New method to stop a specific person from speaking
+    stopPersonSpeaking(group, index) {
+        if (this.people[group] && this.people[group][index]) {
+            this.people[group][index].stopSpeaking();
+        }
+    }
+
+    // New method to stop a group from speaking
+    stopGroupSpeaking(group) {
+        if (this.people[group]) {
+            this.people[group].forEach(person => {
+                person.stopSpeaking();
+            });
+        }
+    }
+
+    setParticleSystem(particleSystem) {
+        this.particleSystem = particleSystem;
     }
 }
