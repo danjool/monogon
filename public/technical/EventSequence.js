@@ -2,6 +2,47 @@
 import * as THREE from 'three';
 import { TextOverlaySystem } from './TextOverlaySystem.js';
 
+class TossAnimation {
+  constructor(object, startPos, endPos, duration, maxHeight = 5) {
+      this.object = object;
+      this.startPos = new THREE.Vector3(startPos.x, startPos.y, startPos.z);
+      this.endPos = new THREE.Vector3(endPos.x, endPos.y, endPos.z);
+      this.duration = duration;
+      this.maxHeight = maxHeight;
+      this.elapsed = 0;
+      this.isComplete = false;
+  }
+
+  update(deltaTime) {
+      if (this.isComplete) return true;
+
+      this.elapsed += deltaTime;
+      const t = Math.min(this.elapsed / this.duration, 1);
+
+      // Linear interpolation for x and z
+      const x = this.startPos.x + (this.endPos.x - this.startPos.x) * t;
+      const z = this.startPos.z + (this.endPos.z - this.startPos.z) * t;
+
+      // Parabolic arc for y
+      // h(t) = h0 * (1-t) + h1 * t + t * (1-t) * maxHeight
+      // where h0 is start height, h1 is end height
+      const h0 = this.startPos.y;
+      const h1 = this.endPos.y;
+      const y = h0 * (1-t) + h1 * t + 4 * t * (1-t) * this.maxHeight;
+
+      this.object.position.set(x, y, z);
+
+      console.log('TossAnimation', x, y, z);
+
+      if (t >= 1) {
+          this.isComplete = true;
+          this.object.position.copy(this.endPos);
+          return true;
+      }
+      return false;
+  }
+}
+
 export class EventSequence {
     constructor(particleSystem, scene, physicsWorker, controls, renderer, camera) {
     this.particleSystem = particleSystem;
@@ -61,6 +102,9 @@ export class EventSequence {
           onStart: function(scene) { 
             // drop the magic wand
             scene.personSystem.makePersonReleaseObject('kids', 0); 
+            const startPos = { x: -40, y: 1, z: 40 };
+            const endPos = { x: 2, y: 1, z: -2 };
+            this.startToss(scene.magicWand, startPos, endPos, 2, 8);
           }
       },
         { desc: "Overview", duration: 5, 
@@ -183,10 +227,18 @@ export class EventSequence {
     this.eventTimer = 0;
     this.particleCooldown = 0;
     this.particleCooldownTime = 0.5; // Cooldown time in seconds
+    this.tossAnimations = [];
   }
+
+  startToss(object, startPos, endPos, duration = 1, maxHeight = 5) {
+    const toss = new TossAnimation(object, startPos, endPos, duration, maxHeight);
+    this.tossAnimations.push(toss);
+    return toss;
+}
 
   update(deltaTime, camera) {
     this.textOverlaySystem.update();
+    this.tossAnimations = this.tossAnimations.filter(toss => !toss.update(deltaTime));
     let currentEvent = this.events[this.currentEventIndex];
     this.eventTimer += deltaTime;
     this.particleCooldown -= deltaTime;

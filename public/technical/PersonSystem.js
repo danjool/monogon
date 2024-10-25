@@ -5,10 +5,11 @@ class Person extends THREE.Group {
     constructor({
         height = 10,
         color = '#FFFFFF',
-        isChild = false
+        isChild = false,
+        scene
     }) {
         super();
-
+        this.scene = scene;
         // Scale everything relative to height
         const scale = height / 10;
         this.scale.set(scale, scale, scale);
@@ -78,6 +79,12 @@ class Person extends THREE.Group {
 
     releaseObject() {
         if (this.heldObject) {
+            const worldPosition = new THREE.Vector3();
+            this.heldObject.getWorldPosition(worldPosition);
+
+            this.scene.add(this.heldObject);
+            this.heldObject.position.copy(worldPosition);
+
             this.rightArm.remove(this.heldObject);
             this.heldObject = null;
             this.isHolding = false;
@@ -280,6 +287,7 @@ export class PersonSystem {
         const kid = new Person({
             height: 10,
             isChild: true,
+            scene: this.scene,
             ...options
         });
         this.people.kids.push(kid);
@@ -291,6 +299,7 @@ export class PersonSystem {
     createAppraiser(options = {}) {
         const appraiser = new Person({
             height: 10,
+            scene: this.scene,
             ...options
         });
         this.people.appraisers.push(appraiser);
@@ -311,7 +320,8 @@ export class PersonSystem {
 
                 const person = new Person({
                     height: 7 + Math.random() * 2,
-                    color: `hsl(0, 0%, ${Math.floor(50 + Math.random() * 20)}%)`
+                    color: `hsl(0, 0%, ${Math.floor(50 + Math.random() * 20)}%)`,
+                    scene: this.scene,
                 });
 
                 person.position.set(
