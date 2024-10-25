@@ -41,11 +41,51 @@ class Person extends THREE.Group {
         this.isWalking = false;
         this.timeOffset = Math.random() * Math.PI * 2; // Random starting phase
 
-        // Add speech properties
+        // speech properties
         this.isSpeaking = false;
         this.speechTimer = 0;
         this.speechInterval = 0.5; // Time between speech particles
         this.currentSpeechEmoji = '💭';
+
+         // holding properties
+        this.heldObject = null;
+        this.isHolding = false;
+        this.originalArmRotation = this.rightArm.rotation.z;
+    }
+
+    holdObject(object) {
+        if (this.isHolding) {
+            this.releaseObject();
+        }
+        
+        this.heldObject = object;
+        this.isHolding = true;
+        
+        // Rotate arm up to holding position (3π/2)
+        this.rightArm.rotation.z = -3 * Math.PI / 2;
+        
+        // Position the object at the end of the right arm
+        if (object) {
+            this.rightArm.add(object);
+            // Position at the end of the arm
+            object.position.set(0, this.armHeight, 0);
+            // If it's a SpriteText, we might want to adjust its scale
+            if (object.type === 'Sprite') {
+                object.scale.set(0.5, 0.5, 0.5);
+            }
+        }
+    }
+
+    releaseObject() {
+        if (this.heldObject) {
+            this.rightArm.remove(this.heldObject);
+            this.heldObject = null;
+            this.isHolding = false;
+            this.rightArm.rotation.z = this.originalArmRotation;
+        }
+        // at this point if the heldObject hasn't itself been added to the scene, it will be garbage collected
+        // if it has been added to the scene, it will remain in the scene, but no longer be attached to the person, just floating in space
+        // if it was a physics object, it would fall to the ground (not implemented here)
     }
 
     initHead() {
@@ -185,8 +225,8 @@ class Person extends THREE.Group {
         // Subtle head wobble
         this.head.position.x = Math.sin(time * this.headWobbleSpeed) * this.headWobbleAmount;
         this.head.position.y = this.bodyHeight + this.neckDistance + 
-            Math.abs(Math.sin(time * this.headWobbleSpeed * 2)) * this.headWobbleAmount;
-
+        Math.abs(Math.sin(time * this.headWobbleSpeed * 2)) * this.headWobbleAmount;
+        
         if (this.isSpeaking) {
             this.speechTimer += deltaTime;
             if (this.speechTimer >= this.speechInterval) {
@@ -194,6 +234,12 @@ class Person extends THREE.Group {
                 return { shouldEmit: true, emoji: this.currentSpeechEmoji };
             }
         }
+
+        // If holding an object, keep the arm up
+        if (this.isHolding) {
+            this.rightArm.rotation.z = -3 * Math.PI / 2;
+        }
+         
         return { shouldEmit: false };
     }
 

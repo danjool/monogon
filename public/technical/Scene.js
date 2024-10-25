@@ -28,6 +28,7 @@ export class Scene extends THREE.Scene {
 
     this.personSystem = new PersonSystem(this);
     this.initPeople();
+    this.initProps();
   }
 
     initPeople() {
@@ -58,6 +59,13 @@ export class Scene extends THREE.Scene {
             this.presentationAreaSize / 2 - this.targetZoneSizesImperial[0] * this.arbitraryFactor / 2
         );
     }
+  
+  initProps() {
+    // magic wand
+    this.magicWand = new SpriteText('🎆', 1, 'white'); // magic wand emoji options: ✨🌟🎉🎊🎈🎇 emojis are accessed with windows-period 🔌🧲
+    this.magicWand.position.set(0, 2.5, -5);
+    this.add(this.magicWand);
+  }
 
   initLights() {
     const ambientLight = new THREE.AmbientLight(0x666666);

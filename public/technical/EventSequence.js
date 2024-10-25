@@ -14,7 +14,7 @@ export class EventSequence {
     this.textOverlaySystem = new TextOverlaySystem(this.scene, this.camera, this.renderer);
     // for reference, the zones after arbitraryFactor are: 10 assembly, 25 tgt1, 35 tgt2, 40 tgt3, 100 presentation area
     this.events = [
-        { desc: "Checkout new Models", duration: 200, 
+        { desc: "Checkout new Models", duration: 3, 
             cam: { x: -43, y: 4, z: 56 }, lookAt: "kid1", 
             attraction: false,
             camLerpSpeed: undefined,
@@ -33,8 +33,36 @@ export class EventSequence {
             speechEvents: [
                 { group: 'kids', index: 0, emoji: '👋', duration: 2 },
                 { group: 'appraisers', index: 0, emoji: '👋', duration: 2 }
-            ]
+            ],
+            onStart: function(scene) { 
+              scene.personSystem.makePersonHoldObject('kids', 0, this.scene.magicWand);
+          }
         },
+        { desc: "Checkout new Models", duration: 3, 
+          cam: { x: -43, y: 4, z: 56 }, lookAt: "kid1", 
+          attraction: false,
+          camLerpSpeed: undefined,
+          kidPositions: [
+              {x: -40, y: 1, z: 40}, 
+              {x: -50, y: 1, z: -50}, 
+              {x: -55, y: 1, z: -50}, 
+          ], 
+          kidLookAt: 'appraisers',
+          appraiserPositions: [
+              {x: -38, y: 1, z: 40}, 
+              {x: 20, y: 1, z: -20}
+          ], 
+          fixedOverlays: [],
+          object3DOverlays: [],
+          speechEvents: [
+              { group: 'kids', index: 0, emoji: '👋', duration: 2 },
+              { group: 'appraisers', index: 0, emoji: '👋', duration: 2 }
+          ],
+          onStart: function(scene) { 
+            // drop the magic wand
+            scene.personSystem.makePersonReleaseObject('kids', 0); 
+          }
+      },
         { desc: "Overview", duration: 5, 
             cam: { x: 0, y: 460, z: -40 }, lookAt: { x: 0, y: 0, z: -40 },
             camLerpSpeed: undefined,  // No lerp
@@ -224,6 +252,9 @@ export class EventSequence {
             });
         }
 
+        if(currentEvent.onStart) {
+          currentEvent.onStart.call(this, this.scene);
+        }
     } // end of first frame of new event
 
     if(currentEvent.camLerpSpeed !== undefined) {
