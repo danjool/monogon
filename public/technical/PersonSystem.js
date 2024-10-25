@@ -419,15 +419,15 @@ export class PersonSystem {
 
     makeGroupLookAt(group, target) {
         console.log('makeGroupLookAt', group, target); // target could be a object, could be a string like 
-        if (typeof target === 'string') {
-            target = this.getLookAtTarget(target);
-        }
-        if (this.people[group]) {
-            console.log('people', this.people[group]);
-            this.people[group].forEach(person => {
-                // person.lookAt(target); // busted for now
-            });
-        }
+        // if (typeof target === 'string') {
+        //     target = this.getLookAtTarget(target);
+        // }
+        // if (this.people[group]) {
+        //     console.log('people', this.people[group]);
+        //     this.people[group].forEach(person => {
+        //         // person.lookAt(target); // busted for now
+        //     });
+        // }
     }
 
     stopGroupLooking(group) {

@@ -69,6 +69,15 @@ export class TextOverlaySystem {
     }
   }
 
+  removeAll3DOverlays() {
+    for (const overlay of this.overlays) {
+      if (overlay.type === '3D') {
+        this.container.removeChild(overlay.element);
+      }
+    }
+    this.overlays = this.overlays.filter(overlay => overlay.type !== '3D');
+  }
+
   update() {
     const canvasRect = this.renderer.domElement.getBoundingClientRect();
 

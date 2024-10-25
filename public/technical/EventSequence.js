@@ -32,8 +32,6 @@ class TossAnimation {
 
       this.object.position.set(x, y, z);
 
-      console.log('TossAnimation', x, y, z);
-
       if (t >= 1) {
           this.isComplete = true;
           this.object.position.copy(this.endPos);
@@ -55,174 +53,322 @@ export class EventSequence {
     this.textOverlaySystem = new TextOverlaySystem(this.scene, this.camera, this.renderer);
     // for reference, the zones after arbitraryFactor are: 10 assembly, 25 tgt1, 35 tgt2, 40 tgt3, 100 presentation area
     this.events = [
-        { desc: "Checkout new Models", duration: 3, 
-            cam: { x: -43, y: 4, z: 56 }, lookAt: "kid1", 
-            attraction: false,
-            camLerpSpeed: undefined,
-            kidPositions: [
-                {x: -40, y: 1, z: 40}, 
-                {x: -50, y: 1, z: -50}, 
-                {x: -55, y: 1, z: -50}, 
-            ], 
-            kidLookAt: 'appraisers',
-            appraiserPositions: [
-                {x: -38, y: 1, z: 40}, 
-                {x: 20, y: 1, z: -20}
-            ], 
-            fixedOverlays: [],
-            object3DOverlays: [],
-            speechEvents: [
-                { group: 'kids', index: 0, emoji: '👋', duration: 2 },
-                { group: 'appraisers', index: 0, emoji: '👋', duration: 2 }
-            ],
-            onStart: function(scene) { 
-              scene.personSystem.makePersonHoldObject('kids', 0, this.scene.magicWand);
-          }
-        },
-        { desc: "Checkout new Models", duration: 3, 
-          cam: { x: -43, y: 4, z: 56 }, lookAt: "kid1", 
-          attraction: false,
-          camLerpSpeed: undefined,
-          kidPositions: [
-              {x: -40, y: 1, z: 40}, 
-              {x: -50, y: 1, z: -50}, 
-              {x: -55, y: 1, z: -50}, 
-          ], 
-          kidLookAt: 'appraisers',
-          appraiserPositions: [
-              {x: -38, y: 1, z: 40}, 
-              {x: 20, y: 1, z: -20}
-          ], 
-          fixedOverlays: [],
-          object3DOverlays: [],
-          speechEvents: [
-              { group: 'kids', index: 0, emoji: '👋', duration: 2 },
-              { group: 'appraisers', index: 0, emoji: '👋', duration: 2 }
-          ],
-          onStart: function(scene) { 
-            // drop the magic wand
-            scene.personSystem.makePersonReleaseObject('kids', 0); 
-            const startPos = { x: -40, y: 1, z: 40 };
-            const endPos = { x: 2, y: 1, z: -2 };
-            this.startToss(scene.magicWand, startPos, endPos, 2, 8);
+      {
+          desc: "Checkout new Models", 
+          duration: 3,
+          cam: { x: -43, y: 4, z: 56 },
+          lookAt: "kid1",
+          onStart: function(scene) {
+              scene.personSystem.movePeople('kids', [
+                  {x: -40, y: 1, z: 40}, 
+                  {x: -50, y: 1, z: -50}, 
+                  {x: -55, y: 1, z: -50}
+              ]);
+              scene.personSystem.movePeople('appraisers', [
+                  {x: -38, y: 1, z: 40}, 
+                  {x: 20, y: 1, z: -20}
+              ]);
+              scene.personSystem.makeGroupLookAt('kids', 'appraisers');
+              scene.personSystem.makePersonSpeak('kids', 0, '👋', 2);
+              scene.personSystem.makePersonSpeak('appraisers', 0, '👋', 2);
+              scene.personSystem.makePersonHoldObject('kids', 0, scene.magicWand);
           }
       },
-        { desc: "Overview", duration: 5, 
-            cam: { x: 0, y: 460, z: -40 }, lookAt: { x: 0, y: 0, z: -40 },
-            camLerpSpeed: undefined,  // No lerp
-            attraction: false,
-            kidPositions: [
-                {x: -40, y: 1, z: 40}, 
-                {x: -50, y: 5, z: -50}, 
-                {x: -55, y: 5, z: -50}, 
-            ], 
-            appraiserPositions: [
-                {x: 20, y: 7.5, z: -10},
-                {x: 20, y: 7.5, z: -20}
-            ], 
-            fixedOverlays: [],
-            object3DOverlays: [
-                { text: 'Presentation Area', object3D: this.scene.presentationArea, offset: { x: 0, y: -40 } },
-                { text: '20ftx20ft', object3D: this.scene.presentationArea, offset: { x: 0, y: 20 } },
-            ],
-        },
-        { desc: "Initial setup", duration: 5, 
-            cam: { x: -60, y: 20, z: 130 }, lookAt: "kid1", 
-            attraction: false,
-            camLerpSpeed: 0.05,
-            kidPositions: [
-                {x: -45, y: 5, z: -50}, 
-                {x: -50, y: 5, z: -50}, 
-                {x: -55, y: 5, z: -50}, 
-            ], 
-            appraiserPositions: [
-                {x: 20, y: 7.5, z: -10},
-                {x: 20, y: 7.5, z: -20}
-            ], 
-            fixedOverlays: [],
-            object3DOverlays: [],
-        },
-        { desc: "Team enters", duration: 5, 
-            cam: { x: -60, y: 20, z: 130 }, lookAt: "kid1", attraction: false,
-            kidPositions: [
-                {x: -10, y: 5, z: -15}, 
-                {x: -10, y: 5, z: -5}, 
-                {x: -10, y: 5, z: -10}, 
-            ], 
-        },
-        { desc: "Setup equipment", duration: 4, 
-            cam: { x: -60, y: 20, z: 130 }, lookAt: "kid1", attraction: false,
-            kidPositions: [
-                {x: -10, y: 5, z: -15}, 
-                {x: -10, y: 5, z: -5}, 
-                {x: -10, y: 5, z: -10}, 
-            ], 
-        },
-        { desc: "Story begins - Wishful Scene", duration: 5, 
-            cam: { x: -60, y: 20, z: 130 }, lookAt: "kid1", attraction: false,
-            kidPositions: [
-                {x: -10, y: 5, z: -15}, 
-                {x: -10, y: 5, z: -5}, 
-                {x: -10, y: 5, z: -10}, 
-            ], 
-        },
-        { desc: "Assembly Equipment activates", duration: 2, 
-            cam: { x: -60, y: 20, z: 130 }, lookAt: "kid1", attraction: false,
-            kidPositions: [
-                {x: -10, y: 5, z: -15}, 
-                {x: -10, y: 5, z: -5}, 
-                {x: -10, y: 5, z: -10}, 
-            ], 
-                attraction: true, 
-                emitParticles: { pos: {x: -2, y: 1, z: 0}, emoji: "✨", count: 3 } 
-        },
-        { desc: "Stack assembly (15/15 pts Design Assembly, my magic wand is designed well) (15/15 pts Innovation Assembly)", duration: 4, 
-        cam: { x: -60, y: 20, z: 130 }, lookAt: "kid1", attraction: false,
-            kidPositions: [
-                {x: -10, y: 5, z: -15}, 
-                {x: -10, y: 5, z: -5}, 
-                {x: -10, y: 5, z: -10}, 
-            ], 
-        },  
-      { desc: "Team Choice Element 1", duration: 3, 
-        cam: { x: 80, y: 100, z: 80 }, lookAt: "teamChoiceElement1", 
-        emitParticles: { pos: {x: 5, y: 2, z: 0}, emoji: "🔮", count: 2 } },
-      { desc: "Stack assembly completes", duration: 2, 
-        cam: { x: 0, y: 80, z: 20 }, lookAt: "topOfStack", },
-      { desc: "Frustration Point", duration: 3, 
-        cam: { x: -100, y: 12, z: 80 }, lookAt: "kid1", 
-        emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "😖", count: 1 } },
-      { desc: "Destruction Equipment activates", duration: 2, 
-        cam: { x: 100, y: 8, z: 20 }, lookAt: "centerOfScene", 
-        emitParticles: { pos: {x: 2, y: 1, z: 0}, emoji: "💥", count: 3 }, 
-        attraction: false },
-      { desc: "Stack Destruction", duration: 5, 
-        cam: { x: 0, y: 20, z: 25 }, lookAt: "centerOfScene", 
-        attraction: false },
-      { desc: "Items land in zones", duration: 3, 
-        cam: { x: 0, y: 80, z: 30 }, lookAt: "centerOfScene", 
-        emitParticles: [
-        { pos: {x: -7, y: 0.5, z: -7}, emoji: "🌕", count: 2, lifetime: 5 },
-        { pos: {x: -5, y: 0.5, z: -5}, emoji: "🌗", count: 2, lifetime: 4 },
-        { pos: {x: -3, y: 0.5, z: -3}, emoji: "🌘", count: 1, lifetime: 3 },
-      ]},
-      { desc: "Team Choice Element 2", duration: 4, 
-        cam: { x: 15, y: 10, z: 15 }, lookAt: "teamChoiceElement2", 
-        emitParticles: { pos: {x: 5, y: 2, z: 0}, emoji: "🎭", count: 2 } },
-      { desc: "Story resolution", duration: 5, 
-        cam: { x: -5, y: 12, z: 20 }, lookAt: "kid2", 
-        emitParticles: { pos: {x: 0, y: 2, z: 0}, emoji: "😄", count: 1 } },
-      { desc: "Team calls TIME", duration: 2, 
-        cam: { x: 0, y: 18, z: 25 }, lookAt: "centerOfScene", 
-        emitParticles: { pos: {x: 0, y: 3, z: 0}, emoji: "⏰", count: 1 } },
-      { desc: "Appraisers ask questions", duration: 10, 
-        cam: { x: 10, y: 10, z: 30 }, lookAt: "appraisers", 
-        kidPositions: [{x: 0, y: 0, z: -5}], appraiserPositions: [{x: 0, y: 0, z: 5}],
-        emitParticles: { pos: {x: 0, y: 5, z: 0}, emoji: "❓", count: 3 } },
-      { desc: "Review points", duration: 5, 
-        cam: { x: 0, y: 25, z: 35 }, lookAt: "centerOfScene", 
-        emitParticles: { pos: {x: 0, y: 5, z: 0}, emoji: "🏆", count: 3 } },
-    ];
+      {
+          desc: "Magic Wand Toss",
+          duration: 3,
+          cam: { x: -43, y: 4, z: 56 },
+          lookAt: "kid1",
+          onStart: function(scene) {
+              scene.personSystem.makePersonReleaseObject('kids', 0);
+              this.startToss(scene.magicWand, 
+                  { x: -40, y: 1, z: 40 },
+                  { x: 2, y: 1, z: -2 },
+                  2, 8
+              );
+          }
+      },
+      {
+          desc: "Overview",
+          duration: 5,
+          cam: { x: 0, y: 460, z: -40 },
+          lookAt: { x: 0, y: 0, z: -40 },
+          onStart: function(scene) {
+              this.textOverlaySystem.addObject3DOverlay(
+                  'Presentation Area',
+                  scene.presentationArea,
+                  { x: 0, y: -40 }
+              );
+              this.textOverlaySystem.addObject3DOverlay(
+                  '20ftx20ft',
+                  scene.presentationArea,
+                  { x: 0, y: 20 }
+              );
+              scene.personSystem.movePeople('kids', [
+                  {x: -40, y: 1, z: 40}, 
+                  {x: -50, y: 5, z: -50}, 
+                  {x: -55, y: 5, z: -50}
+              ]);
+              scene.personSystem.movePeople('appraisers', [
+                  {x: 20, y: 7.5, z: -10},
+                  {x: 20, y: 7.5, z: -20}
+              ]);
+          }
+      },
+      {
+          desc: "Initial Setup",
+          duration: 5,
+          cam: { x: -60, y: 20, z: 130 },
+          lookAt: "kid1",
+          camLerpSpeed: 0.05,
+          onStart: function(scene) {
+              this.textOverlaySystem.removeAll3DOverlays();
+              scene.personSystem.movePeople('kids', [
+                  {x: -45, y: 5, z: -50}, 
+                  {x: -50, y: 5, z: -50}, 
+                  {x: -55, y: 5, z: -50}
+              ]);
+              scene.personSystem.movePeople('appraisers', [
+                  {x: 20, y: 7.5, z: -10},
+                  {x: 20, y: 7.5, z: -20}
+              ]);
+          }
+      },
+      {
+          desc: "Team Enters with Equipment",
+          duration: 5,
+          cam: { x: -60, y: 20, z: 130 },
+          lookAt: "kid1",
+          onStart: function(scene) {
+              scene.personSystem.movePeople('kids', [
+                  {x: -10, y: 5, z: -15}, 
+                  {x: -10, y: 5, z: -5}, 
+                  {x: -10, y: 5, z: -10}
+              ]);
+              scene.personSystem.makeGroupSpeak('kids', '🔧', 2);
+          }
+      },
+      {
+          desc: "Setup Equipment",
+          duration: 4,
+          cam: { x: -60, y: 20, z: 130 },
+          lookAt: "kid1",
+          onStart: function(scene) {
+              this.particleSystem.emitEmojiParticles(
+                  {x: -10, y: 2, z: -10},
+                  "🔧",
+                  2
+              );
+              scene.personSystem.makeGroupSpeak('kids', '⚡', 2);
+          }
+      },
+      {
+          desc: "Story Begins - Wishful Scene",
+          duration: 5,
+          cam: { x: -60, y: 20, z: 130 },
+          lookAt: "kid1",
+          onStart: function(scene) {
+              scene.personSystem.makePersonSpeak('kids', 0, '✨', 3);
+              scene.personSystem.makePersonSpeak('kids', 1, '🌟', 3);
+              this.particleSystem.emitEmojiParticles(
+                  {x: -10, y: 3, z: -10},
+                  "💫",
+                  3
+              );
+          }
+      },
+      {
+          desc: "Assembly Equipment Activates",
+          duration: 2,
+          cam: { x: -60, y: 20, z: 130 },
+          lookAt: "kid1",
+          onStart: function(scene) {
+              this.toggleAttraction(true);
+              this.particleSystem.emitEmojiParticles(
+                  {x: -2, y: 1, z: 0},
+                  "✨",
+                  3
+              );
+              scene.personSystem.makeGroupSpeak('kids', '🎯', 2);
+          }
+      },
+      {
+          desc: "Stack Assembly",
+          duration: 4,
+          cam: { x: -60, y: 20, z: 130 },
+          lookAt: "kid1",
+          onStart: function(scene) {
+              scene.personSystem.makePersonSpeak('kids', 0, '🎮', 3);
+              this.particleSystem.emitEmojiParticles(
+                  {x: 0, y: 2, z: 0},
+                  "⚡",
+                  2
+              );
+          }
+      },
+      {
+          desc: "Team Choice Element 1",
+          duration: 3,
+          cam: { x: 80, y: 100, z: 80 },
+          lookAt: "teamChoiceElement1",
+          onStart: function(scene) {
+              this.particleSystem.emitEmojiParticles(
+                  {x: 5, y: 2, z: 0},
+                  "🔮",
+                  2
+              );
+              scene.personSystem.makePersonSpeak('kids', 1, '🎨', 2);
+          }
+      },
+      {
+          desc: "Stack Assembly Completes",
+          duration: 2,
+          cam: { x: 0, y: 80, z: 20 },
+          lookAt: "topOfStack",
+          onStart: function(scene) {
+              this.particleSystem.emitEmojiParticles(
+                  {x: 0, y: 10, z: 0},
+                  "🎯",
+                  2
+              );
+              scene.personSystem.makeGroupSpeak('kids', '🎉', 2);
+          }
+      },
+      {
+          desc: "Frustration Point",
+          duration: 3,
+          cam: { x: -100, y: 12, z: 80 },
+          lookAt: "kid1",
+          onStart: function(scene) {
+              scene.personSystem.makePersonSpeak('kids', 0, '😖', 3);
+              scene.personSystem.makePersonSpeak('kids', 1, '😟', 3);
+              scene.personSystem.makePersonSpeak('kids', 2, '😨', 3);
+              this.particleSystem.emitEmojiParticles(
+                  {x: 0, y: 2, z: 0},
+                  "😖",
+                  1
+              );
+          }
+      },
+      {
+          desc: "Destruction Equipment Activates",
+          duration: 2,
+          cam: { x: 100, y: 8, z: 20 },
+          lookAt: "centerOfScene",
+          onStart: function(scene) {
+              this.toggleAttraction(false);
+              this.particleSystem.emitEmojiParticles(
+                  {x: 2, y: 1, z: 0},
+                  "💥",
+                  3
+              );
+              scene.personSystem.makeGroupSpeak('kids', '🎯', 2);
+          }
+      },
+      {
+          desc: "Stack Destruction",
+          duration: 5,
+          cam: { x: 0, y: 20, z: 25 },
+          lookAt: "centerOfScene"
+      },
+      {
+          desc: "Items Land in Zones",
+          duration: 3,
+          cam: { x: 0, y: 80, z: 30 },
+          lookAt: "centerOfScene",
+          onStart: function(scene) {
+              const emissions = [
+                  { pos: {x: -7, y: 0.5, z: -7}, emoji: "🌕", count: 2, lifetime: 5 },
+                  { pos: {x: -5, y: 0.5, z: -5}, emoji: "🌗", count: 2, lifetime: 4 },
+                  { pos: {x: -3, y: 0.5, z: -3}, emoji: "🌘", count: 1, lifetime: 3 }
+              ];
+              emissions.forEach(emission => {
+                  this.particleSystem.emitEmojiParticles(
+                      emission.pos,
+                      emission.emoji,
+                      emission.count,
+                      emission.lifetime
+                  );
+              });
+          }
+      },
+      {
+          desc: "Team Choice Element 2",
+          duration: 4,
+          cam: { x: 15, y: 10, z: 15 },
+          lookAt: "teamChoiceElement2",
+          onStart: function(scene) {
+              this.particleSystem.emitEmojiParticles(
+                  {x: 5, y: 2, z: 0},
+                  "🎭",
+                  2
+              );
+              scene.personSystem.makePersonSpeak('kids', 2, '🎨', 2);
+          }
+      },
+      {
+          desc: "Story Resolution",
+          duration: 5,
+          cam: { x: -5, y: 12, z: 20 },
+          lookAt: "kid2",
+          onStart: function(scene) {
+              scene.personSystem.makeGroupSpeak('kids', '😄', 2);
+              this.particleSystem.emitEmojiParticles(
+                  {x: 0, y: 2, z: 0},
+                  "😄",
+                  1
+              );
+          }
+      },
+      {
+          desc: "Team Calls TIME",
+          duration: 2,
+          cam: { x: 0, y: 18, z: 25 },
+          lookAt: "centerOfScene",
+          onStart: function(scene) {
+              scene.personSystem.makeGroupSpeak('kids', '⏰', 1);
+              this.particleSystem.emitEmojiParticles(
+                  {x: 0, y: 3, z: 0},
+                  "⏰",
+                  1
+              );
+          }
+      },
+      {
+          desc: "Appraisers Ask Questions",
+          duration: 10,
+          cam: { x: 10, y: 10, z: 30 },
+          lookAt: "appraisers",
+          onStart: function(scene) {
+              scene.personSystem.movePeople('kids', [
+                  {x: 0, y: 0, z: -5}
+              ]);
+              scene.personSystem.movePeople('appraisers', [
+                  {x: 0, y: 0, z: 5}
+              ]);
+              scene.personSystem.makeGroupSpeak('appraisers', '❓', 3);
+              this.particleSystem.emitEmojiParticles(
+                  {x: 0, y: 5, z: 0},
+                  "❓",
+                  3
+              );
+          }
+      },
+      {
+          desc: "Review Points",
+          duration: 5,
+          cam: { x: 0, y: 25, z: 35 },
+          lookAt: "centerOfScene",
+          onStart: function(scene) {
+              scene.personSystem.makeGroupSpeak('appraisers', '🏆', 2);
+              this.particleSystem.emitEmojiParticles(
+                  {x: 0, y: 5, z: 0},
+                  "🏆",
+                  3
+              );
+          }
+      }
+  ];
     this.currentEventIndex = 0;
     this.eventTimer = 0;
     this.particleCooldown = 0;
