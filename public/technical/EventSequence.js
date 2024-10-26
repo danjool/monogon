@@ -17,8 +17,8 @@ export class EventSequence {
       {
         desc: "debug",
         duration: 1.00001,
-        cam: { x: 22, y: 9, z: -52 },
-        lookAt: { x: 0, y: 2, z: 0 },
+        cam: { x: -100, y: 9, z: -72 },
+        lookAt: "kid1",
         onStart: function(scene) {
           // move the blocks, the stackabls to x = - presentationAreaSize / 2, quickly
           // you also have to move  the stackabls in terms of the simulation
@@ -26,22 +26,23 @@ export class EventSequence {
             console.log('moving mesh', mesh, index);
           });
           scene.personSystem.movePeople('kids', [
-            {x: -50, y: 1, z: 10},
-            {x: -55, y: 1, z: 10},
-            {x: -50, y: 1, z: 15},
+            {x: -120, y: 1, z: 10},
+            {x: -125, y: 1, z: 10},
+            {x: -120, y: 1, z: 15},
             .0001
           ]);
           scene.personSystem.movePeople('appraisers', [
-            {x: -50, y: 1, z: -10},
-            {x: -55, y: 1, z: -10},
+            {x: -120, y: 1, z: -10},
+            {x: -125, y: 1, z: -10},
             .0001
           ]);
+        
 
           this.physicsWorker.setToSideline();
         }
     },
       {
-          desc: "Overview",
+          desc: "Overview of Presentation Area",
           duration: 1.5,
           cam: { x: 0, y: 460, z: -41 },
           lookAt: { x: 0, y: 0, z: -40 },
@@ -56,34 +57,24 @@ export class EventSequence {
                   scene.presentationArea,
                   { x: -scene.presentationAreaSize, y: 20 }
               );
-              scene.personSystem.movePeople('kids', [
-                  {x: -40, y: 1, z: 40}, 
-                  {x: -50, y: 5, z: -50}, 
-                  {x: -55, y: 5, z: -50},
-                  .01
-              ]);
-              scene.personSystem.movePeople('appraisers', [
-                  {x: 20, y: 7.5, z: -10},
-                  {x: 20, y: 7.5, z: -20}
-              ]);
           }
       },
       {
         desc: "Overview of Target Zones",
-        duration: 10.5,
+        duration: .105,
         camLerpSpeed: 0.005,
         cam: { x: 0, y: 160, z: 0 },
         lookAt: { x: 0, y: 0, z: -1 },
         onStart: function(scene) {
           this.textOverlaySystem.removeAll3DOverlays();
-          this.textOverlaySystem.addObject3DOverlay('Zone 1', scene.targetZones[0], { x: 0, y: -20 });
-          this.textOverlaySystem.addObject3DOverlay('Zone 2', scene.targetZones[1], { x: 0, y: -30 });
-          this.textOverlaySystem.addObject3DOverlay('Zone 3', scene.targetZones[2], { x: 0, y: -70 });
+        //   this.textOverlaySystem.addObject3DOverlay('Zone 1', scene.targetZones[0], { x: 0, y: -20 });
+        //   this.textOverlaySystem.addObject3DOverlay('Zone 2', scene.targetZones[1], { x: 0, y: -30 });
+        //   this.textOverlaySystem.addObject3DOverlay('Zone 3', scene.targetZones[2], { x: 0, y: -70 });
         }
       },
       {
         desc: "Check in with Appraisers",
-        duration: .8,
+        duration: 1.8,
         cam: { x: -120, y: 20, z: 120 },
         lookAt: "kid1",
         onStart: function(scene) {
@@ -535,23 +526,32 @@ export class EventSequence {
         camera.position.set(currentEvent.cam.x, currentEvent.cam.y, currentEvent.cam.z);
     }
 
-    const lookAtTarget = this.getLookAtTarget(currentEvent.lookAt);
-    if (lookAtTarget) {
-        let vec = new THREE.Vector3(lookAtTarget.x, lookAtTarget.y, lookAtTarget.z)
-        
-        if (currentEvent.camLerpSpeed !== undefined) {
-          vec = lookAtTarget.clone().lerp(vec, currentEvent.camLerpSpeed);
-          camera.lookAt(vec);
-          camera.lookAtTarget = vec;
-          this.controls.target.set(vec.x, vec.y, vec.z);
-        } else {
-          camera.lookAt(lookAtTarget);
-          camera.lookAtTarget = lookAtTarget;
-          this.controls.target.set(lookAtTarget.x, lookAtTarget.y, lookAtTarget.z);
-        }
-
+  // Handle lookAt target
+  const lookAtTarget = this.getLookAtTarget(currentEvent.lookAt);
+  if (lookAtTarget) {
+    console.log('lookAtTarget', lookAtTarget);
+    // Store the lookAt target for controls
+    this.currentLookAtTarget = lookAtTarget;
+    
+    if (currentEvent.camLerpSpeed !== undefined) {
+      // If we're lerping the camera, also lerp the lookAt
+      if (!this.lastLookAtTarget) {
+        this.lastLookAtTarget = lookAtTarget.clone();
+      }
+      
+      this.lastLookAtTarget.lerp(lookAtTarget, currentEvent.camLerpSpeed);
+      camera.lookAt(this.lastLookAtTarget);
+      this.controls.target.copy(this.lastLookAtTarget);
+    } else {
+      // Immediate lookAt
+      camera.lookAt(lookAtTarget);
+      this.controls.target.copy(lookAtTarget);
+      this.lastLookAtTarget = lookAtTarget.clone();
     }
+  }
 
+  // Important: Update controls after changing target
+  this.controls.update();
     // Handle particle emissions with cooldown
     if (currentEvent.emitParticles && this.particleCooldown <= 0) {
       if (Array.isArray(currentEvent.emitParticles)) {
@@ -587,6 +587,7 @@ export class EventSequence {
   }
 
   getLookAtTarget(lookAt) {
+    console.log('getLookAtTarget', lookAt);
     if (typeof lookAt === 'string') {
       switch (lookAt) {
         case 'centerOfScene':
@@ -602,6 +603,7 @@ export class EventSequence {
         case 'teamChoiceElement2':
           return this.scene.teamChoiceElement2 ? this.scene.teamChoiceElement2.position : null;
         case 'kid1':
+              console.log('kid1', this.scene.people);
           return this.scene.kids[0] ? this.scene.kids[0].position : null;
         case 'kid2':
           return this.scene.kids[1] ? this.scene.kids[1].position : null;

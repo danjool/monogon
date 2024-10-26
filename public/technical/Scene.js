@@ -36,19 +36,23 @@ export class Scene extends THREE.Scene {
         // Create kids with different colors
         const kidColors = ['#FF0000', '#990099', '#0000FF'];
         kidColors.forEach((color, i) => {
-            this.personSystem.createKid({
-                color,
-                position: new THREE.Vector3(-5 + i * 2, 0, -5)
-            });
+            this.kids.push(
+              this.personSystem.createKid({
+                  color,
+                  position: new THREE.Vector3(-5 + i * 2, 0, -5)
+              })
+            )
         });
 
         // Create appraisers
         const appraiserColors = ['#00FFFF', '#00DDDD'];
         appraiserColors.forEach((color, i) => {
-            this.personSystem.createAppraiser({
-                color,
-                position: new THREE.Vector3(-2 + i * 4, 0, 5)
-            });
+            this.appraisers.push(
+              this.personSystem.createAppraiser({
+                  color,
+                  position: new THREE.Vector3(-2 + i * 4, 0, 5)
+              })
+            )
         });
 
         // Create audience
@@ -64,17 +68,17 @@ export class Scene extends THREE.Scene {
   initProps() {
     // magic wand
     this.magicWand = new SpriteText('🎆', 1, 'white'); // magic wand emoji options: ✨🌟🎉🎊🎈🎇 emojis are accessed with windows-period 🔌🧲
-    this.magicWand.position.set(-52, 2.5, -5);
+    this.magicWand.position.set(-122, 2.5, -5);
     this.add(this.magicWand);
 
     // megaphone
     this.megaphone = new SpriteText('📢', 1, 'white')
-    this.megaphone.position.set(-52, 2.5, -5);
+    this.megaphone.position.set(-122, 2.5, -5);
     this.add(this.megaphone);
 
     // Black hole for destruction
     this.blackHole = new SpriteText('🌌', 1, 'white');
-    this.blackHole.position.set(-52, 2.5, -5);
+    this.blackHole.position.set(-122, 2.5, -5);
     this.blackHole.scale.set(0.1, 0.1, 0.1); // Start small
     this.add(this.blackHole);
 
@@ -178,13 +182,13 @@ export class Scene extends THREE.Scene {
     const icosahedronGeometry = new THREE.IcosahedronGeometry(1);
     const icosahedronMaterial = new THREE.MeshPhongMaterial({ color: 0x3498db });
     this.teamChoiceElement1 = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
-    this.teamChoiceElement1.position.set(-50, 1.0, 0);
+    this.teamChoiceElement1.position.set(-120, 1.0, 0);
     this.add(this.teamChoiceElement1);
 
     const dodecahedronGeometry = new THREE.DodecahedronGeometry(1);
     const dodecahedronMaterial = new THREE.MeshPhongMaterial({ color: 0xf4d84b });
     this.teamChoiceElement2 = new THREE.Mesh(dodecahedronGeometry, dodecahedronMaterial);
-    this.teamChoiceElement2.position.set(-55, 1., 4);
+    this.teamChoiceElement2.position.set(-125, 1., 4);
     this.add(this.teamChoiceElement2);
   }
 
