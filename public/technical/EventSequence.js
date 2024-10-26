@@ -26,8 +26,6 @@ export class EventSequence {
         onStart: function(scene) {
           // move the blocks, the stackabls to x = - presentationAreaSize / 2, quickly
           // you also have to move  the stackabls in terms of the simulation
-          scene.meshes.forEach((mesh, index) => {
-          });
           scene.personSystem.movePeople('kids', [
             {x: -120, y: 1, z: 10},
             {x: -125, y: 1, z: 10},
@@ -41,88 +39,83 @@ export class EventSequence {
           ]);
         
 
-          this.physicsWorker.setToSideline();
+        //   this.physicsWorker.setToSideline();
         }
     },
-      {
-          desc: "Overview of Presentation Area",
-          duration: 1.,
-          cam: { x: 0, y: 460, z: -41 },
-          lookAt: { x: 0, y: 0, z: -40 },
-          onStart: function(scene) {
-              this.textOverlaySystem.addObject3DOverlay(
-                  'Presentation Area',
-                  scene.presentationArea,
-                  { x: -scene.presentationAreaSize, y: -40 }
-              );
-              this.textOverlaySystem.addObject3DOverlay(
-                  '20ftx20ft',
-                  scene.presentationArea,
-                  { x: -scene.presentationAreaSize, y: 20 }
-              );
-          }
-      },
-      {
-        desc: "Overview of Target Zones",
-        duration: 1.,
-        camLerpSpeed: 0.005,
-        cam: { x: 0, y: 160, z: 0 },
-        lookAt: { x: 0, y: 0, z: -1 },
-        onStart: function(scene) {
-          this.textOverlaySystem.removeAll3DOverlays();
-        //   this.textOverlaySystem.addObject3DOverlay('Zone 1', scene.targetZones[0], { x: 0, y: -20 });
-        //   this.textOverlaySystem.addObject3DOverlay('Zone 2', scene.targetZones[1], { x: 0, y: -30 });
-        //   this.textOverlaySystem.addObject3DOverlay('Zone 3', scene.targetZones[2], { x: 0, y: -70 });
-        }
-      },
-      {
-        desc: "Check in with Appraisers",
-        duration: 1.8,
-        cam: { x: -120, y: 20, z: 140 },
-        lookAt: "kid1",
-        onStart: function(scene) {
-            // Position team outside presentation area (at 100 units)
-            scene.personSystem.movePeople('kids', [
-                {x: -110, y: 1, z: 110},
-                {x: -115, y: 1, z: 110},
-                {x: -120, y: 1, z: 110}
-            ]);
+    //   {
+    //       desc: "Overview of Presentation Area",
+    //       duration: 1.,
+    //       cam: { x: 0, y: 460, z: -41 },
+    //       lookAt: { x: 0, y: 0, z: -40 },
+    //       onStart: function(scene) {
+    //           this.textOverlaySystem.addObject3DOverlay(
+    //               'Presentation Area',
+    //               scene.presentationArea,
+    //               { x: -scene.presentationAreaSize, y: -40 }
+    //           );
+    //           this.textOverlaySystem.addObject3DOverlay(
+    //               '20ftx20ft',
+    //               scene.presentationArea,
+    //               { x: -scene.presentationAreaSize, y: 20 }
+    //           );
+    //       }
+    //   },
+    //   {
+    //     desc: "Overview of Target Zones",
+    //     duration: 1.,
+    //     camLerpSpeed: 0.005,
+    //     cam: { x: 0, y: 160, z: 0 },
+    //     lookAt: { x: 0, y: 0, z: -1 },
+    //     onStart: function(scene) {
+    //       this.textOverlaySystem.removeAll3DOverlays();
+    //     //   this.textOverlaySystem.addObject3DOverlay('Zone 1', scene.targetZones[0], { x: 0, y: -20 });
+    //     //   this.textOverlaySystem.addObject3DOverlay('Zone 2', scene.targetZones[1], { x: 0, y: -30 });
+    //     //   this.textOverlaySystem.addObject3DOverlay('Zone 3', scene.targetZones[2], { x: 0, y: -70 });
+    //     }
+    //   },
+    //   {
+    //     desc: "Check in with Appraisers",
+    //     duration: 1.8,
+    //     cam: { x: -120, y: 20, z: 140 },
+    //     lookAt: "kid1",
+    //     onStart: function(scene) {
+    //         // Position team outside presentation area (at 100 units)
+    //         scene.personSystem.movePeople('kids', [
+    //             {x: -110, y: 1, z: 110},
+    //             {x: -115, y: 1, z: 110},
+    //             {x: -120, y: 1, z: 110}
+    //         ]);
             
-            // Appraisers with clipboards
-            scene.personSystem.movePeople('appraisers', [
-                {x: -105, y: 1, z: 105},
-                {x: -100, y: 1, z: 105}
-            ]);
+    //         // Appraisers with clipboards
+    //         scene.personSystem.movePeople('appraisers', [
+    //             {x: -105, y: 1, z: 105},
+    //             {x: -100, y: 1, z: 105}
+    //         ]);
             
-            // Conversation sequence
-            setTimeout(() => {
-                scene.personSystem.makePersonSpeak('appraisers', 0, '📋', 2);
-                scene.personSystem.makePersonSpeak('appraisers', 1, '❓', 2);
-            }, 1000);
+    //         // Conversation sequence
+    //         setTimeout(() => {
+    //             scene.personSystem.makePersonSpeak('appraisers', 0, '📋', 2);
+    //             scene.personSystem.makePersonSpeak('appraisers', 1, '❓', 2);
+    //         }, 1000);
             
-            setTimeout(() => {
-                scene.personSystem.makePersonSpeak('kids', 0, '📏', 2); // measuring
-                scene.personSystem.makePersonSpeak('kids', 1, '⚖️', 2); // weights
-                scene.personSystem.makePersonSpeak('kids', 2, '✅', 2); // confirmation
-            }, 3000);
-        }
-    },
+    //         setTimeout(() => {
+    //             scene.personSystem.makePersonSpeak('kids', 0, '📏', 2); // measuring
+    //             scene.personSystem.makePersonSpeak('kids', 1, '⚖️', 2); // weights
+    //             scene.personSystem.makePersonSpeak('kids', 2, '✅', 2); // confirmation
+    //         }, 3000);
+    //     }
+    // },
       {
           desc: "Initial Setup Outside Presentation Area",
-          duration: .5,
-        //   cam: { x: -60, y: 20, z: 130 },
+          duration: 2.5,
+          cam: this.defaultCam,
           lookAt: "kid1",
           camLerpSpeed: 0.05,
           onStart: function(scene) {
               this.textOverlaySystem.removeAll3DOverlays();
-              scene.personSystem.movePeople('kids', [
-                  {x: -45, y: 5, z: -50}, 
-                  {x: -50, y: 5, z: -50}, 
-                  {x: -55, y: 5, z: -50}
-              ]);
               scene.personSystem.movePeople('appraisers', [
-                  {x: 20, y: 7.5, z: -10},
-                  {x: 20, y: 7.5, z: -20}
+                  {x: -75, y: 1.0, z: 30},
+                  {x: -30, y: 1.0, z: 20}
               ]);
           }
       },
@@ -152,33 +145,55 @@ export class EventSequence {
             );
         }
     },
+    //   {
+    //       desc: "Team Enters with Equipment",
+    //       duration: .5,
+    //       cam: this.defaultCam,
+    //       lookAt: "kid1",
+    //       onStart: function(scene) {
+    //           scene.personSystem.movePeople('kids', [
+    //               {x: -10, y: 5, z: -15}, 
+    //               {x: -10, y: 5, z: -5}, 
+    //               {x: -10, y: 5, z: -10}
+    //           ]);
+    //           scene.personSystem.makeGroupSpeak('kids', '🔧', 2);
+    //       }
+    //   },
       {
-          desc: "Team Enters with Equipment",
-          duration: .5,
+          desc: "Setup Equipment",
+          duration: 2.4,
           cam: this.defaultCam,
-          lookAt: "kid1",
+          lookAt: "centerOfScene",
           onStart: function(scene) {
-              scene.personSystem.movePeople('kids', [
-                  {x: -10, y: 5, z: -15}, 
-                  {x: -10, y: 5, z: -5}, 
-                  {x: -10, y: 5, z: -10}
-              ]);
-              scene.personSystem.makeGroupSpeak('kids', '🔧', 2);
+            //   toss all the blocks to the assembly zone, ,the magic wand, and the megaphone into the assembly zone
+
+            // toss the blocks
+            // scene.meshes.forEach((mesh, index) => {
+            //     const toss = this.startToss(mesh, mesh.position, scene.assemblyZone.position + index * 2, 2, 5, 1, 5);
+            // });
+            
+            // this.physicsWorker.setToAssemblyZoneRandom();
+            // these strats don't work, we're going with simpler, more direct approach, dummy blocks that can be tossed
+
+            // toss the other props into the presentation zone, like the two team choice elements
+            this.startToss(scene.magicWand, scene.magicWand.position, new  THREE.Vector3(-10, 1, 30), 2, 5, 1, 5);
+            this.startToss(scene.megaphone, scene.megaphone.position, new  THREE.Vector3(-20, 1, 30), 2, 5, 1, 5);
+
+            // toss the teacm choice elements
+            this.startToss(scene.teamChoiceElement1, scene.teamChoiceElement1.position, new  THREE.Vector3(-10, 1, -30), 2, 5, 1, 5);
+            this.startToss(scene.teamChoiceElement2, scene.teamChoiceElement2.position, new  THREE.Vector3(-20, 1, -30), 2, 5, 1, 5);
+
+
           }
       },
       {
-          desc: "Setup Equipment",
-          duration: .4,
-          cam: this.defaultCam,
-          lookAt: "kid1",
-          onStart: function(scene) {
-              this.particleSystem.emitEmojiParticles(
-                  {x: -10, y: 2, z: -10},
-                  "🔧",
-                  2
-              );
-              scene.personSystem.makeGroupSpeak('kids', '⚡', 2);
-          }
+        desc: "Setup Equipment 2",
+        duration: .4,
+        cam: this.defaultCam,
+        lookAt: "centerOfScene",
+        onStart: function(scene) {
+            
+        }
       },
       {
           desc: "Story Begins - Wishful Scene",
@@ -451,8 +466,6 @@ export class EventSequence {
     this.textOverlaySystem.update();
     this.tossAnimations = this.tossAnimations.filter(toss => !toss.update(deltaTime));
     let currentEvent = this.events[this.currentEventIndex];
-
-    console.log('Manual mode:', this.manualMode);
     
     if(!this.manualMode) {
         this.eventTimer += deltaTime;
@@ -550,7 +563,6 @@ export class EventSequence {
   // Handle lookAt target
   const lookAtTarget = this.getLookAtTarget(currentEvent.lookAt);
   if (lookAtTarget) {
-    console.log('lookAtTarget', lookAtTarget);
     // Store the lookAt target for controls
     this.currentLookAtTarget = lookAtTarget;
     
@@ -670,10 +682,10 @@ class TossAnimation {
       this.object.position.set(x, y, z);
 
       if (t >= 1) {
-          this.isComplete = true;
-          this.object.position.copy(this.endPos);
-          return true;
-      }
-      return false;
+        this.isComplete = true;
+        this.object.position.copy(this.endPos);
+        return true;
+    }
+    return false;
   }
 }
