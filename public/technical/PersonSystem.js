@@ -325,7 +325,7 @@ export class PersonSystem {
                 });
 
                 person.position.set(
-                    (col - peoplePerRow / 2) * spacing.x,
+                    (col - peoplePerRow / 2) * spacing.x + spacing.x / 2,
                     0,
                     startZ + row * spacing.z
                 );

@@ -56,7 +56,7 @@ export class Scene extends THREE.Scene {
             12,       // rows
             this.presentationAreaSize * 0.8,
             this.presentationAreaSize * 0.2,
-            this.presentationAreaSize / 2 - this.targetZoneSizesImperial[0] * this.arbitraryFactor / 2
+            this.presentationAreaSize / 2 - 3 * this.targetZoneSizesImperial[0] * this.arbitraryFactor / 4
         );
     }
   

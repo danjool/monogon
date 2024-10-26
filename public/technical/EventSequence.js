@@ -43,7 +43,7 @@ export class EventSequence {
       },
       {
         desc: "Overview of Target Zones",
-        duration: 5,
+        duration: .5,
         camLerpSpeed: 0.005,
         cam: { x: 0, y: 160, z: 0 },
         lookAt: { x: 0, y: 0, z: -1 },
