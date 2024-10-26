@@ -12,6 +12,10 @@ export class EventSequence {
     this.controls = controls;
     this.textOverlays = []
     this.textOverlaySystem = new TextOverlaySystem(this.scene, this.camera, this.renderer);
+    this.manualMode = false;
+
+    this.defaultCam = { x: -180, y: 40, z: -180 };
+
     // for reference, the zones after arbitraryFactor are: 10 assembly, 25 tgt1, 35 tgt2, 40 tgt3, 100 presentation area
     this.events = [
       {
@@ -23,7 +27,6 @@ export class EventSequence {
           // move the blocks, the stackabls to x = - presentationAreaSize / 2, quickly
           // you also have to move  the stackabls in terms of the simulation
           scene.meshes.forEach((mesh, index) => {
-            console.log('moving mesh', mesh, index);
           });
           scene.personSystem.movePeople('kids', [
             {x: -120, y: 1, z: 10},
@@ -43,7 +46,7 @@ export class EventSequence {
     },
       {
           desc: "Overview of Presentation Area",
-          duration: 1.5,
+          duration: 1.,
           cam: { x: 0, y: 460, z: -41 },
           lookAt: { x: 0, y: 0, z: -40 },
           onStart: function(scene) {
@@ -61,7 +64,7 @@ export class EventSequence {
       },
       {
         desc: "Overview of Target Zones",
-        duration: .105,
+        duration: 1.,
         camLerpSpeed: 0.005,
         cam: { x: 0, y: 160, z: 0 },
         lookAt: { x: 0, y: 0, z: -1 },
@@ -75,7 +78,7 @@ export class EventSequence {
       {
         desc: "Check in with Appraisers",
         duration: 1.8,
-        cam: { x: -120, y: 20, z: 120 },
+        cam: { x: -120, y: 20, z: 140 },
         lookAt: "kid1",
         onStart: function(scene) {
             // Position team outside presentation area (at 100 units)
@@ -107,7 +110,7 @@ export class EventSequence {
       {
           desc: "Initial Setup Outside Presentation Area",
           duration: .5,
-          cam: { x: -60, y: 20, z: 130 },
+        //   cam: { x: -60, y: 20, z: 130 },
           lookAt: "kid1",
           camLerpSpeed: 0.05,
           onStart: function(scene) {
@@ -126,7 +129,7 @@ export class EventSequence {
       {
         desc: "Are You Ready?",
         duration: .3,
-        cam: { x: -100, y: 20, z: 100 },
+        cam: this.defaultCam,
         lookAt: "appraisers",
         onStart: function(scene) {
             scene.personSystem.makePersonSpeak('appraisers', 0, '❓', 2);
@@ -138,7 +141,7 @@ export class EventSequence {
     {
         desc: "Time Starts Now!",
         duration: .2,
-        cam: { x: -90, y: 20, z: 90 },
+        cam: this.defaultCam,
         lookAt: "kid1",
         onStart: function(scene) {
             scene.personSystem.makePersonSpeak('appraisers', 0, '⏱️', 1);
@@ -152,7 +155,7 @@ export class EventSequence {
       {
           desc: "Team Enters with Equipment",
           duration: .5,
-          cam: { x: -60, y: 20, z: -130 },
+          cam: this.defaultCam,
           lookAt: "kid1",
           onStart: function(scene) {
               scene.personSystem.movePeople('kids', [
@@ -166,7 +169,7 @@ export class EventSequence {
       {
           desc: "Setup Equipment",
           duration: .4,
-          cam: { x: -60, y: 20, z: 130 },
+          cam: this.defaultCam,
           lookAt: "kid1",
           onStart: function(scene) {
               this.particleSystem.emitEmojiParticles(
@@ -180,7 +183,7 @@ export class EventSequence {
       {
           desc: "Story Begins - Wishful Scene",
           duration: 5,
-          cam: { x: -60, y: 20, z: 130 },
+          cam: this.defaultCam,
           lookAt: "kid1",
           onStart: function(scene) {
               scene.personSystem.makePersonSpeak('kids', 0, '✨', 3);
@@ -195,7 +198,7 @@ export class EventSequence {
       {
           desc: "Assembly Equipment Activates",
           duration: 2,
-          cam: { x: -60, y: 20, z: 130 },
+          cam: this.defaultCam,
           lookAt: "kid1",
           onStart: function(scene) {
               this.toggleAttraction(true);
@@ -210,7 +213,7 @@ export class EventSequence {
       {
           desc: "Stack Assembly",
           duration: 4,
-          cam: { x: -60, y: 20, z: 130 },
+          cam: this.defaultCam,
           lookAt: "kid1",
           onStart: function(scene) {
               scene.personSystem.makePersonSpeak('kids', 0, '🎮', 3);
@@ -224,7 +227,7 @@ export class EventSequence {
       {
           desc: "Team Choice Element 1",
           duration: 3,
-          cam: { x: 80, y: 100, z: 80 },
+          cam: this.defaultCam,
           lookAt: "teamChoiceElement1",
           onStart: function(scene) {
               this.particleSystem.emitEmojiParticles(
@@ -238,7 +241,7 @@ export class EventSequence {
       {
           desc: "Stack Assembly Completes",
           duration: 2,
-          cam: { x: 0, y: 80, z: 20 },
+          cam: this.defaultCam,
           lookAt: "topOfStack",
           onStart: function(scene) {
               this.particleSystem.emitEmojiParticles(
@@ -252,7 +255,7 @@ export class EventSequence {
       {
           desc: "Frustration Point",
           duration: 3,
-          cam: { x: -100, y: 12, z: 80 },
+          cam: this.defaultCam,
           lookAt: "kid1",
           onStart: function(scene) {
               scene.personSystem.makePersonSpeak('kids', 0, '😖', 3);
@@ -268,7 +271,7 @@ export class EventSequence {
       {
         desc: "Destruction Equipment Activates",
         duration: 2,
-        cam: { x: 100, y: 8, z: 20 },
+        cam: this.defaultCam,
         lookAt: "centerOfScene",
         onStart: function(scene) {
             this.toggleAttraction(false);
@@ -330,13 +333,13 @@ export class EventSequence {
       {
           desc: "Stack Destruction",
           duration: 5,
-          cam: { x: 0, y: 20, z: 25 },
+          cam: this.defaultCam,
           lookAt: "centerOfScene"
       },
       {
           desc: "Items Land in Zones",
           duration: 3,
-          cam: { x: 0, y: 80, z: 30 },
+          cam: this.defaultCam,
           lookAt: "centerOfScene",
           onStart: function(scene) {
               const emissions = [
@@ -357,7 +360,7 @@ export class EventSequence {
       {
           desc: "Team Choice Element 2",
           duration: 4,
-          cam: { x: 15, y: 10, z: 15 },
+          cam: this.defaultCam,
           lookAt: "teamChoiceElement2",
           onStart: function(scene) {
               this.particleSystem.emitEmojiParticles(
@@ -371,7 +374,7 @@ export class EventSequence {
       {
           desc: "Story Resolution",
           duration: 5,
-          cam: { x: -5, y: 12, z: 20 },
+          cam: this.defaultCam,
           lookAt: "kid2",
           onStart: function(scene) {
               scene.personSystem.makeGroupSpeak('kids', '😄', 2);
@@ -385,7 +388,7 @@ export class EventSequence {
       {
           desc: "Team Calls TIME",
           duration: 2,
-          cam: { x: 0, y: 18, z: 25 },
+          cam: this.defaultCam,
           lookAt: "centerOfScene",
           onStart: function(scene) {
               scene.personSystem.makeGroupSpeak('kids', '⏰', 1);
@@ -399,7 +402,7 @@ export class EventSequence {
       {
           desc: "Appraisers Ask Questions",
           duration: 10,
-          cam: { x: 10, y: 10, z: 30 },
+          cam: this.defaultCam,
           lookAt: "appraisers",
           onStart: function(scene) {
               scene.personSystem.movePeople('kids', [
@@ -419,7 +422,7 @@ export class EventSequence {
       {
           desc: "Review Points",
           duration: 5,
-          cam: { x: 0, y: 25, z: 35 },
+          cam: this.defaultCam,
           lookAt: "centerOfScene",
           onStart: function(scene) {
               scene.personSystem.makeGroupSpeak('appraisers', '🏆', 2);
@@ -448,8 +451,26 @@ export class EventSequence {
     this.textOverlaySystem.update();
     this.tossAnimations = this.tossAnimations.filter(toss => !toss.update(deltaTime));
     let currentEvent = this.events[this.currentEventIndex];
-    this.eventTimer += deltaTime;
-    this.particleCooldown -= deltaTime;
+
+    console.log('Manual mode:', this.manualMode);
+    
+    if(!this.manualMode) {
+        this.eventTimer += deltaTime;
+        this.particleCooldown -= deltaTime;
+    }
+    document.addEventListener('keydown', (e) => {
+        if(e.code === 'Space') {
+            console.log('Space pressed - next event');
+            this.manualMode = true;
+            this.currentEventIndex = (this.currentEventIndex + 1) % this.events.length;
+            this.eventTimer = 0;
+            currentEvent = this.events[this.currentEventIndex];
+        }
+        if(e.code === 'KeyA') {
+            console.log('A pressed - auto mode');
+            this.manualMode = false;
+        }
+    });
 
     // console.log('update', this.currentEventIndex, currentEvent);
 
@@ -517,12 +538,12 @@ export class EventSequence {
         }
     } // end of first frame of new event
 
-    if(currentEvent.camLerpSpeed !== undefined) {
+    if(currentEvent.camLerpSpeed !== undefined && currentEvent.cam) {
         camera.position.lerp(
             new THREE.Vector3(currentEvent.cam.x, currentEvent.cam.y, currentEvent.cam.z), 
             currentEvent.camLerpSpeed
         );
-    } else {
+    } else if(currentEvent.cam) {
         camera.position.set(currentEvent.cam.x, currentEvent.cam.y, currentEvent.cam.z);
     }
 
@@ -587,7 +608,6 @@ export class EventSequence {
   }
 
   getLookAtTarget(lookAt) {
-    console.log('getLookAtTarget', lookAt);
     if (typeof lookAt === 'string') {
       switch (lookAt) {
         case 'centerOfScene':
@@ -603,7 +623,6 @@ export class EventSequence {
         case 'teamChoiceElement2':
           return this.scene.teamChoiceElement2 ? this.scene.teamChoiceElement2.position : null;
         case 'kid1':
-              console.log('kid1', this.scene.people);
           return this.scene.kids[0] ? this.scene.kids[0].position : null;
         case 'kid2':
           return this.scene.kids[1] ? this.scene.kids[1].position : null;
