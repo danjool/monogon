@@ -89,33 +89,63 @@ export class Scene extends THREE.Scene {
   initPresentationArea() {
     const presentationAreaGeometry = new THREE.PlaneBufferGeometry(this.presentationAreaSize, this.presentationAreaSize, 1, 1);
     presentationAreaGeometry.rotateX(-Math.PI / 2);
-    const presentationAreaMaterial = new THREE.MeshLambertMaterial({ color: 0x777777 });
+    const presentationAreaMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0x777777,
+      transparent: true,
+      opacity: 1.,
+      depthWrite: false,
+    });
     this.presentationArea = new THREE.Mesh(presentationAreaGeometry, presentationAreaMaterial);
     this.presentationArea.position.z = -this.presentationAreaSize / 2 + this.targetZoneSizesImperial[0] * this.arbitraryFactor / 2;
     this.presentationArea.receiveShadow = true;
+    this.presentationArea.renderOrder = 995; 
     this.add(this.presentationArea);
   }
 
   initTargetZones() {
     this.targetZoneSizesImperial.forEach((size, index) => {
       const targetZoneGeometry = new THREE.PlaneGeometry(size * this.arbitraryFactor, size * this.arbitraryFactor);
-      const targetZoneMaterial = new THREE.MeshBasicMaterial({ color: this.targetZoneColors[index], side: THREE.DoubleSide, transparent: true, opacity: .9 });
+      const targetZoneMaterial = new THREE.MeshBasicMaterial({ 
+        color: this.targetZoneColors[index], 
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 1.,
+        depthWrite: false,
+      });
+      
       const targetZone = new THREE.Mesh(targetZoneGeometry, targetZoneMaterial);
       targetZone.rotation.x = Math.PI / 2;
-      targetZone.position.y = 0.01 + index * 0.4;
-      targetZone.renderOrder = -1;
+      targetZone.position.y = 0.0 * index;  // Barely above ground
+      targetZone.renderOrder = 1000 +  index;  // Higher renderOrder renders later
       this.add(targetZone);
     });
-  }
+}
 
   initAssemblyZone() {
-    const assemblyZoneHeight = .1;
-    const assemblyZoneGeometry = new THREE.BoxGeometry(this.targetZoneSizesImperial[3] * this.arbitraryFactor, assemblyZoneHeight, this.targetZoneSizesImperial[3] * this.arbitraryFactor);
-    const assemblyZoneMaterial = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.5 });
+    const assemblyZoneGeometry = new THREE.BoxGeometry(
+      this.targetZoneSizesImperial[3] * this.arbitraryFactor, 
+      0.1, 
+      this.targetZoneSizesImperial[3] * this.arbitraryFactor
+    );
+    const assemblyZoneMaterial = new THREE.MeshBasicMaterial({ 
+      color: 0xff6600, 
+      transparent: true, 
+      opacity: 0.5,
+      depthWrite: false,
+      polygonOffset: true,
+    });
+    
     this.assemblyZone = new THREE.Mesh(assemblyZoneGeometry, assemblyZoneMaterial);
-    this.assemblyZone.position.y = assemblyZoneHeight / 2;
-    this.assemblyZone.visible = true;
+    // this.assemblyZone.position.y = 0.05;  // Half height of box
+    this.assemblyZone.renderOrder = 1010;  // Lower than all target zones
     this.add(this.assemblyZone);
+}
+
+  raizeAssemblyZone() {
+    this.assemblyZone.position.y = this.targetZoneSizesImperial[3] * this.arbitraryFactor / 2;
+  }
+  lowerAssemblyZone() {
+    this.assemblyZone.position.y = 0.05;
   }
 
   initAudienceZone() {

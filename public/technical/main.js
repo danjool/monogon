@@ -60,6 +60,7 @@ export class Main {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
+    this.renderer.sortObjects = true;
     document.body.appendChild(this.renderer.domElement);
   }
 
