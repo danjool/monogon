@@ -14,45 +14,10 @@ export class EventSequence {
     this.textOverlaySystem = new TextOverlaySystem(this.scene, this.camera, this.renderer);
     // for reference, the zones after arbitraryFactor are: 10 assembly, 25 tgt1, 35 tgt2, 40 tgt3, 100 presentation area
     this.events = [
-      // {
-      //     desc: "Checkout new Models", 
-      //     duration: 3,
-      //     cam: { x: -43, y: 4, z: 56 },
-      //     lookAt: "kid1",
-      //     onStart: function(scene) {
-      //         scene.personSystem.movePeople('kids', [
-      //             {x: -40, y: 1, z: 40}, 
-      //             {x: -50, y: 1, z: -50}, 
-      //             {x: -55, y: 1, z: -50}
-      //         ]);
-      //         scene.personSystem.movePeople('appraisers', [
-      //             {x: -38, y: 1, z: 40}, 
-      //             {x: 20, y: 1, z: -20}
-      //         ]);
-      //         scene.personSystem.makeGroupLookAt('kids', 'appraisers');
-      //         scene.personSystem.makePersonSpeak('kids', 0, '👋', 2);
-      //         scene.personSystem.makePersonSpeak('appraisers', 0, '👋', 2);
-      //         scene.personSystem.makePersonHoldObject('kids', 0, scene.magicWand);
-      //     }
-      // },
-      // {
-      //     desc: "Magic Wand Toss",
-      //     duration: 3,
-      //     cam: { x: -43, y: 4, z: 56 },
-      //     lookAt: "kid1",
-      //     onStart: function(scene) {
-      //         scene.personSystem.makePersonReleaseObject('kids', 0);
-      //         this.startToss(scene.magicWand, 
-      //             { x: -40, y: 1, z: 40 },
-      //             { x: 2, y: 1, z: -2 },
-      //             2, 8
-      //         );
-      //     }
-      // },
       {
           desc: "Overview",
-          duration: 5,
-          cam: { x: 0, y: 460, z: -40 },
+          duration: .5,
+          cam: { x: 0, y: 460, z: -41 },
           lookAt: { x: 0, y: 0, z: -40 },
           onStart: function(scene) {
               this.textOverlaySystem.addObject3DOverlay(
@@ -77,7 +42,52 @@ export class EventSequence {
           }
       },
       {
-          desc: "Initial Setup",
+        desc: "Overview of Target Zones",
+        duration: 5,
+        camLerpSpeed: 0.005,
+        cam: { x: 0, y: 160, z: 0 },
+        lookAt: { x: 0, y: 0, z: -1 },
+        onStart: function(scene) {
+          this.textOverlaySystem.removeAll3DOverlays();
+          this.textOverlaySystem.addObject3DOverlay('Zone 1', scene.targetZones[0], { x: 0, y: -30 });
+          this.textOverlaySystem.addObject3DOverlay('Zone 2', scene.targetZones[1], { x: 0, y: -30 });
+          this.textOverlaySystem.addObject3DOverlay('Zone 3', scene.targetZones[2], { x: 0, y: -30 });
+        }
+      },
+      {
+        desc: "Check in with Appraisers",
+        duration: 8,
+        cam: { x: -120, y: 20, z: 120 },
+        lookAt: "kid1",
+        onStart: function(scene) {
+            // Position team outside presentation area (at 100 units)
+            scene.personSystem.movePeople('kids', [
+                {x: -110, y: 1, z: 110},
+                {x: -115, y: 1, z: 110},
+                {x: -120, y: 1, z: 110}
+            ]);
+            
+            // Appraisers with clipboards
+            scene.personSystem.movePeople('appraisers', [
+                {x: -105, y: 1, z: 105},
+                {x: -100, y: 1, z: 105}
+            ]);
+            
+            // Conversation sequence
+            setTimeout(() => {
+                scene.personSystem.makePersonSpeak('appraisers', 0, '📋', 2);
+                scene.personSystem.makePersonSpeak('appraisers', 1, '❓', 2);
+            }, 1000);
+            
+            setTimeout(() => {
+                scene.personSystem.makePersonSpeak('kids', 0, '📏', 2); // measuring
+                scene.personSystem.makePersonSpeak('kids', 1, '⚖️', 2); // weights
+                scene.personSystem.makePersonSpeak('kids', 2, '✅', 2); // confirmation
+            }, 3000);
+        }
+    },
+      {
+          desc: "Initial Setup Outside Presentation Area",
           duration: 5,
           cam: { x: -60, y: 20, z: 130 },
           lookAt: "kid1",
@@ -96,9 +106,35 @@ export class EventSequence {
           }
       },
       {
+        desc: "Are You Ready?",
+        duration: 3,
+        cam: { x: -100, y: 20, z: 100 },
+        lookAt: "apparaisers",
+        onStart: function(scene) {
+            scene.personSystem.makePersonSpeak('appraisers', 0, '❓', 2);
+            setTimeout(() => {
+                scene.personSystem.makeGroupSpeak('kids', '👍', 1);
+            }, 1000);
+        }
+    },
+    {
+        desc: "Time Starts Now!",
+        duration: 2,
+        cam: { x: -90, y: 20, z: 90 },
+        lookAt: "kid1",
+        onStart: function(scene) {
+            scene.personSystem.makePersonSpeak('appraisers', 0, '⏱️', 1);
+            this.particleSystem.emitEmojiParticles(
+                {x: -95, y: 5, z: 95},
+                "🎬",
+                2
+            );
+        }
+    },
+      {
           desc: "Team Enters with Equipment",
           duration: 5,
-          cam: { x: -60, y: 20, z: 130 },
+          cam: { x: -60, y: 20, z: -130 },
           lookAt: "kid1",
           onStart: function(scene) {
               scene.personSystem.movePeople('kids', [
@@ -427,11 +463,19 @@ export class EventSequence {
 
     const lookAtTarget = this.getLookAtTarget(currentEvent.lookAt);
     if (lookAtTarget) {
-        const vec = new THREE.Vector3(lookAtTarget.x, lookAtTarget.y, lookAtTarget.z)
-        // console.log('lookAtTarget', lookAtTarget, vec);
-        camera.lookAt(lookAtTarget);
-        camera.lookAtTarget = lookAtTarget;
-        this.controls.target.set(lookAtTarget.x, lookAtTarget.y, lookAtTarget.z);
+        let vec = new THREE.Vector3(lookAtTarget.x, lookAtTarget.y, lookAtTarget.z)
+        
+        if (currentEvent.camLerpSpeed !== undefined) {
+          vec = lookAtTarget.clone().lerp(vec, currentEvent.camLerpSpeed);
+          camera.lookAt(vec);
+          camera.lookAtTarget = vec;
+          this.controls.target.set(vec.x, vec.y, vec.z);
+        } else {
+          camera.lookAt(lookAtTarget);
+          camera.lookAtTarget = lookAtTarget;
+          this.controls.target.set(lookAtTarget.x, lookAtTarget.y, lookAtTarget.z);
+        }
+
     }
 
     // Handle particle emissions with cooldown
