@@ -17,6 +17,10 @@ export class PhysicsWorker {
         let originalOrientations = [];
         let isAttracted = false;
         let t = 0.0;
+
+        let targetPositions = [];
+        const sidelinePosition = { x: -60, y: 1, z: 0 }; // Initial position off to the side
+        const assemblyZonePosition = { x: 0, y: 1, z: 0 }; // Center of assembly zone
   
         const world = new CANNON.World();
         world.gravity.set(0, -9.82, 0);
@@ -72,11 +76,19 @@ export class PhysicsWorker {
             angularDamping: 0.4
           });
           body.addShape(boxShape);
-          const position = new CANNON.Vec3(0, i * boxSize * 2. + boxSize, 0);
+          const position = new CANNON.Vec3(
+            sidelinePosition.x,
+            sidelinePosition.y,
+            sidelinePosition.z + i * boxSize * 2,
+          );
           body.position.copy(position);
           body.fixedRotation = true;
-          originalPositions.push(position.clone());
-          originalOrientations.push(body.quaternion.clone());
+          
+          // Initialize target positions at the same sideline location
+          targetPositions[i] = position.clone();
+          originalPositions[i] = position.clone();
+          originalOrientations[i] = body.quaternion.clone();
+          
           bodies.push(body);
           world.addBody(body);
         }
@@ -92,7 +104,7 @@ export class PhysicsWorker {
             } else {
               body.mass = 1;
               body.fixedRotation = false;
-              body.applyForce(new CANNON.Vec3(
+              body.applyForce(new CANNON.Vec3( // add some random force to make it more interesting
                 (Math.random() - 0.5) * 1,
                 Math.random() * 2.0,
                 (Math.random() - 0.5) * 1
@@ -102,8 +114,26 @@ export class PhysicsWorker {
         }
   
         self.addEventListener('message', (event) => {
+          if (event.data.action === 'updateTargetPositions') {
+            const { newPositions } = event.data;
+            targetPositions = newPositions.map(pos => new CANNON.Vec3(pos.x, pos.y, pos.z));
+            // Update original positions for attraction physics
+            originalPositions = targetPositions.map(pos => pos.clone());
+          } 
           if (event.data.action === 'toggleAttraction') {
             toggleAttraction();
+          } else if (event.data.action === 'teleportTo') {
+            const { position } = event.data;
+            for (let i = 0; i < bodies.length; i++) {
+              const body = bodies[i];
+              body.position.set(
+                position[0], 
+                position[1] + i * boxSize * 2. + boxSize, 
+                position[2]
+                );
+              body.velocity.set(0, 0, 0);
+              body.angularVelocity.set(0, 0, 0);
+            }
           } else {
             t += 0.01;
             const { positions, quaternions, timeStep } = event.data;
@@ -113,17 +143,18 @@ export class PhysicsWorker {
             if (isAttracted) {
               for (let i = 0; i < bodies.length; i++) {
                 const body = bodies[i];
-                const targetPos = originalPositions[i];
-                const targetQuat = originalOrientations[i];
-                
+                const targetPos = targetPositions[i];
                 const positionDiff = targetPos.vsub(body.position);
                 const positionStep = positionDiff.scale(0.05 * t);
                 body.position.vadd(positionStep, body.position);
-  
+                
                 const currentQuat = body.quaternion;
-                currentQuat.slerp(targetQuat, 0.1 * t, currentQuat);
-  
-                body.applyForce(new CANNON.Vec3(0, 1, 0).scale(body.mass * 9.82 * 1.1), body.position);
+                currentQuat.slerp(originalOrientations[i], 0.1 * t, currentQuat);
+                
+                body.applyForce(
+                  new CANNON.Vec3(0, 1, 0).scale(body.mass * 9.82 * 1.1),
+                  body.position
+                );
               }
             }
   
@@ -180,5 +211,50 @@ export class PhysicsWorker {
     toggleAttraction() {
       this.isAttracted = !this.isAttracted;
       this.worker.postMessage({ action: 'toggleAttraction' });
+      this.worker.postMessage({ action: 'teleportTo', position: [0, 0, 0] });
+    }
+
+    updateTargetPositions(newPositions) {
+      this.worker.postMessage({
+        action: 'updateTargetPositions',
+        newPositions: newPositions
+      });
+    }
+
+    setToSideline() {
+      const positions = [];
+      for (let i = 0; i < 20; i++) {
+        positions.push({
+          x: -20,
+          y: 1 + i * 1.2, // Stacked vertically with some spacing
+          z: 0
+        });
+      }
+      this.updateTargetPositions(positions);
+    }
+  
+    setToAssemblyZoneRandom() {
+      const positions = [];
+      const spread = 1.8; // How far blocks can spread in assembly zone
+      for (let i = 0; i < 20; i++) {
+        positions.push({
+          x: (Math.random() - 0.5) * spread,
+          y: 1 + Math.random() * 2,
+          z: (Math.random() - 0.5) * spread
+        });
+      }
+      this.updateTargetPositions(positions);
+    }
+  
+    setToStackedPosition() {
+      const positions = [];
+      for (let i = 0; i < 20; i++) {
+        positions.push({
+          x: 0,
+          y: 1 + i * 1.1, // Stacked vertically with slight spacing
+          z: 0
+        });
+      }
+      this.updateTargetPositions(positions);
     }
   }

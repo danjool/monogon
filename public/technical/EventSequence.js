@@ -16,29 +16,28 @@ export class EventSequence {
     this.events = [
       {
         desc: "debug",
-        duration: .05,
-        cam: { x: 0, y: 8, z: -12 },
+        duration: 2.,
+        cam: { x: 22, y: 9, z: -52 },
         lookAt: { x: 0, y: 2, z: 0 },
         onStart: function(scene) {
-            this.textOverlaySystem.addObject3DOverlay(
-                'Presentation Area',
-                scene.presentationArea,
-                { x: 0, y: -40 }
-            );
-            this.textOverlaySystem.addObject3DOverlay(
-                '20ftx20ft',
-                scene.presentationArea,
-                { x: 0, y: 20 }
-            );
-            scene.personSystem.movePeople('kids', [
-                {x: -40, y: 1, z: 40}, 
-                {x: -50, y: 5, z: -50}, 
-                {x: -55, y: 5, z: -50}
-            ]);
-            scene.personSystem.movePeople('appraisers', [
-                {x: 20, y: 7.5, z: -10},
-                {x: 20, y: 7.5, z: -20}
-            ]);
+          // move the blocks, the stackabls to x = - presentationAreaSize / 2, quickly
+          // you also have to move  the stackabls in terms of the simulation
+          scene.meshes.forEach((mesh, index) => {
+            console.log('moving mesh', mesh, index);
+          });
+          scene.personSystem.movePeople('kids', [
+            {x: -50, y: 1, z: 10},
+            {x: -55, y: 1, z: 10},
+            {x: -50, y: 1, z: 15},
+            .0001
+          ]);
+          scene.personSystem.movePeople('appraisers', [
+            {x: -50, y: 1, z: -10},
+            {x: -55, y: 1, z: -10},
+            .0001
+          ]);
+          
+          this.physicsWorker.setToSideline();
         }
     },
       {
@@ -60,7 +59,8 @@ export class EventSequence {
               scene.personSystem.movePeople('kids', [
                   {x: -40, y: 1, z: 40}, 
                   {x: -50, y: 5, z: -50}, 
-                  {x: -55, y: 5, z: -50}
+                  {x: -55, y: 5, z: -50},
+                  .01
               ]);
               scene.personSystem.movePeople('appraisers', [
                   {x: 20, y: 7.5, z: -10},
@@ -83,7 +83,7 @@ export class EventSequence {
       },
       {
         desc: "Check in with Appraisers",
-        duration: 8,
+        duration: .8,
         cam: { x: -120, y: 20, z: 120 },
         lookAt: "kid1",
         onStart: function(scene) {
@@ -115,7 +115,7 @@ export class EventSequence {
     },
       {
           desc: "Initial Setup Outside Presentation Area",
-          duration: 5,
+          duration: .5,
           cam: { x: -60, y: 20, z: 130 },
           lookAt: "kid1",
           camLerpSpeed: 0.05,
@@ -134,7 +134,7 @@ export class EventSequence {
       },
       {
         desc: "Are You Ready?",
-        duration: 3,
+        duration: .3,
         cam: { x: -100, y: 20, z: 100 },
         lookAt: "appraisers",
         onStart: function(scene) {
@@ -146,7 +146,7 @@ export class EventSequence {
     },
     {
         desc: "Time Starts Now!",
-        duration: 2,
+        duration: .2,
         cam: { x: -90, y: 20, z: 90 },
         lookAt: "kid1",
         onStart: function(scene) {
@@ -160,7 +160,7 @@ export class EventSequence {
     },
       {
           desc: "Team Enters with Equipment",
-          duration: 5,
+          duration: .5,
           cam: { x: -60, y: 20, z: -130 },
           lookAt: "kid1",
           onStart: function(scene) {
@@ -174,7 +174,7 @@ export class EventSequence {
       },
       {
           desc: "Setup Equipment",
-          duration: 4,
+          duration: .4,
           cam: { x: -60, y: 20, z: 130 },
           lookAt: "kid1",
           onStart: function(scene) {

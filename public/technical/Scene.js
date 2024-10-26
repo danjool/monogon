@@ -63,17 +63,17 @@ export class Scene extends THREE.Scene {
   initProps() {
     // magic wand
     this.magicWand = new SpriteText('🎆', 1, 'white'); // magic wand emoji options: ✨🌟🎉🎊🎈🎇 emojis are accessed with windows-period 🔌🧲
-    this.magicWand.position.set(0, 2.5, -5);
+    this.magicWand.position.set(-52, 2.5, -5);
     this.add(this.magicWand);
 
     // megaphone
     this.megaphone = new SpriteText('📢', 1, 'white')
-    this.megaphone.position.set(-2, 2.5, -5);
+    this.megaphone.position.set(-52, 2.5, -5);
     this.add(this.megaphone);
 
     // Black hole for destruction
     this.blackHole = new SpriteText('🌌', 1, 'white');
-    this.blackHole.position.set(2, 2.5, -5);
+    this.blackHole.position.set(-52, 2.5, -5);
     this.blackHole.scale.set(0.1, 0.1, 0.1); // Start small
     this.add(this.blackHole);
 
@@ -173,15 +173,15 @@ export class Scene extends THREE.Scene {
 
   initTeamChoiceElements() {
     const icosahedronGeometry = new THREE.IcosahedronGeometry(1);
-    const icosahedronMaterial = new THREE.MeshBasicMaterial({ color: 0x3498db });
+    const icosahedronMaterial = new THREE.MeshPhongMaterial({ color: 0x3498db });
     this.teamChoiceElement1 = new THREE.Mesh(icosahedronGeometry, icosahedronMaterial);
-    this.teamChoiceElement1.position.set(-5, 0.5, -64);
+    this.teamChoiceElement1.position.set(-50, 1.0, 0);
     this.add(this.teamChoiceElement1);
 
     const dodecahedronGeometry = new THREE.DodecahedronGeometry(1);
-    const dodecahedronMaterial = new THREE.MeshBasicMaterial({ color: 0xf4d84b });
+    const dodecahedronMaterial = new THREE.MeshPhongMaterial({ color: 0xf4d84b });
     this.teamChoiceElement2 = new THREE.Mesh(dodecahedronGeometry, dodecahedronMaterial);
-    this.teamChoiceElement2.position.set(5, 0.5, -64);
+    this.teamChoiceElement2.position.set(-55, 1., 4);
     this.add(this.teamChoiceElement2);
   }
 
