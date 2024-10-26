@@ -25,7 +25,7 @@ class Person extends THREE.Group {
         this.armHeight = isChild ? 1.2 : 1.8;
         
         // Create materials
-        this.material = new THREE.MeshBasicMaterial({ color });
+        this.material = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
         
         // Initialize body parts
         this.initHead();
