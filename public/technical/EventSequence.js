@@ -107,7 +107,7 @@ export class EventSequence {
     // },
       {
           desc: "Initial Setup Outside Presentation Area",
-          duration: 2.5,
+          duration: .5,
           cam: this.defaultCam,
           lookAt: "kid1",
           camLerpSpeed: 0.05,
@@ -161,7 +161,7 @@ export class EventSequence {
     //   },
       {
           desc: "Setup Equipment",
-          duration: 2.4,
+          duration: .4,
           cam: this.defaultCam,
           lookAt: "centerOfScene",
           onStart: function(scene) {
@@ -188,11 +188,20 @@ export class EventSequence {
       },
       {
         desc: "Setup Equipment 2",
-        duration: .4,
+        duration: 2.4,
         cam: this.defaultCam,
         lookAt: "centerOfScene",
         onStart: function(scene) {
-            
+            scene.visualStackables.forEach((mesh, index) => {
+                this.startToss(mesh, mesh.position, scene.assemblyZone.position, 2, 5);
+            });
+
+            // move kids to presentation area 
+            scene.personSystem.movePeople('kids', [
+                {x: -10, y: 1, z: -60},
+                {x: -10, y: 1, z: 20},
+                {x: -10, y: 1, z: -80},
+            ]);
         }
       },
       {
@@ -201,6 +210,10 @@ export class EventSequence {
           cam: this.defaultCam,
           lookAt: "kid1",
           onStart: function(scene) {
+
+            // switch visibility of the stackables
+            scene.swapStackablesVisibility();
+
               scene.personSystem.makePersonSpeak('kids', 0, '✨', 3);
               scene.personSystem.makePersonSpeak('kids', 1, '🌟', 3);
               this.particleSystem.emitEmojiParticles(
@@ -214,7 +227,7 @@ export class EventSequence {
           desc: "Assembly Equipment Activates",
           duration: 2,
           cam: this.defaultCam,
-          lookAt: "kid1",
+          lookAt: "centerOfScene",
           onStart: function(scene) {
               this.toggleAttraction(true);
               this.particleSystem.emitEmojiParticles(
@@ -229,7 +242,7 @@ export class EventSequence {
           desc: "Stack Assembly",
           duration: 4,
           cam: this.defaultCam,
-          lookAt: "kid1",
+          lookAt: "centerOfScene",
           onStart: function(scene) {
               scene.personSystem.makePersonSpeak('kids', 0, '🎮', 3);
               this.particleSystem.emitEmojiParticles(

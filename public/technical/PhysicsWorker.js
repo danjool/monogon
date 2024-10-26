@@ -77,9 +77,9 @@ export class PhysicsWorker {
           });
           body.addShape(boxShape);
           const position = new CANNON.Vec3(
-            sidelinePosition.x,
-            sidelinePosition.y,
-            sidelinePosition.z + i * boxSize * 2,
+            assemblyZonePosition.x,
+            assemblyZonePosition.y + i * boxSize * 2,
+            assemblyZonePosition.z ,
           );
           body.position.copy(position);
           body.fixedRotation = true;
@@ -104,11 +104,11 @@ export class PhysicsWorker {
             } else {
               body.mass = 1;
               body.fixedRotation = false;
-              body.applyForce(new CANNON.Vec3( // add some random force to make it more interesting, destruction, explosion, etc.
-                (Math.random() - 0.5) * 1,
-                Math.random() * 2.0,
-                (Math.random() - 0.5) * 1
-              ).scale(body.mass * 9.82 * .1 * (80. * boxSize - body.position.y)), body.position);
+              // body.applyForce(new CANNON.Vec3( // add some random force to make it more interesting, destruction, explosion, etc.
+              //   (Math.random() - 0.5) * 1,
+              //   Math.random() * 2.0,
+              //   (Math.random() - 0.5) * 1
+              // ).scale(body.mass * 9.82 * .01 * (80. * boxSize - body.position.y)), body.position);
             }
           }
         }

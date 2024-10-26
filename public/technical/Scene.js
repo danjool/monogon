@@ -18,6 +18,7 @@ export class Scene extends THREE.Scene {
     this.targetZoneSizesImperial = [8, 7, 5, 2];
     this.targetZoneColors = [0x00ff00, 0x00cc00, 0x009900, 0xff6600];
     this.meshes = [];
+    this.visualStackables = []; // non-physics blocks for tossing
 
     this.initLights();
     this.initPresentationArea();
@@ -30,6 +31,12 @@ export class Scene extends THREE.Scene {
     this.personSystem = new PersonSystem(this);
     this.initPeople();
     this.initProps();
+  }
+
+  swapStackablesVisibility() {
+    console.log('Swapping stackables visibility');
+    this.visualStackables.forEach(mesh => mesh.visible = false);
+    this.meshes.forEach(mesh => mesh.visible = true);
   }
 
     initPeople() {
@@ -195,24 +202,28 @@ export class Scene extends THREE.Scene {
 
   initStackables() {
     const stackableGeometry = new THREE.BoxBufferGeometry(this.boxSize * 2.0, this.boxSize * 2.0, this.boxSize * 2.0, 10, 10);
-    // const haloGeometry = new THREE.RingBufferGeometry(0.6, 0.8, 32);
-    // const haloMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
 
     for (let i = 0; i < this.N; i++) {
-      const numberTexture = this.createNumberTexture(i + 1);
-      const stackableMaterial = new THREE.MeshPhongMaterial({ map: numberTexture });
+        const numberTexture = this.createNumberTexture(i + 1);
+        const stackableMaterial = new THREE.MeshPhongMaterial({ map: numberTexture });
 
-      const stackableMesh = new THREE.Mesh(stackableGeometry, stackableMaterial);
-      stackableMesh.castShadow = true;
-      stackableMesh.userData.particlesEmitted = 0;
+        // Create physics mesh (invisible initially)
+        const physicsMesh = new THREE.Mesh(stackableGeometry, stackableMaterial);
+        physicsMesh.visible = false;
+        physicsMesh.castShadow = true;
+        this.meshes.push(physicsMesh);
+        // leave these in the center for now
+        physicsMesh.position.set(0, 0, i * this.boxSize * 2);
 
-    //   const haloMesh = new THREE.Mesh(haloGeometry, haloMaterial);
-    //   haloMesh.position.set(0, -this.boxSize, 0);
-    //   haloMesh.rotation.x = Math.PI / 2;
-    //   cubeMesh.add(haloMesh);
+        this.add(physicsMesh);
 
-      this.meshes.push(stackableMesh);
-      this.add(stackableMesh);
+        // Create visual mesh (for tossing)
+        const visualMesh = new THREE.Mesh(stackableGeometry, stackableMaterial.clone());
+        visualMesh.castShadow = true;
+        this.visualStackables.push(visualMesh);
+        // these on the sidelinde: x = -120 at least, arrayed along z
+        visualMesh.position.set(-120, 0, i * this.boxSize * 2);
+        this.add(visualMesh);
     }
   }
 
