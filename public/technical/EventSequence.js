@@ -109,7 +109,7 @@ export class EventSequence {
         desc: "Are You Ready?",
         duration: 3,
         cam: { x: -100, y: 20, z: 100 },
-        lookAt: "apparaisers",
+        lookAt: "appraisers",
         onStart: function(scene) {
             scene.personSystem.makePersonSpeak('appraisers', 0, '❓', 2);
             setTimeout(() => {
