@@ -3,12 +3,16 @@ import * as THREE from 'three';
 
 export class SpriteText extends THREE.Sprite {
   constructor(text = '', textHeight = 10, color = 'rgba(255, 255, 255, 1)') {
-    super(new THREE.SpriteMaterial());
+    super(new THREE.SpriteMaterial({
+      transparent: true,
+      depthTest: true
+    }));
 
     this._text = `${text}`;
     this._textHeight = textHeight;
     this._color = color;
     this._backgroundColor = false; // no background color
+    this.renderOrder = 2000; // Set higher than all zone render orders
 
     this._padding = 10; // Add padding to prevent clipping
     this._borderWidth = 0;

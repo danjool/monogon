@@ -15,6 +15,33 @@ export class EventSequence {
     // for reference, the zones after arbitraryFactor are: 10 assembly, 25 tgt1, 35 tgt2, 40 tgt3, 100 presentation area
     this.events = [
       {
+        desc: "debug",
+        duration: .05,
+        cam: { x: 0, y: 8, z: -12 },
+        lookAt: { x: 0, y: 2, z: 0 },
+        onStart: function(scene) {
+            this.textOverlaySystem.addObject3DOverlay(
+                'Presentation Area',
+                scene.presentationArea,
+                { x: 0, y: -40 }
+            );
+            this.textOverlaySystem.addObject3DOverlay(
+                '20ftx20ft',
+                scene.presentationArea,
+                { x: 0, y: 20 }
+            );
+            scene.personSystem.movePeople('kids', [
+                {x: -40, y: 1, z: 40}, 
+                {x: -50, y: 5, z: -50}, 
+                {x: -55, y: 5, z: -50}
+            ]);
+            scene.personSystem.movePeople('appraisers', [
+                {x: 20, y: 7.5, z: -10},
+                {x: 20, y: 7.5, z: -20}
+            ]);
+        }
+    },
+      {
           desc: "Overview",
           duration: .5,
           cam: { x: 0, y: 460, z: -41 },
@@ -248,19 +275,66 @@ export class EventSequence {
           }
       },
       {
-          desc: "Destruction Equipment Activates",
-          duration: 2,
-          cam: { x: 100, y: 8, z: 20 },
-          lookAt: "centerOfScene",
-          onStart: function(scene) {
-              this.toggleAttraction(false);
-              this.particleSystem.emitEmojiParticles(
-                  {x: 2, y: 1, z: 0},
-                  "💥",
-                  3
-              );
-              scene.personSystem.makeGroupSpeak('kids', '🎯', 2);
-          }
+        desc: "Destruction Equipment Activates",
+        duration: 2,
+        cam: { x: 100, y: 8, z: 20 },
+        lookAt: "centerOfScene",
+        onStart: function(scene) {
+            this.toggleAttraction(false);
+            
+            // Animate black hole expansion and contraction
+            const blackHole = scene.blackHole;
+            const expandDuration = 1.0; // seconds
+            const maxScale = 6.0;
+            
+            // Expansion animation
+            const expand = () => {
+                const startScale = 0.1;
+                let startTime = Date.now();
+                
+                const expandAnimation = () => {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    const progress = Math.min(elapsed / expandDuration, 1);
+                    const scale = startScale + (maxScale - startScale) * progress;
+                    
+                    blackHole.scale.set(scale, scale, scale);
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(expandAnimation);
+                    } else {
+                        // Start contraction after expansion
+                        contract();
+                    }
+                };
+                
+                requestAnimationFrame(expandAnimation);
+            };
+            
+            // Contraction animation
+            const contract = () => {
+                const startTime = Date.now();
+                
+                const contractAnimation = () => {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    const progress = Math.min(elapsed / expandDuration, 1);
+                    const scale = maxScale * (1 - progress);
+                    
+                    blackHole.scale.set(scale, scale, scale);
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(contractAnimation);
+                    }
+                };
+                
+                requestAnimationFrame(contractAnimation);
+            };
+            
+            // Start the animation sequence
+            expand();
+            
+            // Audio-visual feedback for the team
+            scene.personSystem.makeGroupSpeak('kids', '🌌', 2);
+        },
       },
       {
           desc: "Stack Destruction",
