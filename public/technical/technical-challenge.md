@@ -84,11 +84,37 @@ Each Element is judged on Creativity, Effort, and Integration into the Presentat
 
 
 
+Overview of the Technical Challenge Areas
+    Text overlays: 
+    Presentation Area 20ft x 20ft
+    Assembly Zone 2ft x 2ft
+
+Overview of Target Zones: 
+    Target Zone 1 1ft x 1ft
+    Target Zone 2 2ft x 2ft
+    Target Zone 3 3ft x 3ft
+
+Check in with Appraisers
+    Team is outside the Presentation Area, with all equipment and Stack Items
+    Appraisers check for compliance with the Challenge requirements (clipboard emoji, question mark emoji)    
+    kids respond to Appraisers' questions and make any necessary adjustments
+
+Pre-Setup
+    Team enters with Assembly Equipment, Destruction Equipment, and Stack Items, outside the floor area
+    Team sets up equipment and places Stack Items
+
+Are you Ready?
+Aye Aye Captain!
+Time Starts Now!
 
 Initial setup of Presentation Area
-Team enters with Assembly Equipment, Destruction Equipment, and Stack Items, outside the floor area
-Team sets up equipment and places Stack Items
+    (kids toss props, tc elements into presentation area, not target areas)
+    toss stackables into assembly area
+    toss assembly equipment in assembly area
+    toss destruction equipment in destruction area
+
 Story begins
+    (some kids in presentation area, some zones to use equipment)
     A Wishful Scene occurs 
             (15/15 pts for Dramatic Impact of Wishful Scene)
             (20/20 Points are allocated for Creativity of how someone wishes for how someone attempts to gain something they lack)

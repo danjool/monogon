@@ -2,45 +2,6 @@
 import * as THREE from 'three';
 import { TextOverlaySystem } from './TextOverlaySystem.js';
 
-class TossAnimation {
-  constructor(object, startPos, endPos, duration, maxHeight = 5) {
-      this.object = object;
-      this.startPos = new THREE.Vector3(startPos.x, startPos.y, startPos.z);
-      this.endPos = new THREE.Vector3(endPos.x, endPos.y, endPos.z);
-      this.duration = duration;
-      this.maxHeight = maxHeight;
-      this.elapsed = 0;
-      this.isComplete = false;
-  }
-
-  update(deltaTime) {
-      if (this.isComplete) return true;
-
-      this.elapsed += deltaTime;
-      const t = Math.min(this.elapsed / this.duration, 1);
-
-      // Linear interpolation for x and z
-      const x = this.startPos.x + (this.endPos.x - this.startPos.x) * t;
-      const z = this.startPos.z + (this.endPos.z - this.startPos.z) * t;
-
-      // Parabolic arc for y
-      // h(t) = h0 * (1-t) + h1 * t + t * (1-t) * maxHeight
-      // where h0 is start height, h1 is end height
-      const h0 = this.startPos.y;
-      const h1 = this.endPos.y;
-      const y = h0 * (1-t) + h1 * t + 4 * t * (1-t) * this.maxHeight;
-
-      this.object.position.set(x, y, z);
-
-      if (t >= 1) {
-          this.isComplete = true;
-          this.object.position.copy(this.endPos);
-          return true;
-      }
-      return false;
-  }
-}
-
 export class EventSequence {
     constructor(particleSystem, scene, physicsWorker, controls, renderer, camera) {
     this.particleSystem = particleSystem;
@@ -53,41 +14,41 @@ export class EventSequence {
     this.textOverlaySystem = new TextOverlaySystem(this.scene, this.camera, this.renderer);
     // for reference, the zones after arbitraryFactor are: 10 assembly, 25 tgt1, 35 tgt2, 40 tgt3, 100 presentation area
     this.events = [
-      {
-          desc: "Checkout new Models", 
-          duration: 3,
-          cam: { x: -43, y: 4, z: 56 },
-          lookAt: "kid1",
-          onStart: function(scene) {
-              scene.personSystem.movePeople('kids', [
-                  {x: -40, y: 1, z: 40}, 
-                  {x: -50, y: 1, z: -50}, 
-                  {x: -55, y: 1, z: -50}
-              ]);
-              scene.personSystem.movePeople('appraisers', [
-                  {x: -38, y: 1, z: 40}, 
-                  {x: 20, y: 1, z: -20}
-              ]);
-              scene.personSystem.makeGroupLookAt('kids', 'appraisers');
-              scene.personSystem.makePersonSpeak('kids', 0, '👋', 2);
-              scene.personSystem.makePersonSpeak('appraisers', 0, '👋', 2);
-              scene.personSystem.makePersonHoldObject('kids', 0, scene.magicWand);
-          }
-      },
-      {
-          desc: "Magic Wand Toss",
-          duration: 3,
-          cam: { x: -43, y: 4, z: 56 },
-          lookAt: "kid1",
-          onStart: function(scene) {
-              scene.personSystem.makePersonReleaseObject('kids', 0);
-              this.startToss(scene.magicWand, 
-                  { x: -40, y: 1, z: 40 },
-                  { x: 2, y: 1, z: -2 },
-                  2, 8
-              );
-          }
-      },
+      // {
+      //     desc: "Checkout new Models", 
+      //     duration: 3,
+      //     cam: { x: -43, y: 4, z: 56 },
+      //     lookAt: "kid1",
+      //     onStart: function(scene) {
+      //         scene.personSystem.movePeople('kids', [
+      //             {x: -40, y: 1, z: 40}, 
+      //             {x: -50, y: 1, z: -50}, 
+      //             {x: -55, y: 1, z: -50}
+      //         ]);
+      //         scene.personSystem.movePeople('appraisers', [
+      //             {x: -38, y: 1, z: 40}, 
+      //             {x: 20, y: 1, z: -20}
+      //         ]);
+      //         scene.personSystem.makeGroupLookAt('kids', 'appraisers');
+      //         scene.personSystem.makePersonSpeak('kids', 0, '👋', 2);
+      //         scene.personSystem.makePersonSpeak('appraisers', 0, '👋', 2);
+      //         scene.personSystem.makePersonHoldObject('kids', 0, scene.magicWand);
+      //     }
+      // },
+      // {
+      //     desc: "Magic Wand Toss",
+      //     duration: 3,
+      //     cam: { x: -43, y: 4, z: 56 },
+      //     lookAt: "kid1",
+      //     onStart: function(scene) {
+      //         scene.personSystem.makePersonReleaseObject('kids', 0);
+      //         this.startToss(scene.magicWand, 
+      //             { x: -40, y: 1, z: 40 },
+      //             { x: 2, y: 1, z: -2 },
+      //             2, 8
+      //         );
+      //     }
+      // },
       {
           desc: "Overview",
           duration: 5,
@@ -536,5 +497,44 @@ export class EventSequence {
       return new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z);
     }
     return null;
+  }
+}
+
+class TossAnimation {
+  constructor(object, startPos, endPos, duration, maxHeight = 5) {
+      this.object = object;
+      this.startPos = new THREE.Vector3(startPos.x, startPos.y, startPos.z);
+      this.endPos = new THREE.Vector3(endPos.x, endPos.y, endPos.z);
+      this.duration = duration;
+      this.maxHeight = maxHeight;
+      this.elapsed = 0;
+      this.isComplete = false;
+  }
+
+  update(deltaTime) {
+      if (this.isComplete) return true;
+
+      this.elapsed += deltaTime;
+      const t = Math.min(this.elapsed / this.duration, 1);
+
+      // Linear interpolation for x and z
+      const x = this.startPos.x + (this.endPos.x - this.startPos.x) * t;
+      const z = this.startPos.z + (this.endPos.z - this.startPos.z) * t;
+
+      // Parabolic arc for y
+      // h(t) = h0 * (1-t) + h1 * t + t * (1-t) * maxHeight
+      // where h0 is start height, h1 is end height
+      const h0 = this.startPos.y;
+      const h1 = this.endPos.y;
+      const y = h0 * (1-t) + h1 * t + 4 * t * (1-t) * this.maxHeight;
+
+      this.object.position.set(x, y, z);
+
+      if (t >= 1) {
+          this.isComplete = true;
+          this.object.position.copy(this.endPos);
+          return true;
+      }
+      return false;
   }
 }

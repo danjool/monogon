@@ -195,7 +195,7 @@ export class Scene extends THREE.Scene {
 
   toggleAttractionVisuals() {
     this.meshes.forEach(mesh => {
-      mesh.children[0].visible = !mesh.children[0].visible;
+      if(mesh.children.length > 0) mesh.children[0].visible = !mesh.children[0].visible;
     });
   }
 }
