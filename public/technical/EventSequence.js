@@ -16,7 +16,7 @@ export class EventSequence {
     this.events = [
       {
         desc: "debug",
-        duration: 2.,
+        duration: 1.00001,
         cam: { x: 22, y: 9, z: -52 },
         lookAt: { x: 0, y: 2, z: 0 },
         onStart: function(scene) {
@@ -36,25 +36,25 @@ export class EventSequence {
             {x: -55, y: 1, z: -10},
             .0001
           ]);
-          
+
           this.physicsWorker.setToSideline();
         }
     },
       {
           desc: "Overview",
-          duration: .5,
+          duration: 1.5,
           cam: { x: 0, y: 460, z: -41 },
           lookAt: { x: 0, y: 0, z: -40 },
           onStart: function(scene) {
               this.textOverlaySystem.addObject3DOverlay(
                   'Presentation Area',
                   scene.presentationArea,
-                  { x: 0, y: -40 }
+                  { x: -scene.presentationAreaSize, y: -40 }
               );
               this.textOverlaySystem.addObject3DOverlay(
                   '20ftx20ft',
                   scene.presentationArea,
-                  { x: 0, y: 20 }
+                  { x: -scene.presentationAreaSize, y: 20 }
               );
               scene.personSystem.movePeople('kids', [
                   {x: -40, y: 1, z: 40}, 
@@ -70,15 +70,15 @@ export class EventSequence {
       },
       {
         desc: "Overview of Target Zones",
-        duration: .5,
+        duration: 10.5,
         camLerpSpeed: 0.005,
         cam: { x: 0, y: 160, z: 0 },
         lookAt: { x: 0, y: 0, z: -1 },
         onStart: function(scene) {
           this.textOverlaySystem.removeAll3DOverlays();
-          this.textOverlaySystem.addObject3DOverlay('Zone 1', scene.targetZones[0], { x: 0, y: -30 });
+          this.textOverlaySystem.addObject3DOverlay('Zone 1', scene.targetZones[0], { x: 0, y: -20 });
           this.textOverlaySystem.addObject3DOverlay('Zone 2', scene.targetZones[1], { x: 0, y: -30 });
-          this.textOverlaySystem.addObject3DOverlay('Zone 3', scene.targetZones[2], { x: 0, y: -30 });
+          this.textOverlaySystem.addObject3DOverlay('Zone 3', scene.targetZones[2], { x: 0, y: -70 });
         }
       },
       {

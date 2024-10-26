@@ -104,11 +104,11 @@ export class PhysicsWorker {
             } else {
               body.mass = 1;
               body.fixedRotation = false;
-              body.applyForce(new CANNON.Vec3( // add some random force to make it more interesting
+              body.applyForce(new CANNON.Vec3( // add some random force to make it more interesting, destruction, explosion, etc.
                 (Math.random() - 0.5) * 1,
                 Math.random() * 2.0,
                 (Math.random() - 0.5) * 1
-              ).scale(body.mass * 9.82 * 1. * (80. * boxSize - body.position.y)), body.position);
+              ).scale(body.mass * 9.82 * .1 * (80. * boxSize - body.position.y)), body.position);
             }
           }
         }

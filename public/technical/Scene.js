@@ -9,6 +9,7 @@ export class Scene extends THREE.Scene {
     this.kids = [];
     this.appraisers = [];
     this.presentationArea;
+    this.targetZones = [];
     this.fog = new THREE.Fog(0x000000, 500, 10000);
     this.boxSize = 0.5;
     this.N = 20;
@@ -129,6 +130,7 @@ export class Scene extends THREE.Scene {
       targetZone.rotation.x = Math.PI / 2;
       targetZone.position.y = 0.0 * index;  // Barely above ground
       targetZone.renderOrder = 1000 +  index;  // Higher renderOrder renders later
+      this.targetZones.push(targetZone);
       this.add(targetZone);
     });
 }
@@ -150,6 +152,7 @@ export class Scene extends THREE.Scene {
     this.assemblyZone = new THREE.Mesh(assemblyZoneGeometry, assemblyZoneMaterial);
     // this.assemblyZone.position.y = 0.05;  // Half height of box
     this.assemblyZone.renderOrder = 1010;  // Lower than all target zones
+    this.targetZones.push(this.assemblyZone);
     this.add(this.assemblyZone);
 }
 
