@@ -105,46 +105,46 @@ export class EventSequence {
     //         }, 3000);
     //     }
     // },
-      {
-          desc: "Initial Setup Outside Presentation Area",
-          duration: .5,
-          cam: this.defaultCam,
-          lookAt: "kid1",
-          camLerpSpeed: 0.05,
-          onStart: function(scene) {
-              this.textOverlaySystem.removeAll3DOverlays();
-              scene.personSystem.movePeople('appraisers', [
-                  {x: -75, y: 1.0, z: 30},
-                  {x: -30, y: 1.0, z: 20}
-              ]);
-          }
-      },
-      {
-        desc: "Are You Ready?",
-        duration: .3,
-        cam: this.defaultCam,
-        lookAt: "appraisers",
-        onStart: function(scene) {
-            scene.personSystem.makePersonSpeak('appraisers', 0, '❓', 2);
-            setTimeout(() => {
-                scene.personSystem.makeGroupSpeak('kids', '👍', 1);
-            }, 1000);
-        }
-    },
-    {
-        desc: "Time Starts Now!",
-        duration: .2,
-        cam: this.defaultCam,
-        lookAt: "kid1",
-        onStart: function(scene) {
-            scene.personSystem.makePersonSpeak('appraisers', 0, '⏱️', 1);
-            this.particleSystem.emitEmojiParticles(
-                {x: -95, y: 5, z: 95},
-                "🎬",
-                2
-            );
-        }
-    },
+    //   {
+    //       desc: "Initial Setup Outside Presentation Area",
+    //       duration: .5,
+    //       cam: this.defaultCam,
+    //       lookAt: "kid1",
+    //       camLerpSpeed: 0.05,
+    //       onStart: function(scene) {
+    //           this.textOverlaySystem.removeAll3DOverlays();
+    //           scene.personSystem.movePeople('appraisers', [
+    //               {x: -75, y: 1.0, z: 30},
+    //               {x: -30, y: 1.0, z: 20}
+    //           ]);
+    //       }
+    //   },
+    //   {
+    //     desc: "Are You Ready?",
+    //     duration: .3,
+    //     cam: this.defaultCam,
+    //     lookAt: "appraisers",
+    //     onStart: function(scene) {
+    //         scene.personSystem.makePersonSpeak('appraisers', 0, '❓', 2);
+    //         setTimeout(() => {
+    //             scene.personSystem.makeGroupSpeak('kids', '👍', 1);
+    //         }, 1000);
+    //     }
+    // },
+    // {
+    //     desc: "Time Starts Now!",
+    //     duration: .2,
+    //     cam: this.defaultCam,
+    //     lookAt: "kid1",
+    //     onStart: function(scene) {
+    //         scene.personSystem.makePersonSpeak('appraisers', 0, '⏱️', 1);
+    //         this.particleSystem.emitEmojiParticles(
+    //             {x: -95, y: 5, z: 95},
+    //             "🎬",
+    //             2
+    //         );
+    //     }
+    // },
     //   {
     //       desc: "Team Enters with Equipment",
     //       duration: .5,
@@ -159,36 +159,26 @@ export class EventSequence {
     //           scene.personSystem.makeGroupSpeak('kids', '🔧', 2);
     //       }
     //   },
-      {
-          desc: "Setup Equipment",
-          duration: .4,
-          cam: this.defaultCam,
-          lookAt: "centerOfScene",
-          onStart: function(scene) {
-            //   toss all the blocks to the assembly zone, ,the magic wand, and the megaphone into the assembly zone
+    //   {
+    //       desc: "Setup Equipment",
+    //       duration: .4,
+    //       cam: this.defaultCam,
+    //       lookAt: "centerOfScene",
+    //       onStart: function(scene) {
+    //         // toss the other props into the presentation zone, like the two team choice elements
+    //         this.startToss(scene.magicWand, scene.magicWand.position, new  THREE.Vector3(-10, 1, 30), 2, 5, 1, 5);
+    //         this.startToss(scene.megaphone, scene.megaphone.position, new  THREE.Vector3(-20, 1, 30), 2, 5, 1, 5);
 
-            // toss the blocks
-            // scene.meshes.forEach((mesh, index) => {
-            //     const toss = this.startToss(mesh, mesh.position, scene.assemblyZone.position + index * 2, 2, 5, 1, 5);
-            // });
-            
-            // this.physicsWorker.setToAssemblyZoneRandom();
-            // these strats don't work, we're going with simpler, more direct approach, dummy blocks that can be tossed
-
-            // toss the other props into the presentation zone, like the two team choice elements
-            this.startToss(scene.magicWand, scene.magicWand.position, new  THREE.Vector3(-10, 1, 30), 2, 5, 1, 5);
-            this.startToss(scene.megaphone, scene.megaphone.position, new  THREE.Vector3(-20, 1, 30), 2, 5, 1, 5);
-
-            // toss the teacm choice elements
-            this.startToss(scene.teamChoiceElement1, scene.teamChoiceElement1.position, new  THREE.Vector3(-10, 1, -30), 2, 5, 1, 5);
-            this.startToss(scene.teamChoiceElement2, scene.teamChoiceElement2.position, new  THREE.Vector3(-20, 1, -30), 2, 5, 1, 5);
+    //         // toss the teacm choice elements
+    //         this.startToss(scene.teamChoiceElement1, scene.teamChoiceElement1.position, new  THREE.Vector3(-10, 1, -30), 2, 5, 1, 5);
+    //         this.startToss(scene.teamChoiceElement2, scene.teamChoiceElement2.position, new  THREE.Vector3(-20, 1, -30), 2, 5, 1, 5);
 
 
-          }
-      },
+    //       }
+    //   },
       {
         desc: "Setup Equipment 2",
-        duration: 2.4,
+        duration: .4,
         cam: this.defaultCam,
         lookAt: "centerOfScene",
         onStart: function(scene) {
@@ -206,9 +196,9 @@ export class EventSequence {
       },
       {
           desc: "Story Begins - Wishful Scene",
-          duration: 5,
-          cam: this.defaultCam,
-          lookAt: "kid1",
+          duration: 50,
+          cam: { x: 60, y: 40, z: 180 },
+          lookAt: { x: 30, y: 30, z: 15 },
           onStart: function(scene) {
 
             // switch visibility of the stackables
@@ -216,16 +206,49 @@ export class EventSequence {
 
               scene.personSystem.makePersonSpeak('kids', 0, '✨', 3);
               scene.personSystem.makePersonSpeak('kids', 1, '🌟', 3);
-              this.particleSystem.emitEmojiParticles(
-                  {x: -10, y: 3, z: -10},
-                  "💫",
-                  3
-              );
+            //   this.particleSystem.emitEmojiParticles(
+            //       {x: -10, y: 3, z: -10},
+            //       "💫",
+            //       3
+            //   );
+            // instaed Emit score particles at the appropriate moments in your EventSequence
+            // setTimeout(() => {
+            //     scene.scoringSystem.emitScoreParticle(
+            //         'wishfulScene',
+            //         new THREE.Vector3(-10, 3, -10)
+            //     );
+            // }, 500);
+    
+            // setTimeout(() => {
+            //     for (let i = 0; i < 20; i++) { // Creativity points
+            //         setTimeout(() => {
+            //             scene.scoringSystem.emitScoreParticle(
+            //                 'creativity',
+            //                 new THREE.Vector3(-10, 3, -10)
+            //             );
+            //         }, i * 100); // Stagger each point's emission
+            //     }
+            // }, 1000);
+    
+            // setTimeout(() => {
+            //     for (let i = 0; i < 5; i++) { // Initial storytelling points
+            //         setTimeout(() => {
+            //             scene.scoringSystem.emitScoreParticle(
+            //                 'storytellingStart',
+            //                 new THREE.Vector3(-10, 3, -10)
+            //             );
+            //         }, i * 100);
+            //     }
+            // }, 1500);
+            
+
+            // emitAllScoreParticles
+            this.scene.scoringSystem.emitAllScoreParticles();
           }
       },
       {
           desc: "Assembly Equipment Activates",
-          duration: 2,
+          duration: .2,
           cam: this.defaultCam,
           lookAt: "centerOfScene",
           onStart: function(scene) {

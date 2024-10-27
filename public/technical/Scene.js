@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { SpriteText } from './SpriteText.js';
 import { PersonSystem } from './PersonSystem.js';
+import { ScoringSystem } from './ScoringSystem.js';
 
 export class Scene extends THREE.Scene {
   constructor() {
@@ -31,6 +32,9 @@ export class Scene extends THREE.Scene {
     this.personSystem = new PersonSystem(this);
     this.initPeople();
     this.initProps();
+
+    // Create a scoring system instance in your Scene class
+    this.scoringSystem = new ScoringSystem(this);
   }
 
   swapStackablesVisibility() {
@@ -251,6 +255,7 @@ export class Scene extends THREE.Scene {
 
     update(deltaTime) {
         this.personSystem.update(deltaTime);
+        this.scoringSystem.update(deltaTime);
     }
 
   toggleAttractionVisuals() {
