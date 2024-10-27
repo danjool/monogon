@@ -310,7 +310,7 @@ export class PersonSystem {
 
                 person.position.set(
                     (col - peoplePerRow / 2) * spacing.x + spacing.x / 2,
-                    0,
+                    1,
                     startZ + row * spacing.z
                 );
 
@@ -343,11 +343,13 @@ export class PersonSystem {
         }
     }
 
-    movePeople(group, targetPositions, duration = 1) {
+    movePeople(group, targetPositions, duration = .1) {
         if (!this.people[group] || !targetPositions) {
             console.warn(`Invalid group "${group}" or target positions ${targetPositions}`);
             return;
         }
+
+        console.log('movePeople', group, targetPositions, duration);
 
         const positions = Array.isArray(targetPositions) ? targetPositions : [targetPositions];
 

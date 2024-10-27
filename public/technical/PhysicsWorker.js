@@ -19,7 +19,7 @@ export class PhysicsWorker {
         let t = 0.0;
 
         let targetPositions = [];
-        const sidelinePosition = { x: -110, y: 1, z: 0 }; // Initial position off to the side
+        const sidelinePosition = { x: -105, y: 1, z: 0 }; // Initial position off to the side
         const assemblyZonePosition = { x: 0, y: 1, z: 0 }; // Center of assembly zone
   
         const world = new CANNON.World();

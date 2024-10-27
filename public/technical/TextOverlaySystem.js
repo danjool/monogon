@@ -22,7 +22,7 @@ export class TextOverlaySystem {
   }
 
   addFixedOverlay(text, x, y, style = {
-    fontSize: '20px',textAlign: 'left',width: '300px'
+    fontSize: '22px', textAlign: 'left', width: '300px'
   }) {
     const element = document.createElement('div');
     element.textContent = text;
@@ -38,10 +38,14 @@ export class TextOverlaySystem {
     return overlay;
   }
 
-  addObject3DOverlay(text, object3D, offset = { x: 0, y: 0 }, style = {}) {
+  addObject3DOverlay(text, object3D, offset = { x: 0, y: 0 }, style = {
+    // maxWidth: '400px', whiteSpace: 'normal' to get text to wrap
+    fontSize: '22px', textAlign: 'left'
+  }) {
     const element = document.createElement('div');
     element.textContent = text;
     element.style.position = 'absolute';
+    element.style.whiteSpace = 'nowrap';
     this.applyStyle(element, style);
     this.container.appendChild(element);
 
@@ -88,9 +92,9 @@ export class TextOverlaySystem {
           overlay.element.style.left = `${screenPosition.x + overlay.offset.x}px`;
           overlay.element.style.top = `${screenPosition.y + overlay.offset.y}px`;
           overlay.element.style.display = 'block';
-        } else {
-          overlay.element.style.display = 'none';
         }
+      } else {
+          overlay.element.style.display = 'none';
       }
     }
   }

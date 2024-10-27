@@ -226,7 +226,7 @@ export class Scene extends THREE.Scene {
         visualMesh.castShadow = true;
         this.visualStackables.push(visualMesh);
         // these on the sidelinde: x = -120 at least, arrayed along z
-        visualMesh.position.set(-120, 0, i * this.boxSize * 2);
+        visualMesh.position.set(-110, 0, i * this.boxSize * 2.1);
         this.add(visualMesh);
     }
   }

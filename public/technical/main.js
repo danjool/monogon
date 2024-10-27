@@ -114,6 +114,7 @@ export class Main {
     const deltaTime = this.clock.getDelta();
 
     this.updatePhysics();
+    
     this.particleSystem.update(deltaTime);
     this.scene.update(deltaTime);
     this.eventSequence.update(deltaTime, this.camera, this.scene, this.particleSystem);  // Pass particleSystem here
@@ -133,7 +134,7 @@ export class Main {
   updatePhysics() {
     this.physicsWorker.update().then(data => {
       this.scene.updateMeshes(data.positions, data.quaternions);
-      this.particleSystem.updateFromPhysics(data.emojiCounts);
+      // this.particleSystem.updateFromPhysics(data.emojiCounts); // currently invisible physics boxes sit next to assembly zone
     });
   }
 }
