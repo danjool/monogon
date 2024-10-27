@@ -11,7 +11,7 @@ class Person extends THREE.Group {
         super();
         this.scene = scene;
         // Scale everything relative to height
-        const scale = height / 10;
+        const scale = height;
         this.scale.set(scale, scale, scale);
 
         // Configuration
@@ -62,10 +62,8 @@ class Person extends THREE.Group {
         this.heldObject = object;
         this.isHolding = true;
         
-        // Rotate arm up to holding position (3π/2)
         this.rightArm.rotation.z = -3 * Math.PI / 2;
         
-        // Position the object at the end of the right arm
         if (object) {
             this.rightArm.add(object);
             // Position at the end of the arm
@@ -90,9 +88,6 @@ class Person extends THREE.Group {
             this.isHolding = false;
             this.rightArm.rotation.z = this.originalArmRotation;
         }
-        // at this point if the heldObject hasn't itself been added to the scene, it will be garbage collected
-        // if it has been added to the scene, it will remain in the scene, but no longer be attached to the person, just floating in space
-        // if it was a physics object, it would fall to the ground (not implemented here)
     }
 
     initHead() {
@@ -103,7 +98,6 @@ class Person extends THREE.Group {
     }
 
     initLegs() {
-        // Create legs as rounded rectangles
         const legGeometry = new THREE.Shape();
         const legRadius = this.legWidth / 2;
         
@@ -122,11 +116,9 @@ class Person extends THREE.Group {
 
         const legShape = new THREE.ShapeGeometry(legGeometry);
         
-        // Left leg
         this.leftLeg = new THREE.Mesh(legShape, this.material);
         this.leftLeg.position.x = -this.bodyWidth / 4;
         
-        // Right leg
         this.rightLeg = new THREE.Mesh(legShape.clone(), this.material);
         this.rightLeg.position.x = this.bodyWidth / 4;
         
@@ -134,7 +126,6 @@ class Person extends THREE.Group {
     }
 
     initArms() {
-        // Create arms as rounded rectangles
         const armGeometry = new THREE.Shape();
         const armRadius = this.armWidth / 2;
         
@@ -153,11 +144,9 @@ class Person extends THREE.Group {
 
         const armShape = new THREE.ShapeGeometry(armGeometry);
         
-        // Left arm
         this.leftArm = new THREE.Mesh(armShape, this.material);
         this.leftArm.position.set(-this.bodyWidth / 4 , this.bodyHeight * 0.8, 0);
         
-        // Right arm
         this.rightArm = new THREE.Mesh(armShape.clone(), this.material);
         this.rightArm.position.set(this.bodyWidth / 4, this.bodyHeight * 0.8, 0);
         
@@ -216,9 +205,6 @@ class Person extends THREE.Group {
             this.leftLeg.position.y = -this.legHeight/2 + Math.sin(time * this.walkSpeed * 10.) * this.legHeight / 2;
             this.rightLeg.position.y = -this.legHeight/2 + -Math.sin(time * this.walkSpeed * 10.) * this.legHeight / 2;
             
-            // Arm animation (opposite to legs)
-            // this.leftArm.rotation.z = -Math.sin(time * this.walkSpeed) * this.armSwingAmount;
-            // this.rightArm.rotation.z = Math.sin(time * this.walkSpeed) * this.armSwingAmount;
         } else { // Reset leg positions
             this.leftLeg.position.y = -1;
             this.rightLeg.position.y = -1;
@@ -256,7 +242,6 @@ class Person extends THREE.Group {
 
     stopWalking() {
         this.isWalking = false;
-        // Reset positions
         this.leftLeg.rotation.z = 0;
         this.rightLeg.rotation.z = 0;
         this.leftArm.rotation.z = 0;
@@ -264,7 +249,6 @@ class Person extends THREE.Group {
     }
 
     wave() {
-        // Simple wave animation using tweening could be added here
         this.rightArm.rotation.z = -Math.PI / 4;
     }
 
@@ -285,7 +269,7 @@ export class PersonSystem {
 
     createKid(options = {}) {
         const kid = new Person({
-            height: 10,
+            height: 1,
             isChild: true,
             scene: this.scene,
             ...options
@@ -298,7 +282,7 @@ export class PersonSystem {
 
     createAppraiser(options = {}) {
         const appraiser = new Person({
-            height: 10,
+            height: 1,
             scene: this.scene,
             ...options
         });
@@ -319,7 +303,7 @@ export class PersonSystem {
                 if (this.people.audience.length >= count) break;
 
                 const person = new Person({
-                    height: 7 + Math.random() * 2,
+                    height: 1 + Math.random() * .2,
                     color: `hsl(0, 0%, ${Math.floor(50 + Math.random() * 20)}%)`,
                     scene: this.scene,
                 });
@@ -337,7 +321,6 @@ export class PersonSystem {
     }
 
     update(deltaTime) {
-        // Update all people and handle speech bubbles
         Object.values(this.people).flat().forEach(person => {
             const updateResult = person.update(deltaTime);
             if (updateResult.shouldEmit && this.particleSystem) {
@@ -361,26 +344,18 @@ export class PersonSystem {
     }
 
     movePeople(group, targetPositions, duration = 1) {
-        // Early return if group doesn't exist
-        console.log('group', group, 'targetPositions', targetPositions);
         if (!this.people[group] || !targetPositions) {
             console.warn(`Invalid group "${group}" or target positions ${targetPositions}`);
             return;
         }
 
-        // Ensure targetPositions is an array
         const positions = Array.isArray(targetPositions) ? targetPositions : [targetPositions];
 
         this.people[group].forEach((person, index) => {
-            // Skip if no target position for this person
-            if (!positions[index]) {
-                return;
-            }
+            if (!positions[index]) return;
 
-            // Get target position
             const target = positions[index];
             
-            // Ensure we have valid coordinates
             if (target && (target.x !== undefined || target.y !== undefined || target.z !== undefined)) {
                 const targetPos = new THREE.Vector3(
                     target.x || person.position.x,
@@ -450,7 +425,6 @@ export class PersonSystem {
         }
     }
 
-    // Utility method to make a whole group wave
     makeGroupWave(group) {
         if (this.people[group]) {
             this.people[group].forEach(person => {
@@ -459,7 +433,6 @@ export class PersonSystem {
         }
     }
 
-    // Utility method to stop a whole group waving
     stopGroupWaving(group) {
         if (this.people[group]) {
             this.people[group].forEach(person => {
@@ -468,14 +441,12 @@ export class PersonSystem {
         }
     }
 
-    // New method to make a specific person speak
     makePersonSpeak(group, index, emoji = '💭', duration = 3) {
         if (this.people[group] && this.people[group][index]) {
             this.people[group][index].startSpeaking(emoji, duration);
         }
     }
 
-    // New method to make a group speak
     makeGroupSpeak(group, emoji = '💭', duration = 3) {
         if (this.people[group]) {
             this.people[group].forEach(person => {
@@ -484,14 +455,12 @@ export class PersonSystem {
         }
     }
 
-    // New method to stop a specific person from speaking
     stopPersonSpeaking(group, index) {
         if (this.people[group] && this.people[group][index]) {
             this.people[group][index].stopSpeaking();
         }
     }
 
-    // New method to stop a group from speaking
     stopGroupSpeaking(group) {
         if (this.people[group]) {
             this.people[group].forEach(person => {
