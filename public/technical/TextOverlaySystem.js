@@ -29,7 +29,7 @@ export class TextOverlaySystem {
     element.style.position = 'absolute';
     element.style.left = `${x}px`;
     element.style.top = `${y}px`;
-    element.style.width = '200px';
+    element.style.width = style.width
     this.applyStyle(element, style);
     this.container.appendChild(element);
 
@@ -94,7 +94,7 @@ export class TextOverlaySystem {
           overlay.element.style.display = 'block';
         }
       } else {
-          overlay.element.style.display = 'none';
+          // overlay.element.style.display = 'none';
       }
     }
   }
