@@ -132,32 +132,61 @@ export class ScoringSystem {
         this.scoreParticles.push(particleData);
     }
 
-    update(deltaTime) {
-        this.scoreParticles.forEach(data => {
-            if (data.progress < 1) {
-                data.progress += deltaTime * data.speed;
-                
-                // Bezier curve movement for more interesting particle path
-                const t = data.progress;
-                const controlPoint = new THREE.Vector3(
-                    data.sourcePos.x,
-                    data.targetPos.y + 10,
-                    data.sourcePos.z
-                );
+update(deltaTime) {
+    // Process particles from back to front to safely remove completed ones
+    for (let i = this.scoreParticles.length - 1; i >= 0; i--) {
+        const data = this.scoreParticles[i];
+        
+        data.progress = Math.min(1, data.progress + deltaTime * data.speed);
+        
+        // If we're very close to the target but not quite there, snap to final position
+        if (data.progress > 0.99) {
+            data.particle.position.copy(data.targetPos);
+            data.progress = 1;
+            continue;
+        }
+        
+        // Calculate position using quadratic Bezier curve
+        const t = data.progress;
+        const controlPoint = new THREE.Vector3(
+            data.sourcePos.x,
+            data.targetPos.y + 10,
+            data.sourcePos.z
+        );
 
-                // Quadratic Bezier curve
-                data.particle.position.set(
-                    Math.pow(1 - t, 2) * data.sourcePos.x + 2 * (1 - t) * t * controlPoint.x + t * t * data.targetPos.x,
-                    Math.pow(1 - t, 2) * data.sourcePos.y + 2 * (1 - t) * t * controlPoint.y + t * t * data.targetPos.y,
-                    Math.pow(1 - t, 2) * data.sourcePos.z + 2 * (1 - t) * t * controlPoint.z + t * t * data.targetPos.z
-                );
+        // Early in the animation, add some randomness
+        let randomOffset = new THREE.Vector3();
+        const wiggle = 1.0;
+        if (t < 0.8) {  // Only apply randomness during the first 80% of travel
+            randomOffset.set(
+                (Math.random() - 0.5) * (1 - t) * wiggle,  // Decrease random effect over time
+                (Math.random() - 0.5) * (1 - t) * wiggle,
+                (Math.random() - 0.5) * (1 - t) * wiggle
+            );
+        }
 
-                // Fade in as it reaches its destination
-                // data.particle.material.opacity = Math.min(1, t * 2);
-                data.particle.material.opacity = 1.0;
-            }
-        });
+        // Quadratic Bezier curve calculation
+        const position = new THREE.Vector3(
+            Math.pow(1 - t, 2) * data.sourcePos.x + 2 * (1 - t) * t * controlPoint.x + t * t * data.targetPos.x,
+            Math.pow(1 - t, 2) * data.sourcePos.y + 2 * (1 - t) * t * controlPoint.y + t * t * data.targetPos.y,
+            Math.pow(1 - t, 2) * data.sourcePos.z + 2 * (1 - t) * t * controlPoint.z + t * t * data.targetPos.z
+        );
+
+        // Apply diminishing random offset
+        position.add(randomOffset);
+        
+        // Update particle position
+        data.particle.position.copy(position);
+        
+        // Keep opacity at full
+        data.particle.material.opacity = 1.0;
+        
+        // Remove completed particles
+        if (data.progress >= 1) {
+            this.scoreParticles.splice(i, 1);
+        }
     }
+}
 
     clearScores() {
         this.scoreParticles.forEach(data => {
