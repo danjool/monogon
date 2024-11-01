@@ -224,8 +224,9 @@ export class EventSequence {
       {
         desc: "Story Begins - Wishful Scene",
         duration: 25,
-        cam: { x: 60, y: 40, z: 180 },
-        lookAt: { x: 30, y: 30, z: 15 },
+        cam: { x: -90, y: 10, z: 40 },
+        lookAt: { x: 60, y: 10, z: -20 },
+        camLerpSpeed: 0.05,
         onStart: function(scene) {
 
           // switch visibility of the stackables

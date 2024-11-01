@@ -84,6 +84,7 @@ class Person extends THREE.Group {
         if (!this.isPirouetting) return;
 
         this.pirouetteProgress += deltaTime / this.pirouetteDuration;
+        const t = this.pirouetteProgress
         
         if (this.pirouetteProgress >= 1) {
             this.completePirouette();
@@ -101,9 +102,10 @@ class Person extends THREE.Group {
         this.rotation.y = this.pirouetteStartRotation + (eased * rotations);
         
         // Add some vertical bounce
-        const bounceHeight = 0.5;
-        const bounceFrequency = 4;
-        this.position.y += Math.sin(eased * Math.PI * bounceFrequency) * bounceHeight;
+        const h0 = this.pirouetteStartPos.y;
+        const h1 = this.pirouetteEndPos.y;
+        const y = h0 * (1-t) + h1 * t + 4 * t * (1-t) * 1.0
+        this.position.y = y;        
     }
 
     completePirouette() {
