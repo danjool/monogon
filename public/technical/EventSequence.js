@@ -222,51 +222,63 @@ export class EventSequence {
         }
       },
       {
-          desc: "Story Begins - Wishful Scene",
-          duration: 50,
-          cam: { x: 60, y: 40, z: 180 },
-          lookAt: { x: 30, y: 30, z: 15 },
-          onStart: function(scene) {
+        desc: "Story Begins - Wishful Scene",
+        duration: 25,
+        cam: { x: 60, y: 40, z: 180 },
+        lookAt: { x: 30, y: 30, z: 15 },
+        onStart: function(scene) {
 
-            // switch visibility of the stackables
-            scene.swapStackablesVisibility();
+          // switch visibility of the stackables
+          scene.swapStackablesVisibility();
 
-              scene.personSystem.makePersonSpeak('kids', 0, '✨', 3);
-              scene.personSystem.makePersonSpeak('kids', 1, '🌟', 3);
-              this.particleSystem.emitEmojiParticles(
-                  {x: -10, y: 3, z: -10},
-                  "💫",
-                  3
-              );
+          scene.personSystem.makePersonSpeak('kids', 0, '✨', 3);
+          scene.personSystem.makePersonSpeak('kids', 1, '🌟', 3);
+          this.particleSystem.emitEmojiParticles(
+              {x: -10, y: 3, z: -10},
+              "💫",
+              3
+          );
+
+          // loop 4 times getting the kids to pirouette towards rotating invisible points on a ciricle radius 5
+          for (let i = 0; i < 4; i++) {
+            setTimeout(() => {
+              scene.personSystem.makePeoplePirouette('kids', [
+                {x: -10 + 5 * Math.cos(i * Math.PI / 2), y: 1, z: -10 + 5 * Math.sin(i * Math.PI / 2)},
+                {x: -10 + 5 * Math.cos(i * Math.PI / 2 + Math.PI / 2), y: 1, z: -10 + 5 * Math.sin(i * Math.PI / 2 + Math.PI / 2)},
+                {x: -10 + 5 * Math.cos(i * Math.PI / 2 + Math.PI), y: 1, z: -10 + 5 * Math.sin(i * Math.PI / 2 + Math.PI)},
+              ], 2.0);
+            }, i * 2000);
+          }
+
             // instaed Emit score particles at the appropriate moments in your EventSequence
-            setTimeout(() => {
-                scene.scoringSystem.emitScoreParticle(
-                    'wishfulScene',
-                    new THREE.Vector3(-10, 3, -10)
-                );
-            }, 500);
+            // setTimeout(() => {
+            //     scene.scoringSystem.emitScoreParticle(
+            //         'wishfulScene',
+            //         new THREE.Vector3(-10, 3, -10)
+            //     );
+            // }, 500);
     
-            setTimeout(() => {
-                for (let i = 0; i < 20; i++) { // Creativity points
-                    setTimeout(() => {
-                        scene.scoringSystem.emitScoreParticle(
-                            'creativity',
-                            new THREE.Vector3(-10, 3, -10)
-                        );
-                    }, i * 100); // Stagger each point's emission
-                }
-            }, 1000);
+            // setTimeout(() => {
+            //     for (let i = 0; i < 20; i++) { // Creativity points
+            //         setTimeout(() => {
+            //             scene.scoringSystem.emitScoreParticle(
+            //                 'creativity',
+            //                 new THREE.Vector3(-10, 3, -10)
+            //             );
+            //         }, i * 100); // Stagger each point's emission
+            //     }
+            // }, 1000);
     
-            setTimeout(() => {
-                for (let i = 0; i < 5; i++) { // Initial storytelling points
-                    setTimeout(() => {
-                        scene.scoringSystem.emitScoreParticle(
-                            'storytellingStart',
-                            new THREE.Vector3(-10, 3, -10)
-                        );
-                    }, i * 100);
-                }
-            }, 1500);
+            // setTimeout(() => {
+            //     for (let i = 0; i < 5; i++) { // Initial storytelling points
+            //         setTimeout(() => {
+            //             scene.scoringSystem.emitScoreParticle(
+            //                 'storytellingStart',
+            //                 new THREE.Vector3(-10, 3, -10)
+            //             );
+            //         }, i * 100);
+            //     }
+            // }, 1500);
             
 
             this.scene.scoringSystem.emitAllScoreParticles();

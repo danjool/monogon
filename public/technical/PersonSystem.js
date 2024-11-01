@@ -52,6 +52,74 @@ class Person extends THREE.Group {
         this.heldObject = null;
         this.isHolding = false;
         this.originalArmRotation = this.rightArm.rotation.z;
+
+
+        // pirouette properties
+        this.isPirouetting = false;
+        this.pirouetteProgress = 0;
+        this.pirouetteDuration = 0;
+        this.pirouetteStartPos = new THREE.Vector3();
+        this.pirouetteEndPos = new THREE.Vector3();
+        this.pirouetteStartRotation = 0;
+        this.pirouetteTotalRotations = 2; // Number of 360° spins
+    }
+
+    startPirouette(endPos, duration = 1.0) {
+        this.isPirouetting = true;
+        this.pirouetteProgress = 0;
+        this.pirouetteDuration = duration;
+        this.pirouetteStartPos.copy(this.position);
+        this.pirouetteEndPos = new THREE.Vector3(endPos.x, endPos.y, endPos.z);
+        this.pirouetteStartRotation = this.rotation.y;
+
+        // Raise arms for pirouette
+        this.leftArm.rotation.z = 1 * Math.PI / 4;  // Arms up
+        this.rightArm.rotation.z = -1 * Math.PI / 4;
+        
+        // Start walking animation for foot movement
+        this.startWalking();
+    }
+
+    updatePirouette(deltaTime) {
+        if (!this.isPirouetting) return;
+
+        this.pirouetteProgress += deltaTime / this.pirouetteDuration;
+        
+        if (this.pirouetteProgress >= 1) {
+            this.completePirouette();
+            return;
+        }
+
+        // Eased progress for smooth start and stop
+        const eased = this.easeInOutQuad(this.pirouetteProgress);
+        
+        // Position interpolation
+        this.position.lerpVectors(this.pirouetteStartPos, this.pirouetteEndPos, eased);
+        
+        // Rotation calculation - multiple spins
+        const rotations = this.pirouetteTotalRotations * 2 * Math.PI;
+        this.rotation.y = this.pirouetteStartRotation + (eased * rotations);
+        
+        // Add some vertical bounce
+        const bounceHeight = 0.5;
+        const bounceFrequency = 4;
+        this.position.y += Math.sin(eased * Math.PI * bounceFrequency) * bounceHeight;
+    }
+
+    completePirouette() {
+        this.isPirouetting = false;
+        this.position.copy(this.pirouetteEndPos);
+        this.rotation.y = this.pirouetteStartRotation; // Reset to original rotation
+        
+        // Reset arms
+        this.leftArm.rotation.z = 0;
+        this.rightArm.rotation.z = 0;
+        
+        this.stopWalking();
+    }
+
+    easeInOutQuad(t) {
+        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     }
 
     holdObject(object) {
@@ -199,6 +267,11 @@ class Person extends THREE.Group {
 
     update(deltaTime) {
         const time = performance.now() / 1000 + this.timeOffset;
+
+        if (this.isPirouetting) {
+            this.updatePirouette(deltaTime);
+            return { shouldEmit: false };
+        }
 
         if (this.isWalking) {
             // Leg animation
@@ -431,6 +504,30 @@ export class PersonSystem {
                 person.wave();
             });
         }
+    }
+
+    makePeoplePirouette(group, targetPositions, duration = 1.0) {
+        if (!this.people[group] || !targetPositions) {
+            console.warn(`Invalid group "${group}" or target positions`);
+            return;
+        }
+
+        const positions = Array.isArray(targetPositions) ? targetPositions : [targetPositions];
+
+        this.people[group].forEach((person, index) => {
+            if (!positions[index]) return;
+
+            const target = positions[index];
+            if (target && (target.x !== undefined || target.y !== undefined || target.z !== undefined)) {
+                const targetPos = new THREE.Vector3(
+                    target.x || person.position.x,
+                    target.y || person.position.y,
+                    target.z || person.position.z
+                );
+
+                person.startPirouette(targetPos, duration);
+            }
+        });
     }
 
     stopGroupWaving(group) {
