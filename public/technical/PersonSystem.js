@@ -349,8 +349,6 @@ export class PersonSystem {
             return;
         }
 
-        console.log('movePeople', group, targetPositions, duration);
-
         const positions = Array.isArray(targetPositions) ? targetPositions : [targetPositions];
 
         this.people[group].forEach((person, index) => {

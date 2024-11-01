@@ -72,7 +72,6 @@ export class ScoringSystem {
         // instead of start row, figure it out based on the current index and columns per category 
         const row = categoryConfig.startRow + Math.floor(categoryConfig.currentIndex / this.gridConfig.colsPerRow);
         categoryConfig.currentIndex += 1;
-        console.log('row', row, 'column', column, 'category', category);
 
         return new THREE.Vector3(
             this.gridConfig.startX + (column * this.gridConfig.columnSpacing),

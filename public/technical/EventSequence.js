@@ -40,12 +40,19 @@ export class EventSequence {
     },
     {
         desc: "Overview of Presentation Area",
-        duration: 1.,
+        duration: 3,
         cam: { x: 0, y: 460, z: 1 },
         lookAt: { x: 0, y: 0, z: -40 },
         onStart: function(scene) {
             this.textOverlaySystem.addObject3DOverlay('Presentation Area', (new THREE.Object3D()).translateX(-100).translateZ(-160));
             this.textOverlaySystem.addObject3DOverlay('20ftx20ft', (new THREE.Object3D()).translateX(-100).translateZ(-140));
+
+            this.textOverlaySystem.addFixedOverlay('Presentation Area', 10, 80, {
+                fontSize: '20px',
+                fontWeight: 'bold',
+                textAlign: 'left',
+                width: '300px',
+            });
         }
     },
     {
@@ -616,7 +623,7 @@ export class EventSequence {
         this.currentEventIndex = (this.currentEventIndex + 1) % this.events.length;
         currentEvent = this.events[this.currentEventIndex];
         this.eventTimer = 0;
-        console.log('Switching to event', this.currentEventIndex, this.events[this.currentEventIndex].desc, this.events[this.currentEventIndex].lookAt);        
+        console.log('Switching to event', this.currentEventIndex, this.events[this.currentEventIndex].desc, this.events[this.currentEventIndex].lookAt);
     }
   }
 
