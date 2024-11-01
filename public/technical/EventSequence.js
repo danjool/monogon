@@ -36,6 +36,8 @@ export class EventSequence {
             {x: -125, y: 1, z: -10},
             .01
           ]);
+
+          // this.scene.scoringSystem.emitAllScoreParticles();
         }
     },
     {
@@ -46,13 +48,6 @@ export class EventSequence {
         onStart: function(scene) {
             this.textOverlaySystem.addObject3DOverlay('Presentation Area', (new THREE.Object3D()).translateX(-100).translateZ(-160));
             this.textOverlaySystem.addObject3DOverlay('20ftx20ft', (new THREE.Object3D()).translateX(-100).translateZ(-140));
-
-            this.textOverlaySystem.addFixedOverlay('Presentation Area', 10, 80, {
-                fontSize: '20px',
-                fontWeight: 'bold',
-                textAlign: 'left',
-                width: '300px',
-            });
         }
     },
     {
@@ -108,8 +103,8 @@ export class EventSequence {
           duration: 10.5,
           camLerpSpeed: 0.05,
           cam: { x: 0, y: 10, z: 100 },
-            lookAt: { x: 0, y: 0, z: -100 },
-            camLerpSpeed: 0.5,
+          lookAt: { x: 0, y: 0, z: -100 },
+          camLerpSpeed: 0.5,
           onStart: function(scene) {
               this.textOverlaySystem.removeAll3DOverlays();
               scene.personSystem.movePeople('appraisers', [
@@ -117,7 +112,6 @@ export class EventSequence {
                   {x: -30, y: 1.0, z: 20}
               ]);
 
-              this.scene.scoringSystem.emitAllScoreParticles();
           }
       },
     //   {
@@ -461,20 +455,16 @@ export class EventSequence {
     //           );
     //       }
     //   },
-    //   {
-    //       desc: "Review Points",
-    //       duration: 5,
-    //       cam: this.defaultCam,
-    //       lookAt: "centerOfScene",
-    //       onStart: function(scene) {
-    //           scene.personSystem.makeGroupSpeak('appraisers', '🏆', 2);
-    //           this.particleSystem.emitEmojiParticles(
-    //               {x: 0, y: 5, z: 0},
-    //               "🏆",
-    //               3
-    //           );
-    //       }
-    //   }
+      {
+          desc: "Review Points",
+          duration: 3,
+          cam: { x: 0, y: 10, z: 100 },
+          lookAt: { x: 0, y: 0, z: -100 },
+          camLerpSpeed: 0.5,
+          onStart: function(scene) {
+              scene.personSystem.makeGroupSpeak('appraisers', '🏆', 2);
+          }
+      }
   ];
     this.currentEventIndex = 0;
     this.eventTimer = 0;
@@ -529,6 +519,23 @@ export class EventSequence {
                 const element = this.textOverlaySystem.addFixedOverlay(...Object.values(overlay));
                 this.textOverlays.push(element);
             });
+        }
+        if (currentEvent.desc){
+          
+          console.log('Removing all Fixed Overlays');
+          this.textOverlays.forEach(overlay => {
+            if(overlay.type === 'fixed') this.textOverlaySystem.removeOverlay(overlay);
+          });
+          
+          // this.currentEventOverlay.element.textContent = `Current Event: ${currentEvent.desc}`;
+          // put it on screen fixed
+          const element = this.textOverlaySystem.addFixedOverlay(`  ${currentEvent.desc}`, 10, 140, {
+              fontSize: '16px',
+              textAlign: 'left',
+              width: '300px',
+          });
+          this.textOverlays.push(element);
+
         }
 
         // new way, using PersonSystem

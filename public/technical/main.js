@@ -124,8 +124,6 @@ export class Main {
     this.controls.update();
 
     this.textOverlaySystem.update();
-    const currentEvent = this.eventSequence.events[this.eventSequence.currentEventIndex];
-    this.currentEventOverlay.element.textContent = `Current Event: ${currentEvent.desc}`;
 
     this.renderer.render(this.scene, this.camera);
     this.stats.update();
