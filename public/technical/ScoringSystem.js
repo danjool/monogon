@@ -15,45 +15,35 @@ export class ScoringSystem {
             startX: -100.,   // Left-right position
             startY: 0,  // Height of the grid
             startZ: -100 - 80,  // Far side for the grid
-            columnsPerCategory: 50, // How many columns to use for each category
-            rowSpacing: 4,
-            columnSpacing: 4,
+            colsPerRow: 30, // How many columns to use for each category, really per row
+            rowSpacing: 6,
+            columnSpacing: 6,
             rowOffset: new THREE.Vector3(0, 4, 0),    // Vertical spacing between rows
             columnOffset: new THREE.Vector3(4, 0, 0)  // Horizontal spacing between columns
         };
 
         // Score categories and their positions in the grid
         this.categories = {
-                wishfulScene: { 
-                    startRow: 0, 
-                    points: 15, 
-                    emoji: '🌟',
-                    currentIndex: 0 // Track how many points we've placed
-                },
-                creativity: { 
-                    startRow: 1, 
-                    points: 20, 
-                    emoji: '💭',
-                    currentIndex: 0
-                },
-                storytellingStart: { 
-                    startRow: 2, 
-                    points: 5, 
-                    emoji: '📖',
-                    currentIndex: 0
-                },
-            assemblyDesign: { startRow: 3, points: 15, emoji: '⚙️', currentIndex: 0},
-            assemblyInnovation: { startRow: 4, points: 15, emoji: '💡', currentIndex: 0},
-            stackableRisk: { startRow: 5, points: 30, emoji: '🎲', currentIndex: 0},
-            teamChoice1: { startRow: 6, points: 30, emoji: '🎨', currentIndex: 0},
-            stackRisk: { startRow: 7, points: 30, emoji: '🔺', currentIndex: 0},
-            storytellingMiddle: { startRow: 8, points: 5, emoji: '📚', currentIndex: 0},
-            frustrationPoint: { startRow: 9, points: 15, emoji: '😤', currentIndex: 0},
-            destructionDesign: { startRow: 10, points: 15, emoji: '💥', currentIndex: 0},
-            destructionInnovation: { startRow: 11, points: 15, emoji: '🔧', currentIndex: 0},
-            teamChoice2: { startRow: 12, points: 30, emoji: '🎭', currentIndex: 0},
-            storytellingEnd: { startRow: 13, points: 5, emoji: '📝', currentIndex: 0},
-            instantChallenge: { startRow: 14, points: 100, emoji: '⚡', currentIndex: 0}
+            instantChallenge: { startRow: 8, points: 100, emoji: '⚡', currentIndex: 20},
+            creativity: { startRow: 8, points: 20, emoji: '💭', currentIndex: 0 },
+            
+            destructionDesign: { startRow: 7, points: 15, emoji: '💥', currentIndex: 0},
+            destructionInnovation: { startRow: 7, points: 15, emoji: '🔧', currentIndex: 15},
+            
+            frustrationPoint: { startRow: 6, points: 15, emoji: '😤', currentIndex: 0},
+            wishfulScene: { startRow: 6, points: 15, emoji: '🌟', currentIndex: 15 },
+            
+            stackRisk: { startRow: 5, points: 30, emoji: '🔺', currentIndex: 0},
+            teamChoice2: { startRow: 4, points: 30, emoji: '🎭', currentIndex: 0},
+            teamChoice1: { startRow: 3, points: 30, emoji: '🎨', currentIndex: 0},
+            stackableRisk: { startRow: 2, points: 30, emoji: '🎲', currentIndex: 0},
+            
+            assemblyDesign: { startRow: 1, points: 15, emoji: '⚙️', currentIndex: 0},
+            assemblyInnovation: { startRow: 1, points: 15, emoji: '💡', currentIndex: 15},
+            
+            storytellingStart: { startRow: 0, points: 5, emoji: '📖', currentIndex: 0 },
+            storytellingMiddle: { startRow: 0, points: 5, emoji: '📚', currentIndex: 12},
+            storytellingEnd: { startRow: 0, points: 5, emoji: '📝', currentIndex: 25},
         };
 
         this.initParticlePool();
@@ -63,7 +53,7 @@ export class ScoringSystem {
         for (let i = 0; i < this.MAX_PARTICLES; i++) {
             const particle = new SpriteText('⭐', 1, 'white');
             particle.visible = false;
-            const scale = 3.0;
+            const scale = 6.0;
             particle.scale.set(scale, scale, scale);
             this.scene.add(particle);
             this.particlePool.push(particle);
@@ -76,11 +66,11 @@ export class ScoringSystem {
 
         // Calculate position in the grid
         // js modulo is the operator we want here, not remainder, its; a % b
-        const column = categoryConfig.currentIndex % this.gridConfig.columnsPerCategory;
+        const column = categoryConfig.currentIndex % this.gridConfig.colsPerRow;
         
         // Increment the column counter for next time
         // instead of start row, figure it out based on the current index and columns per category 
-        const row = categoryConfig.startRow + Math.floor(categoryConfig.currentIndex / this.gridConfig.columnsPerCategory);
+        const row = categoryConfig.startRow + Math.floor(categoryConfig.currentIndex / this.gridConfig.colsPerRow);
         categoryConfig.currentIndex += 1;
         console.log('row', row, 'column', column, 'category', category);
 
