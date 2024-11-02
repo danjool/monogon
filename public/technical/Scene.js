@@ -37,10 +37,10 @@ export class Scene extends THREE.Scene {
     this.scoringSystem = new ScoringSystem(this);
   }
 
-  swapStackablesVisibility() {
+  swapStackablesVisibility(val=false) {
     console.log('Swapping stackables visibility');
-    this.visualStackables.forEach(mesh => mesh.visible = false);
-    this.meshes.forEach(mesh => mesh.visible = true);
+    this.visualStackables.forEach(mesh => mesh.visible = val);
+    this.meshes.forEach(mesh => mesh.visible = !val);
   }
 
     initPeople() {

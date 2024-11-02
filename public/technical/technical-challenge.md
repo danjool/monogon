@@ -121,16 +121,15 @@ Story begins
             (5/15 beginning points for Clear and Effective Storytelling)
         Assembly Equipment activates
             (15/15 pts Design Assembly, my magic wand is designed well)
-            (15/15 pts Innovation Assembly)
-        Stack Items begin moving into Assembly Zone
-            (0/30 Risk for Stackables design points are allocated, as my items are cubes, the least risky shape)
+            (15/15 pts Innovation Assembly)            
         Team Choice Element 1 presentation
             (10/10 Creativity and Originality, mine is the only IcosaDodecahedron Team Choice element)
             (10/10 Quality, Workmanship, or Effort, for my IcosaDodecahedron is perfect mathematically)
             (10/10 Integration into the Presentation, its very integrated)
-        Stack assembly completes
+        (Stack assembly completes implicitly)
         Team signals completion of Stack Assembly
             (2/30 Risk Stack Design points are allocated, as my stack was one of top of the other, no wobble, only a pyramid is safer)
+            (0/30 Risk for Stackables design points are allocated, as my items are cubes, the least risky shape)
     Frustration Point occurs in story
         (5/15 middle points for Clear and Effective Storytelling, things are easy to understand, and events happen for reasons)
         (15/15 pts for Dramatic Impact of Frustration Point)

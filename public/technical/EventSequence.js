@@ -311,7 +311,7 @@ export class EventSequence {
       },
       {
           desc: "Assembly Equipment Activates",
-          duration: 6,
+          duration: 8,
           onStart: function(scene) {
             this.toggleAttraction(true);
               
@@ -330,7 +330,7 @@ export class EventSequence {
                     width: '550px',
                 })
               )
-            }, 1000);
+            }, 2000);
 
             this.setManagedTimeout(() => {
               scene.scoringSystem.emitScoreParticles(
@@ -345,14 +345,12 @@ export class EventSequence {
                     width: '550px',
                 })
               )
-            }, 2000);
+            }, 4000);
           }
       },
       {
           desc: "Team signals completion of Stack Assembly",
-          duration: 6,
-          // cam: this.defaultCam,
-          // lookAt: "centerOfScene",
+          duration: 3,
           onStart: function(scene) {
               scene.personSystem.makeGroupSpeak('kids', '✅', 2);
 
@@ -389,9 +387,7 @@ export class EventSequence {
       },
       {
           desc: "Team Choice Element 1",
-          duration: 6,
-          // cam: this.defaultCam,
-          // lookAt: "teamChoiceElement1",
+          duration: 4,
           onStart: function(scene) {
             scene.personSystem.makePersonSpeak('kids', 1, '🎨', 2);            
             this.setManagedTimeout(() => {
@@ -485,7 +481,7 @@ export class EventSequence {
       },
       {
         desc: "Destruction Equipment Activates",
-        duration: 5,
+        duration: 6,
         cam: this.defaultCam,
         lookAt: "centerOfScene",
         onStart: function(scene) {
@@ -580,56 +576,153 @@ export class EventSequence {
       },
       {
           desc: "Items Come to Rest in Zones",
-          duration: 6,
+          duration: 3,
           onStart: function(scene) {
-              
+              scene.swapStackablesVisibility(true);
+
+              // Toss all visual stackables along a spread
+              scene.visualStackables.forEach((mesh, index) => {
+                  this.startToss(mesh, mesh.position, 
+                    {
+                        x: -43.5 + index * 2.1, y: 1, z: 0
+                    }, 2, 5);
+              });
           }
       },
+      {
+          desc: "Team signals end of Stack Destruction",
+          duration: 3,
+          onStart: function(scene) {
+              scene.personSystem.makeGroupSpeak('kids', '🔚', 2);
+          }
+      },
+      {
+          desc: "No Points are allocated to Stackables in the Assembly Zone",
+          duration: 6,
+          camLerpSpeed: 0.5,
+          cam: { x: -2, y: 5, z: 40 },
+          lookAt: { x: 2, y: 0, z: 0 },
+      },
+      {
+          desc: "1/2 Points are allocated to Stackables in Target Zone 1",
+          duration: 6,
+          camLerpSpeed: 0.5,
+          cam: { x: -20, y: 5, z: 40 },
+          lookAt: { x: -20, y: 0, z: 0 },
+      },
+      {
+          desc: "1 Point is allocated to Stackables in Target Zone 2",
+          duration: 6,
+          camLerpSpeed: 0.5,
+          cam: { x: -30, y: 5, z: 40 },
+          lookAt: { x: -30, y: 0, z: 0 },
+      },
+      {
+        desc: "2 Points are allocated to Stackables in Target Zone 3",
+        duration: 6,
+        camLerpSpeed: 0.5,
+        cam: { x: -37, y: 5, z: 40 },
+        lookAt: { x: -37, y: 0, z: 0 },
+      },
+      {
+        desc: "0 Points are allocated to Stackables beyond Target Zone 3",
+        duration: 6,
+        camLerpSpeed: 0.5,
+        cam: { x: -43, y: 5, z: 40 },
+        lookAt: { x: -43, y: 0, z: 0 },
+      },
+      {
+        desc: "A Stackable resting in two zones is awarded the lower point value",
+        duration: 6,
+        camLerpSpeed: 0.5,
+        cam: { x: -35, y: 5, z: 40 },
+        lookAt: { x: -35, y: 0, z: 0 },
+      },
+      
       {
           desc: "Team Choice Element 2",
           duration: 4,
           cam: this.defaultCam,
           lookAt: "teamChoiceElement2",
           onStart: function(scene) {
-              this.particleSystem.emitEmojiParticles(
-                  {x: 5, y: 2, z: 0},
-                  "🎭",
-                  2
-              );
               scene.personSystem.makePersonSpeak('kids', 2, '🎨', 2);
+
+              this.setManagedTimeout(() => {
+                  scene.scoringSystem.emitScoreParticles(
+                      'teamChoice2',
+                      scene.personSystem.getAppraisers()[0].getSpeechPosition(),
+                      10
+                  );
+                  this.textOverlays.push(
+                    this.textOverlaySystem.addFixedOverlay('Creativity and Originality! 10 points', 600, 380, {
+                        fontSize: '24px',
+                        textAlign: 'left',
+                        width: '550px',
+                    })
+                  )
+              }, 1000);
+
+              this.setManagedTimeout(() => {
+                  scene.scoringSystem.emitScoreParticles(
+                      'teamChoice2',
+                      scene.personSystem.getAppraisers()[0].getSpeechPosition(),
+                      10
+                  );
+                  this.textOverlays.push(
+                    this.textOverlaySystem.addFixedOverlay('Quality, Workmanship, or Effort! 10 points', 600, 380, {
+                        fontSize: '24px',
+                        textAlign: 'left',
+                        width: '550px',
+                    })
+                  )
+              }, 2000);
+
+              this.setManagedTimeout(() => {
+                  scene.scoringSystem.emitScoreParticles(
+                      'teamChoice2',
+                      scene.personSystem.getAppraisers()[0].getSpeechPosition(),
+                      10
+                  );
+                  this.textOverlays.push(
+                    this.textOverlaySystem.addFixedOverlay('Integration into the Presentation! 10 points', 600, 380, {
+                        fontSize: '24px',
+                        textAlign: 'left',
+                        width: '550px',
+                    })
+                  )
+              }, 3000);
           }
       },
       {
           desc: "Story Resolution",
-          duration: 5,
-          cam: this.defaultCam,
-          lookAt: "kid2",
+          duration: 8,
+          cam: { x: -20, y: 10, z: 80 },
+          lookAt: "kid1",
           onStart: function(scene) {
-              scene.personSystem.makeGroupSpeak('kids', '😄', 2);
-              this.particleSystem.emitEmojiParticles(
-                  {x: 0, y: 2, z: 0},
-                  "😄",
-                  1
-              );
+              // another multikid dance
+              for (let i = 0; i < 4; i++) {
+                this.setManagedTimeout(() => {
+                  scene.personSystem.makePeoplePirouette('kids', [
+                    {x: -10 + 5 * Math.cos(i * Math.PI / 2), y: 1, z: -10 + 5 * Math.sin(i * Math.PI / 2)},
+                    {x: -10 + 5 * Math.cos(i * Math.PI / 2 + Math.PI / 2), y: 1, z: -10 + 5 * Math.sin(i * Math.PI / 2 + Math.PI / 2)},
+                    {x: -10 + 5 * Math.cos(i * Math.PI / 2 + Math.PI), y: 1, z: -10 + 5 * Math.sin(i * Math.PI / 2 + Math.PI)},
+                  ], 2.0);
+                }, i * 2000);
+              }
           }
       },
       {
           desc: "Team Calls TIME",
           duration: 2,
-          cam: this.defaultCam,
+          cam: { x: 0, y: 10, z: 100 },
           lookAt: "centerOfScene",
           onStart: function(scene) {
               scene.personSystem.makeGroupSpeak('kids', '⏰', 1);
-              this.particleSystem.emitEmojiParticles(
-                  {x: 0, y: 3, z: 0},
-                  "⏰",
-                  1
-              );
           }
       },
       {
           desc: "Appraisers Ask Questions",
-          duration: 10,
+          duration: 6,
           cam: this.defaultCam,
           lookAt: "appraisers",
           onStart: function(scene) {
@@ -650,9 +743,9 @@ export class EventSequence {
       {
           desc: "Review Points",
           duration: 3,
-          cam: { x: 0, y: 10, z: 100 },
-          lookAt: { x: 0, y: 0, z: -100 },
-          camLerpSpeed: 0.5,
+          cam: { x: -20, y: 10, z: 80 },
+          lookAt: { x: -20, y: 20, z: -20 },
+          camLerpSpeed: 0.05,
           onStart: function(scene) {
               scene.personSystem.makeGroupSpeak('appraisers', '🏆', 2);
           }
