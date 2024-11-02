@@ -469,15 +469,24 @@ export class PersonSystem {
 
     makeGroupLookAt(group, target) {
         console.log('makeGroupLookAt', group, target); // target could be a object, could be a string like 
-        // if (typeof target === 'string') {
-        //     target = this.getLookAtTarget(target);
-        // }
-        // if (this.people[group]) {
-        //     console.log('people', this.people[group]);
-        //     this.people[group].forEach(person => {
-        //         // person.lookAt(target); // busted for now
-        //     });
-        // }
+        if (typeof target === 'string') {
+            target = this.getLookAtTarget(target);
+        }
+        if (this.people[group]) {
+            console.log('people', this.people[group]);
+            this.people[group].forEach(person => {
+                // person.lookAt(target); // busted for now
+
+                // re use to point at camera
+                // rotate along the y axis to point the whole person at the camera
+                const angle = Math.atan2(
+                    target.x - person.position.x,
+                    target.z - person.position.z
+                );
+                person.rotation.y = angle;
+            
+            });
+        }
     }
 
     stopGroupLooking(group) {
