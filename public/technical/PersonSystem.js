@@ -571,4 +571,12 @@ export class PersonSystem {
     setParticleSystem(particleSystem) {
         this.particleSystem = particleSystem;
     }
+
+    getKids() {
+        return this.people.kids;
+    }
+
+    getAppraisers() {
+        return this.people.appraisers;
+    }
 }

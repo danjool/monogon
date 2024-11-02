@@ -33,7 +33,7 @@ export class EventSequence {
     this.events = [
       {
         desc: "debug",
-        duration: .01,
+        duration: .00001,
         cam: { x: -140, y: 9, z: -52 },
         lookAt: "kid1",
         onStart: function(scene) {
@@ -224,21 +224,22 @@ export class EventSequence {
       {
         desc: "Story Begins - Wishful Scene",
         duration: 25,
-        cam: { x: -90, y: 10, z: 40 },
-        lookAt: { x: 60, y: 10, z: -20 },
+        cam: { x: -20, y: 10, z: 80 },
+        lookAt: { x: 0, y: 20, z: -20 },
         camLerpSpeed: 0.05,
         onStart: function(scene) {
 
           // switch visibility of the stackables
           scene.swapStackablesVisibility();
 
+          scene.personSystem.movePeople('appraisers', [
+            {x: -30, y: 1.0, z: -20},
+            {x: -30, y: 1.0, z: 20},
+            .01
+          ]);
+
           scene.personSystem.makePersonSpeak('kids', 0, '✨', 3);
           scene.personSystem.makePersonSpeak('kids', 1, '🌟', 3);
-          this.particleSystem.emitEmojiParticles(
-              {x: -10, y: 3, z: -10},
-              "💫",
-              3
-          );
 
           // loop 4 times getting the kids to pirouette towards rotating invisible points on a ciricle radius 5
           for (let i = 0; i < 4; i++) {
@@ -250,6 +251,24 @@ export class EventSequence {
               ], 2.0);
             }, i * 2000);
           }
+
+          // after the dancing, emit the score particles from the kids' positions
+
+          setTimeout(() => {
+            scene.scoringSystem.emitScoreParticles(
+                'wishfulScene',
+                scene.personSystem.getAppraisers()[0].getSpeechPosition(),
+                15
+            );
+            // a fixed overlay describing the point allocation concisely
+            this.textOverlays.push(
+              this.textOverlaySystem.addFixedOverlay('A wishful scene was memorable! 15 points', 600, 340, {
+                  fontSize: '24px',
+                  textAlign: 'left',
+                  width: '550px',
+              })
+            )
+          }, 4000);
 
             // instaed Emit score particles at the appropriate moments in your EventSequence
             // setTimeout(() => {
@@ -282,7 +301,7 @@ export class EventSequence {
             // }, 1500);
             
 
-            this.scene.scoringSystem.emitAllScoreParticles();
+            // this.scene.scoringSystem.emitAllScoreParticles();
           }
       },
       {

@@ -95,6 +95,12 @@ export class ScoringSystem {
         });
     }
 
+    emitScoreParticles(category, sourcePosition, quantity = 1) {
+        for (let i = 0; i < quantity; i++) {
+            this.emitScoreParticle(category, sourcePosition);
+        }
+    }
+
     emitScoreParticle(category, sourcePosition) {
         const categoryConfig = this.categories[category];
         if (!categoryConfig) return;
@@ -115,7 +121,7 @@ export class ScoringSystem {
             sourcePos: sourcePosition.clone(),
             targetPos: targetPos,
             progress: 0,
-            speed: 0.5 + Math.random() * 0.5
+            speed: 0.25
         };
 
         this.scoreParticles.push(particleData);
@@ -129,7 +135,7 @@ update(deltaTime) {
         data.progress = Math.min(1, data.progress + deltaTime * data.speed);
         
         // If we're very close to the target but not quite there, snap to final position
-        if (data.progress > 0.99) {
+        if (data.progress > 0.95) {
             data.particle.position.copy(data.targetPos);
             data.progress = 1;
             continue;
