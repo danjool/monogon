@@ -211,7 +211,10 @@ export class PhysicsWorker {
     toggleAttraction() {
       this.isAttracted = !this.isAttracted;
       this.worker.postMessage({ action: 'toggleAttraction' });
-      this.worker.postMessage({ action: 'teleportTo', position: [0, 0, 0] });
+    }
+
+    teleportTo(position) {
+      this.worker.postMessage({ action: 'teleportTo', position });
     }
 
     updateTargetPositions(newPositions) {

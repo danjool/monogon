@@ -226,9 +226,9 @@ export class EventSequence {
       },
       {
         desc: "Story Begins - Wishful Scene",
-        duration: 25,
+        duration: 10,
         cam: { x: -20, y: 10, z: 80 },
-        lookAt: { x: 0, y: 20, z: -20 },
+        lookAt: { x: -20, y: 20, z: -20 },
         camLerpSpeed: 0.05,
         onStart: function(scene) {
 
@@ -273,91 +273,172 @@ export class EventSequence {
             )
           }, 4000);
 
-            // instaed Emit score particles at the appropriate moments in your EventSequence
-            // this.setManagedTimeout(() => {
-            //     scene.scoringSystem.emitScoreParticle(
-            //         'wishfulScene',
-            //         new THREE.Vector3(-10, 3, -10)
-            //     );
-            // }, 500);
-    
-            // this.setManagedTimeout(() => {
-            //     for (let i = 0; i < 20; i++) { // Creativity points
-            //         this.setManagedTimeout(() => {
-            //             scene.scoringSystem.emitScoreParticle(
-            //                 'creativity',
-            //                 new THREE.Vector3(-10, 3, -10)
-            //             );
-            //         }, i * 100); // Stagger each point's emission
-            //     }
-            // }, 1000);
-    
-            // this.setManagedTimeout(() => {
-            //     for (let i = 0; i < 5; i++) { // Initial storytelling points
-            //         this.setManagedTimeout(() => {
-            //             scene.scoringSystem.emitScoreParticle(
-            //                 'storytellingStart',
-            //                 new THREE.Vector3(-10, 3, -10)
-            //             );
-            //         }, i * 100);
-            //     }
-            // }, 1500);
-            
+          // similarly as above but for:
+          // (20/20 Points are allocated for Creativity of how someone wishes for how someone attempts to gain something they lack)
+          //   (5/15 beginning points for Clear and Effective Storytelling)
 
-            // this.scene.scoringSystem.emitAllScoreParticles();
+          this.setManagedTimeout(() => {
+            scene.scoringSystem.emitScoreParticles(
+
+                'creativity',
+                scene.personSystem.getAppraisers()[1].getSpeechPosition(),
+                20
+            );
+            this.textOverlays.push(
+              this.textOverlaySystem.addFixedOverlay('Something is lacked, Creatively told! 20 points', 400, 240, {
+                  fontSize: '24px',
+                  textAlign: 'left',  
+                  width: '550px',
+              })
+            )
+          }, 5000);
+
+          this.setManagedTimeout(() => {
+            scene.scoringSystem.emitScoreParticles(
+                'storytellingStart',
+                scene.personSystem.getAppraisers()[1].getSpeechPosition(),
+                5
+            );
+            this.textOverlays.push(
+              this.textOverlaySystem.addFixedOverlay('Storytelling is Clear and Effective! 5 points', 160, 480, {
+                  fontSize: '24px',
+                  textAlign: 'left',
+                  width: '550px',
+              })
+            )
+          }, 6000);            
           }
       },
       {
           desc: "Assembly Equipment Activates",
-          duration: .2,
-          cam: this.defaultCam,
-          lookAt: "centerOfScene",
+          duration: 6,
           onStart: function(scene) {
-              this.toggleAttraction(true);
+            this.toggleAttraction(true);
               
-              scene.personSystem.makeGroupSpeak('kids', '🎯', 2);
+            scene.personSystem.makeGroupSpeak('kids', '🎯', 2);
+
+            this.setManagedTimeout(() => {
+              scene.scoringSystem.emitScoreParticles(
+                  'assemblyDesign',
+                  scene.personSystem.getAppraisers()[0].getSpeechPosition(),
+                  15
+              );
+              this.textOverlays.push(
+                this.textOverlaySystem.addFixedOverlay('Design Assembly is well done! 15 points', 600, 380, {
+                    fontSize: '24px',
+                    textAlign: 'left',
+                    width: '550px',
+                })
+              )
+            }, 1000);
+
+            this.setManagedTimeout(() => {
+              scene.scoringSystem.emitScoreParticles(
+                  'assemblyInnovation',
+                  scene.personSystem.getAppraisers()[1].getSpeechPosition(),
+                  15
+              );
+              this.textOverlays.push(
+                this.textOverlaySystem.addFixedOverlay('Innovation Assembly is well done! 15 points', 600, 380, {
+                    fontSize: '24px',
+                    textAlign: 'left',
+                    width: '550px',
+                })
+              )
+            }, 2000);
           }
       },
       {
-          desc: "Stack Assembly",
-          duration: 4,
-          cam: this.defaultCam,
-          lookAt: "centerOfScene",
+          desc: "Team signals completion of Stack Assembly",
+          duration: 6,
+          // cam: this.defaultCam,
+          // lookAt: "centerOfScene",
           onStart: function(scene) {
-              scene.personSystem.makePersonSpeak('kids', 0, '🎮', 3);
-              this.particleSystem.emitEmojiParticles(
-                  {x: 0, y: 2, z: 0},
-                  "⚡",
-                  2
-              );
+              scene.personSystem.makeGroupSpeak('kids', '✅', 2);
+
+              this.setManagedTimeout(() => {
+                  scene.scoringSystem.emitScoreParticles(
+                      'stackableRisk',
+                      scene.personSystem.getAppraisers()[0].getSpeechPosition(),
+                      30
+                  );
+                  this.textOverlays.push(
+                    this.textOverlaySystem.addFixedOverlay('Stackables least risky shape! 0/30 points', 600, 380, {
+                        fontSize: '24px',
+                        textAlign: 'left',
+                        width: '550px',
+                    })
+                  )
+              }, 1000);
+
+              this.setManagedTimeout(() => {
+                scene.scoringSystem.emitScoreParticles(
+                    'stackRisk',
+                    scene.personSystem.getAppraisers()[0].getSpeechPosition(),
+                    30
+                );
+                this.textOverlays.push(
+                  this.textOverlaySystem.addFixedOverlay('Stacked one atop another! 0/30 points', 600, 380, {
+                      fontSize: '24px',
+                      textAlign: 'left',
+                      width: '550px',
+                  })
+                )
+            }, 2000);
           }
       },
       {
           desc: "Team Choice Element 1",
-          duration: 3,
-          cam: this.defaultCam,
+          duration: 6,
+          // cam: this.defaultCam,
           lookAt: "teamChoiceElement1",
           onStart: function(scene) {
-              this.particleSystem.emitEmojiParticles(
-                  {x: 5, y: 2, z: 0},
-                  "🔮",
-                  2
-              );
-              scene.personSystem.makePersonSpeak('kids', 1, '🎨', 2);
-          }
-      },
-      {
-          desc: "Stack Assembly Completes",
-          duration: 2,
-          cam: this.defaultCam,
-          lookAt: "topOfStack",
-          onStart: function(scene) {
-              this.particleSystem.emitEmojiParticles(
-                  {x: 0, y: 10, z: 0},
-                  "🎯",
-                  2
-              );
-              scene.personSystem.makeGroupSpeak('kids', '🎉', 2);
+            scene.personSystem.makePersonSpeak('kids', 1, '🎨', 2);            
+            this.setManagedTimeout(() => {
+                scene.scoringSystem.emitScoreParticles(
+                    'teamChoice1',
+                    scene.personSystem.getAppraisers()[0].getSpeechPosition(),
+                    10
+                );
+                this.textOverlays.push(
+                  this.textOverlaySystem.addFixedOverlay('Creativity and Originality! 10 points', 600, 380, {
+                      fontSize: '24px',
+                      textAlign: 'left',
+                      width: '550px',
+                  })
+                )
+            }, 1000);
+
+            this.setManagedTimeout(() => {
+                scene.scoringSystem.emitScoreParticles(
+                    'teamChoice1',
+                    scene.personSystem.getAppraisers()[0].getSpeechPosition(),
+                    10
+                );
+                this.textOverlays.push(
+                  this.textOverlaySystem.addFixedOverlay('Quality, Workmanship, or Effort! 10 points', 600, 380, {
+                      fontSize: '24px',
+                      textAlign: 'left',
+                      width: '550px',
+                  })
+                )
+            }, 2000);
+
+            this.setManagedTimeout(() => {
+                scene.scoringSystem.emitScoreParticles(
+                    'teamChoice1',
+                    scene.personSystem.getAppraisers()[0].getSpeechPosition(),
+                    10
+                );
+                this.textOverlays.push(
+                  this.textOverlaySystem.addFixedOverlay('Integration into the Presentation! 10 points', 600, 380, {
+                      fontSize: '24px',
+                      textAlign: 'left',
+                      width: '550px',
+                  })
+                )
+            }, 3000);
+
           }
       },
       {
@@ -369,11 +450,39 @@ export class EventSequence {
               scene.personSystem.makePersonSpeak('kids', 0, '😖', 3);
               scene.personSystem.makePersonSpeak('kids', 1, '😟', 3);
               scene.personSystem.makePersonSpeak('kids', 2, '😨', 3);
-              this.particleSystem.emitEmojiParticles(
-                  {x: 0, y: 2, z: 0},
-                  "😖",
-                  1
-              );
+              
+        //       (5/15 middle points for Clear and Effective Storytelling, things are easy to understand, and events happen for reasons)
+        // (15/15 pts for Dramatic Impact of Frustration Point)
+
+              this.setManagedTimeout(() => {
+                scene.scoringSystem.emitScoreParticles(
+                    'storytellingMiddle',
+                    scene.personSystem.getAppraisers()[1].getSpeechPosition(),
+                    5
+                );
+                this.textOverlays.push(
+                  this.textOverlaySystem.addFixedOverlay('Storytelling is Clear and Effective! 5 points', 160, 480, {
+                      fontSize: '24px',
+                      textAlign: 'left',
+                      width: '550px',
+                  })
+                )
+              }, 1000);
+
+              this.setManagedTimeout(() => {
+                scene.scoringSystem.emitScoreParticles(
+                    'frustrationPoint',
+                    scene.personSystem.getAppraisers()[0].getSpeechPosition(),
+                    15
+                );
+                this.textOverlays.push(
+                  this.textOverlaySystem.addFixedOverlay('Dramatic Impact of Frustration Point! 15 points', 600, 380, {
+                      fontSize: '24px',
+                      textAlign: 'left',
+                      width: '550px',
+                  })
+                )
+              }, 2000);
           }
       },
       {
