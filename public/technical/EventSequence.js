@@ -391,7 +391,7 @@ export class EventSequence {
           desc: "Team Choice Element 1",
           duration: 6,
           // cam: this.defaultCam,
-          lookAt: "teamChoiceElement1",
+          // lookAt: "teamChoiceElement1",
           onStart: function(scene) {
             scene.personSystem.makePersonSpeak('kids', 1, '🎨', 2);            
             this.setManagedTimeout(() => {
@@ -444,8 +444,6 @@ export class EventSequence {
       {
           desc: "Frustration Point",
           duration: 3,
-          cam: this.defaultCam,
-          lookAt: "kid1",
           onStart: function(scene) {
               scene.personSystem.makePersonSpeak('kids', 0, '😖', 3);
               scene.personSystem.makePersonSpeak('kids', 1, '😟', 3);
@@ -487,7 +485,7 @@ export class EventSequence {
       },
       {
         desc: "Destruction Equipment Activates",
-        duration: 2,
+        duration: 5,
         cam: this.defaultCam,
         lookAt: "centerOfScene",
         onStart: function(scene) {
@@ -545,33 +543,46 @@ export class EventSequence {
             
             // Audio-visual feedback for the team
             scene.personSystem.makeGroupSpeak('kids', '🌌', 2);
+
+            // (15 pts Design Destruction)
+            // (15 pts Innovation Destruction)
+
+            this.setManagedTimeout(() => {
+                scene.scoringSystem.emitScoreParticles(
+                    'destructionDesign',
+                    scene.personSystem.getAppraisers()[0].getSpeechPosition(),
+                    15
+                );
+                this.textOverlays.push(
+                  this.textOverlaySystem.addFixedOverlay('Destruction Equipment, Technically Designed: 15 points', 600, 380, {
+                      fontSize: '24px',
+                      textAlign: 'left',
+                      width: '550px',
+                  })
+                )
+            }, 1000);
+
+            this.setManagedTimeout(() => {
+                scene.scoringSystem.emitScoreParticles(
+                    'destructionInnovation',
+                    scene.personSystem.getAppraisers()[1].getSpeechPosition(),
+                    15
+                );
+                this.textOverlays.push(
+                  this.textOverlaySystem.addFixedOverlay('Innovative Destruction! 15 points', 600, 380, {
+                      fontSize: '24px',
+                      textAlign: 'left',
+                      width: '550px',
+                  })
+                )
+            }, 2000);
         },
       },
       {
-          desc: "Stack Destruction",
-          duration: 5,
-          cam: this.defaultCam,
-          lookAt: "centerOfScene"
-      },
-      {
-          desc: "Items Land in Zones",
-          duration: 3,
-          cam: this.defaultCam,
-          lookAt: "centerOfScene",
+          desc: "Items Come to Rest in Zones",
+          duration: 6,
           onStart: function(scene) {
-              const emissions = [
-                  { pos: {x: -7, y: 0.5, z: -7}, emoji: "🌕", count: 2, lifetime: 5 },
-                  { pos: {x: -5, y: 0.5, z: -5}, emoji: "🌗", count: 2, lifetime: 4 },
-                  { pos: {x: -3, y: 0.5, z: -3}, emoji: "🌘", count: 1, lifetime: 3 }
-              ];
-              emissions.forEach(emission => {
-                  this.particleSystem.emitEmojiParticles(
-                      emission.pos,
-                      emission.emoji,
-                      emission.count,
-                      emission.lifetime
-                  );
-              });
+              
           }
       },
       {

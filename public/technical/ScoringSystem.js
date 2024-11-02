@@ -151,7 +151,7 @@ update(deltaTime) {
 
         // Early in the animation, add some randomness
         let randomOffset = new THREE.Vector3();
-        const wiggle = 1.0;
+        const wiggle = .2;
         if (t < 0.8) {  // Only apply randomness during the first 80% of travel
             randomOffset.set(
                 (Math.random() - 0.5) * (1 - t) * wiggle,  // Decrease random effect over time
