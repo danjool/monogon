@@ -134,7 +134,7 @@ export class EventSequence {
         }
     },
       {
-          desc: "Initial Setup Outside Presentation Area",
+          desc: "Prepare Outside Presentation Area",
           duration: 3,
           cam: { x: -150, y: 10, z: 20 },
           lookAt: { x: 40, y: 0, z: 0 },
@@ -150,8 +150,9 @@ export class EventSequence {
       },
       {
         desc: "Are You Ready?",
-        duration: 2,
-        cam: this.defaultCam,
+        duration: 3,
+        cam: { x: -150, y: 10, z: 20 },
+        lookAt: { x: 40, y: 0, z: 0 },
         lookAt: "appraisers",
         onStart: function(scene) {
             scene.personSystem.makePersonSpeak('appraisers', 0, '❓', 2);
@@ -162,18 +163,18 @@ export class EventSequence {
     },
     {
         desc: "Time Starts Now!",
-        duration: 2,
-        cam: this.defaultCam,
-        lookAt: "kid1",
+        duration: 3,
+        cam: { x: -150, y: 10, z: 20 },
+        lookAt: { x: 40, y: 0, z: 0 },
         onStart: function(scene) {
             scene.personSystem.makePersonSpeak('appraisers', 0, '⏱️', 1);
         }
     },
       {
           desc: "Team Enters with Equipment",
-          duration: .5,
-          cam: this.defaultCam,
-          lookAt: "kid1",
+          duration: 3,
+          cam: { x: -150, y: 10, z: 20 },
+          lookAt: { x: 40, y: 0, z: 0 },
           onStart: function(scene) {
               scene.personSystem.movePeople('kids', [
                   {x: -10, y: 5, z: -15}, 
@@ -855,6 +856,12 @@ export class EventSequence {
     } else if(currentEvent.cam) {
         camera.position.set(currentEvent.cam.x, currentEvent.cam.y, currentEvent.cam.z);
     }
+
+    // use scene.personSystem.makeGroupLookAt to get the kids and appraisers to look at the camera after ever change
+    if(currentEvent.cam) {
+        this.scene.personSystem.makeGroupLookAt('kids', {x: currentEvent.cam.x, y: currentEvent.cam.y, z: currentEvent.cam.z});
+        this.scene.personSystem.makeGroupLookAt('appraisers', {x: currentEvent.cam.x, y: currentEvent.cam.y, z: currentEvent.cam.z});
+    } 
 
   // Handle lookAt target
   const lookAtTarget = this.getLookAtTarget(currentEvent.lookAt);

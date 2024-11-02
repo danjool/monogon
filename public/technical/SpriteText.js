@@ -14,7 +14,7 @@ export class SpriteText extends THREE.Sprite {
     this._backgroundColor = false; // no background color
     this.renderOrder = 2000; // Set higher than all zone render orders
 
-    this._padding = 10; // Add padding to prevent clipping
+    this._padding = 32; // Increased padding for higher res
     this._borderWidth = 0;
     this._borderRadius = 0;
     this._borderColor = 'white';
@@ -23,23 +23,35 @@ export class SpriteText extends THREE.Sprite {
     this._strokeColor = 'white';
 
     this._fontFace = 'system-ui';
-    this._fontSize = 90; // defines text resolution
+    this._fontSize = 256; // Much larger base font size for higher resolution
     this._fontWeight = 'normal';
 
     this._canvas = document.createElement('canvas');
+    this._canvas.width = 512;  // Fixed larger canvas size
+    this._canvas.height = 512; // Fixed larger canvas size
 
     this._genCanvas();
   }
 
   _genCanvas() {
     const context = this._canvas.getContext('2d');
+
+    // Enable font smoothing
+    // context.imageSmoothingEnabled = true;
+    // context.imageSmoothingQuality = 'high';
+
     context.font = `${this._fontWeight} ${this._fontSize}px ${this._fontFace}`;
     const textWidth = context.measureText(this._text).width;
     const textHeight = this._fontSize;
 
-    // Increase canvas size to accommodate padding
-    this._canvas.width = textWidth + this._padding * 2;
-    this._canvas.height = textHeight + this._padding * 2;
+    // Calculate scaled dimensions while maintaining aspect ratio
+    const scale = Math.min(512 / (textWidth + this._padding * 2), 512 / (textHeight + this._padding * 2));
+    const scaledWidth = (textWidth + this._padding * 2) * scale;
+    const scaledHeight = (textHeight + this._padding * 2) * scale;
+
+    // Set canvas size to power of 2 for optimal texture handling
+    this._canvas.width = 512;
+    this._canvas.height = 512;
 
     // Clear the canvas
     context.clearRect(0, 0, this._canvas.width, this._canvas.height);
@@ -50,16 +62,26 @@ export class SpriteText extends THREE.Sprite {
       context.fillRect(0, 0, this._canvas.width, this._canvas.height);
     }
 
-    // Set text properties
+    // Center the text in the canvas
     context.font = `${this._fontWeight} ${this._fontSize}px ${this._fontFace}`;
-    context.textBaseline = 'top';
+    context.textBaseline = 'middle';
+    context.textAlign = 'center';
     context.fillStyle = this._color;
 
-    // Draw the text with padding
-    context.fillText(this._text, this._padding, this._padding);
+    // Draw the text centered
+    context.fillText(
+      this._text, 
+      this._canvas.width / 2,
+      this._canvas.height / 2
+    );
 
-    // Update the texture
-    this.material.map = new THREE.CanvasTexture(this._canvas);
+    // Update the texture with mipmapping and filtering
+    const texture = new THREE.CanvasTexture(this._canvas);
+    texture.generateMipmaps = true;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    
+    this.material.map = texture;
     this.material.transparent = true;
     this.material.needsUpdate = true;
   }
