@@ -21,13 +21,16 @@ export class EventSequence {
           console.log('Space pressed - next event');
           this.manualMode = true;
           this.currentEventIndex = (this.currentEventIndex + 1) % this.events.length;
+          this.clearActiveTimeouts();
           this.eventTimer = 0;
       }
       if(e.code === 'KeyA') {
           console.log('A pressed - auto mode');
           this.manualMode = false;
       }
-  });
+    });
+
+    this.activeTimeouts = new Set();
 
     // for reference, the zones after arbitraryFactor are: 10 assembly, 25 tgt1, 35 tgt2, 40 tgt3, 100 presentation area
     this.events = [
@@ -107,7 +110,7 @@ export class EventSequence {
             this.textOverlaySystem.removeAll3DOverlays();
             
             // Conversation sequence
-            setTimeout(() => {
+            this.setManagedTimeout(() => {
                 scene.personSystem.makePersonSpeak('appraisers', 0, '📋', 2);
                 scene.personSystem.makePersonSpeak('appraisers', 1, '❓', 2);
                 this.textOverlays.push(
@@ -119,7 +122,7 @@ export class EventSequence {
                 )
             }, 1000);
             
-            setTimeout(() => {
+            this.setManagedTimeout(() => {
                 scene.personSystem.makePersonSpeak('kids', 0, '📏', 2); // measuring
                 scene.personSystem.makePersonSpeak('kids', 1, '⚖️', 2); // weights
                 scene.personSystem.makePersonSpeak('kids', 2, '✅', 2); // confirmation
@@ -158,7 +161,7 @@ export class EventSequence {
         lookAt: "appraisers",
         onStart: function(scene) {
             scene.personSystem.makePersonSpeak('appraisers', 0, '❓', 2);
-            setTimeout(() => {
+            this.setManagedTimeout(() => {
                 scene.personSystem.makeGroupSpeak('kids', '👍', 1);
             }, 1000);
         }
@@ -243,7 +246,7 @@ export class EventSequence {
 
           // loop 4 times getting the kids to pirouette towards rotating invisible points on a ciricle radius 5
           for (let i = 0; i < 4; i++) {
-            setTimeout(() => {
+            this.setManagedTimeout(() => {
               scene.personSystem.makePeoplePirouette('kids', [
                 {x: -10 + 5 * Math.cos(i * Math.PI / 2), y: 1, z: -10 + 5 * Math.sin(i * Math.PI / 2)},
                 {x: -10 + 5 * Math.cos(i * Math.PI / 2 + Math.PI / 2), y: 1, z: -10 + 5 * Math.sin(i * Math.PI / 2 + Math.PI / 2)},
@@ -254,7 +257,7 @@ export class EventSequence {
 
           // after the dancing, emit the score particles from the kids' positions
 
-          setTimeout(() => {
+          this.setManagedTimeout(() => {
             scene.scoringSystem.emitScoreParticles(
                 'wishfulScene',
                 scene.personSystem.getAppraisers()[0].getSpeechPosition(),
@@ -262,7 +265,7 @@ export class EventSequence {
             );
             // a fixed overlay describing the point allocation concisely
             this.textOverlays.push(
-              this.textOverlaySystem.addFixedOverlay('A wishful scene was memorable! 15 points', 600, 340, {
+              this.textOverlaySystem.addFixedOverlay('A wishful scene was memorable! 15 points', 600, 380, {
                   fontSize: '24px',
                   textAlign: 'left',
                   width: '550px',
@@ -271,16 +274,16 @@ export class EventSequence {
           }, 4000);
 
             // instaed Emit score particles at the appropriate moments in your EventSequence
-            // setTimeout(() => {
+            // this.setManagedTimeout(() => {
             //     scene.scoringSystem.emitScoreParticle(
             //         'wishfulScene',
             //         new THREE.Vector3(-10, 3, -10)
             //     );
             // }, 500);
     
-            // setTimeout(() => {
+            // this.setManagedTimeout(() => {
             //     for (let i = 0; i < 20; i++) { // Creativity points
-            //         setTimeout(() => {
+            //         this.setManagedTimeout(() => {
             //             scene.scoringSystem.emitScoreParticle(
             //                 'creativity',
             //                 new THREE.Vector3(-10, 3, -10)
@@ -289,9 +292,9 @@ export class EventSequence {
             //     }
             // }, 1000);
     
-            // setTimeout(() => {
+            // this.setManagedTimeout(() => {
             //     for (let i = 0; i < 5; i++) { // Initial storytelling points
-            //         setTimeout(() => {
+            //         this.setManagedTimeout(() => {
             //             scene.scoringSystem.emitScoreParticle(
             //                 'storytellingStart',
             //                 new THREE.Vector3(-10, 3, -10)
@@ -548,6 +551,22 @@ export class EventSequence {
     this.tossAnimations.push(toss);
     return toss;
 }
+
+    setManagedTimeout(callback, delay) {
+        const timeoutId = setTimeout(() => {
+            callback();
+            this.activeTimeouts.delete(timeoutId);
+        }, delay);
+        this.activeTimeouts.add(timeoutId);
+        return timeoutId;
+    }
+
+    clearActiveTimeouts() {
+        this.activeTimeouts.forEach(timeoutId => {
+            clearTimeout(timeoutId);
+        });
+        this.activeTimeouts.clear();
+    }
 
   update(deltaTime, camera) {
     this.textOverlaySystem.update();
