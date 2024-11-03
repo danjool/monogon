@@ -54,6 +54,7 @@ export class EventSequence {
           ]);
 
           // this.scene.scoringSystem.emitAllScoreParticles();
+          this.scene.scoringSystem.clearScores()
         }
     },
     {
@@ -171,25 +172,18 @@ export class EventSequence {
         }
     },
       {
-          desc: "Team Enters with Equipment",
-          duration: 3,
+        desc: "Team Enters with Equipment",
+          duration: 4,
           cam: { x: -150, y: 10, z: 20 },
           lookAt: { x: 40, y: 0, z: 0 },
           onStart: function(scene) {
-              scene.personSystem.movePeople('kids', [
-                  {x: -10, y: 5, z: -15}, 
-                  {x: -10, y: 5, z: -5}, 
-                  {x: -10, y: 5, z: -10}
-              ]);
-              scene.personSystem.makeGroupSpeak('kids', '🔧', 2);
-          }
-      },
-      {
-          desc: "Setup Equipment",
-          duration: .4,
-          cam: this.defaultCam,
-          lookAt: "centerOfScene",
-          onStart: function(scene) {
+
+            scene.personSystem.movePeople('kids', [
+                {x: -10, y: 1, z: -15}, 
+                {x: -10, y: 1, z: -5}, 
+                {x: -10, y: 1, z: -10}
+            ]);
+            scene.personSystem.makeGroupSpeak('kids', '🔧', 2);
             // toss the other props into the presentation zone, like the two team choice elements
             this.startToss(scene.magicWand, scene.magicWand.position, new  THREE.Vector3(-10, 1, 30), 2, 5, 1, 5);
             this.startToss(scene.megaphone, scene.megaphone.position, new  THREE.Vector3(-20, 1, 30), 2, 5, 1, 5);
@@ -198,26 +192,13 @@ export class EventSequence {
             this.startToss(scene.teamChoiceElement1, scene.teamChoiceElement1.position, new  THREE.Vector3(-10, 1, -30), 2, 5, 1, 5);
             this.startToss(scene.teamChoiceElement2, scene.teamChoiceElement2.position, new  THREE.Vector3(-20, 1, -30), 2, 5, 1, 5);
 
+            // toss the teamSign
+            this.startToss(scene.teamSign, scene.teamSign.position, new  THREE.Vector3(-60, 1, 0), 2, 5, 1, 5);
 
-          }
-      },
-      {
-        desc: "Setup Equipment 2",
-        duration: .4,
-        cam: this.defaultCam,
-        lookAt: "centerOfScene",
-        onStart: function(scene) {
             scene.visualStackables.forEach((mesh, index) => {
-                this.startToss(mesh, mesh.position, scene.assemblyZone.position, 2, 5);
+              this.startToss(mesh, mesh.position, scene.assemblyZone.position, 2, 5);
             });
-
-            // move kids to presentation area 
-            scene.personSystem.movePeople('kids', [
-                {x: -10, y: 1, z: -60},
-                {x: -10, y: 1, z: 20},
-                {x: -10, y: 1, z: -80},
-            ]);
-        }
+          }
       },
       {
         desc: "Story Begins - Wishful Scene",

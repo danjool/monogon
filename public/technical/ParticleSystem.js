@@ -39,6 +39,7 @@ export class ParticleSystem {
       if (!particle) break; // Stop if we can't get more particles
 
       particle.text = emoji;
+      particle.scale.set(2, 2, 2);
       particle.position.copy(position).add(new THREE.Vector3(
         (Math.random() - 0.5) * 0.5,
         Math.random() * 0.5,

@@ -93,6 +93,13 @@ export class Scene extends THREE.Scene {
     this.blackHole.scale.set(0.1, 0.1, 0.1); // Start small
     this.add(this.blackHole);
 
+    // the Team Sign, a flag, in three js geom not emoji
+    const flagGeometry = new THREE.PlaneGeometry(5, 2);
+    const flagMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+    this.teamSign = new THREE.Mesh(flagGeometry, flagMaterial);
+    this.teamSign.position.set(-122, 1., 5);
+    this.add(this.teamSign);
+
   }
 
   initLights() {

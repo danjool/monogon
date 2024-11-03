@@ -249,7 +249,7 @@ class Person extends THREE.Group {
         // Return position above the person's head
         return new THREE.Vector3(
             this.position.x,
-            this.position.y + this.bodyHeight + this.headRadius * 2,
+            this.position.y + this.bodyHeight + this.headRadius * 3,
             this.position.z
         );
     }
@@ -418,7 +418,7 @@ export class PersonSystem {
         }
     }
 
-    movePeople(group, targetPositions, duration = .1) {
+    movePeople(group, targetPositions, duration = 1.1) {
         if (!this.people[group] || !targetPositions) {
             console.warn(`Invalid group "${group}" or target positions ${targetPositions}`);
             return;
