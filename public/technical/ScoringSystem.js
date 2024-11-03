@@ -24,26 +24,26 @@ export class ScoringSystem {
 
         // Score categories and their positions in the grid
         this.categories = {
-            instantChallenge: { startRow: 8, points: 100, emoji: '⚡', currentIndex: 20},
-            creativity: { startRow: 8, points: 20, emoji: '💭', currentIndex: 0 },
+            instantChallenge: { startRow: 8, points: 100, emoji: '⚡', currentIndex: 20, originalIndex: 20, },
+            creativity: { startRow: 8, points: 20, emoji: '💭', currentIndex: 0, originalIndex:  0, },
             
-            destructionDesign: { startRow: 7, points: 15, emoji: '💥', currentIndex: 0},
-            destructionInnovation: { startRow: 7, points: 15, emoji: '🔧', currentIndex: 15},
+            destructionDesign: { startRow: 7, points: 15, emoji: '💥', currentIndex: 0, originalIndex: 0, },
+            destructionInnovation: { startRow: 7, points: 15, emoji: '🔧', currentIndex: 15, originalIndex: 15, },
             
-            frustrationPoint: { startRow: 6, points: 15, emoji: '😤', currentIndex: 0},
-            wishfulScene: { startRow: 6, points: 15, emoji: '🌟', currentIndex: 15 },
+            frustrationPoint: { startRow: 6, points: 15, emoji: '😤', currentIndex: 0, originalIndex: 0, },
+            wishfulScene: { startRow: 6, points: 15, emoji: '🌟', currentIndex: 15, originalIndex:  15, },
             
-            stackRisk: { startRow: 5, points: 30, emoji: '🔺', currentIndex: 0},
-            teamChoice2: { startRow: 4, points: 30, emoji: '🎭', currentIndex: 0},
-            teamChoice1: { startRow: 3, points: 30, emoji: '🎨', currentIndex: 0},
-            stackableRisk: { startRow: 2, points: 30, emoji: '🎲', currentIndex: 0},
+            stackRisk: { startRow: 5, points: 30, emoji: '🔺', currentIndex: 0, originalIndex: 0, },
+            teamChoice2: { startRow: 4, points: 30, emoji: '🎭', currentIndex: 0, originalIndex: 0, },
+            teamChoice1: { startRow: 3, points: 30, emoji: '🎨', currentIndex: 0, originalIndex: 0, },
+            stackableRisk: { startRow: 2, points: 30, emoji: '🎲', currentIndex: 0, originalIndex: 0, },
             
-            assemblyDesign: { startRow: 1, points: 15, emoji: '⚙️', currentIndex: 0},
-            assemblyInnovation: { startRow: 1, points: 15, emoji: '💡', currentIndex: 15},
+            assemblyDesign: { startRow: 1, points: 15, emoji: '⚙️', currentIndex: 0, originalIndex: 0, },
+            assemblyInnovation: { startRow: 1, points: 15, emoji: '💡', currentIndex: 15, originalIndex: 15, },
             
-            storytellingStart: { startRow: 0, points: 5, emoji: '📖', currentIndex: 0 },
-            storytellingMiddle: { startRow: 0, points: 5, emoji: '📚', currentIndex: 12},
-            storytellingEnd: { startRow: 0, points: 5, emoji: '📝', currentIndex: 25},
+            storytellingStart: { startRow: 0, points: 5, emoji: '📖', currentIndex: 0, originalIndex:  0, },
+            storytellingMiddle: { startRow: 0, points: 5, emoji: '📚', currentIndex: 12, originalIndex: 12, },
+            storytellingEnd: { startRow: 0, points: 5, emoji: '📝', currentIndex: 25, originalIndex: 25, },
         };
 
         this.initParticlePool();
@@ -191,7 +191,7 @@ update(deltaTime) {
         
         // Reset all category column counters
         Object.values(this.categories).forEach(category => {
-            category.currentIndex = 0;
+            category.currentIndex = category.originalIndex;
         });
     }
 }
