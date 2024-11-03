@@ -38,25 +38,13 @@ export class Main {
       textAlign: 'left',
       width: '300px',
     });
-
-    // Add an overlay for each box
-    // this.scene.meshes.forEach((mesh, index) => {
-    //   this.textOverlaySystem.addObject3DOverlay(`Box ${index + 1}`, mesh, { x: 0, y: -30 });
-    // });
-
-    // Add an overlay for the current event
-    this.currentEventOverlay = this.textOverlaySystem.addFixedOverlay('', 10, 120, {
-        fontSize: '16px',
-        textAlign: 'left',
-        width: '300px',
-    });
   }
 
 
   initRenderer() {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setClearColor(this.scene.fog.color);
+    this.renderer.setClearColor(0x222211); // this.scene.fog.color
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
