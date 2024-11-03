@@ -14,8 +14,6 @@ export class EventSequence {
     this.textOverlaySystem = new TextOverlaySystem(this.scene, this.camera, this.renderer);
     this.manualMode = false;
 
-    this.defaultCam = { x: -180, y: 40, z: -180 };
-
     document.addEventListener('keydown', (e) => {
       if(e.code === 'Space') {
           console.log('Space pressed - next event');
@@ -350,7 +348,7 @@ export class EventSequence {
                     10
                 );
                 this.textOverlays.push(
-                  this.textOverlaySystem.addFixedOverlay('Quality, Workmanship, or Effort! 10 points', 20, 380, {width: '550px'})
+                  this.textOverlaySystem.addFixedOverlay('Quality, Workmanship, or Effort! 10 points', 20, 480, {width: '550px'})
                 )
             }, 2000);
 
@@ -361,7 +359,7 @@ export class EventSequence {
                     10
                 );
                 this.textOverlays.push(
-                  this.textOverlaySystem.addFixedOverlay('Integration into the Presentation! 10 points', 20, 380, {width: '550px'})
+                  this.textOverlaySystem.addFixedOverlay('Integration into the Presentation! 10 points', 20, 580, {width: '550px'})
                 )
             }, 3000);
 
@@ -590,8 +588,8 @@ export class EventSequence {
       {
           desc: "Team Choice Element 2",
           duration: 4,
-          cam: this.defaultCam,
-          lookAt: "teamChoiceElement2",
+          cam: { x: -43, y: 5, z: 40 },
+          lookAt: { x: -43, y: 0, z: 0 },
           onStart: function(scene) {
               this.textOverlaySystem.removeAll3DOverlays();
               scene.personSystem.makePersonSpeak('kids', 2, '🎨', 2);
@@ -614,7 +612,7 @@ export class EventSequence {
                       10
                   );
                   this.textOverlays.push(
-                    this.textOverlaySystem.addFixedOverlay('Quality, Workmanship, or Effort! 10 points', 600, 380, { width: '550px' })
+                    this.textOverlaySystem.addFixedOverlay('Quality, Workmanship, or Effort! 10 points', 600, 480, { width: '550px' })
                   )
               }, 2000);
 
@@ -625,7 +623,7 @@ export class EventSequence {
                       10
                   );
                   this.textOverlays.push(
-                    this.textOverlaySystem.addFixedOverlay('Integration into the Presentation! 10 points', 600, 380, { width: '550px' })
+                    this.textOverlaySystem.addFixedOverlay('Integration into the Presentation! 10 points', 600, 580, { width: '550px' })
                   )
               }, 3000);
           }
@@ -660,8 +658,8 @@ export class EventSequence {
       {
           desc: "Appraisers Ask Questions",
           duration: 6,
-          cam: this.defaultCam,
-          lookAt: "appraisers",
+          cam: { x: -20, y: 10, z: 80 },
+          lookAt: { x: -20, y: 20, z: -20 },
           onStart: function(scene) {
               scene.personSystem.movePeople('kids', [
                   {x: 0, y: 0, z: -5}
@@ -690,10 +688,10 @@ export class EventSequence {
                 scene.scoringSystem.emitScoreParticles(
                     'instantChallenge',
                     scene.personSystem.getAppraisers()[0].getSpeechPosition(),
-                    20
+                    100
                 );
                 this.textOverlays.push(
-                  this.textOverlaySystem.addFixedOverlay('Instant Challenge! 20 points', 600, 380, { width: '550px' })
+                  this.textOverlaySystem.addFixedOverlay('Instant Challenge! 100 points', 600, 380, { width: '550px' })
                 )
               }, 1000);
           }
