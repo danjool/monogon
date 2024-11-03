@@ -475,16 +475,11 @@ export class PersonSystem {
         if (this.people[group]) {
             console.log('people', this.people[group]);
             this.people[group].forEach(person => {
-                // person.lookAt(target); // busted for now
-
-                // re use to point at camera
-                // rotate along the y axis to point the whole person at the camera
                 const angle = Math.atan2(
                     target.x - person.position.x,
                     target.z - person.position.z
                 );
-                person.rotation.y = angle;
-            
+                person.rotation.y = angle;            
             });
         }
     }

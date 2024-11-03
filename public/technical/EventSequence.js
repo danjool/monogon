@@ -405,12 +405,10 @@ export class EventSequence {
         onStart: function(scene) {
             this.toggleAttraction(false);
             
-            // Animate black hole expansion and contraction
             const blackHole = scene.blackHole;
             const expandDuration = 1.0; // seconds
-            const maxScale = 6.0;
+            const maxScale = 10.0;
             
-            // Expansion animation
             const expand = () => {
                 const startScale = 0.1;
                 let startTime = Date.now();
@@ -433,7 +431,6 @@ export class EventSequence {
                 requestAnimationFrame(expandAnimation);
             };
             
-            // Contraction animation
             const contract = () => {
                 const startTime = Date.now();
                 
@@ -442,6 +439,7 @@ export class EventSequence {
                     const progress = Math.min(elapsed / expandDuration, 1);
                     const scale = maxScale * (1 - progress);
                     
+                    blackHole.position.set(0, 0, 0);
                     blackHole.scale.set(scale, scale, scale);
                     
                     if (progress < 1) {
@@ -452,14 +450,9 @@ export class EventSequence {
                 requestAnimationFrame(contractAnimation);
             };
             
-            // Start the animation sequence
             expand();
             
-            // Audio-visual feedback for the team
             scene.personSystem.makeGroupSpeak('kids', '🌌', 2);
-
-            // (15 pts Design Destruction)
-            // (15 pts Innovation Destruction)
 
             this.setManagedTimeout(() => {
                 scene.scoringSystem.emitScoreParticles(
@@ -702,7 +695,6 @@ export class EventSequence {
     this.particleCooldown = 0;
     this.particleCooldownTime = 0.5; // Cooldown time in seconds
     this.tossAnimations = [];
-    console.log('EventSequence', this.events.length);// given 24 events so far
   }
 
   startToss(object, startPos, endPos, duration = 1, maxHeight = 5) {
@@ -735,9 +727,6 @@ export class EventSequence {
     
     this.eventTimer += deltaTime;
     this.particleCooldown -= deltaTime;
-    
-
-    // console.log('update', this.currentEventIndex, currentEvent);
 
     if(deltaTime === this.eventTimer || 0 === this.eventTimer) { // First frame of new event
         
@@ -762,8 +751,6 @@ export class EventSequence {
             if(overlay.type === 'fixed') this.textOverlaySystem.removeOverlay(overlay);
           });
           
-          // this.currentEventOverlay.element.textContent = `Current Event: ${currentEvent.desc}`;
-          // put it on screen fixed
           const element = this.textOverlaySystem.addFixedOverlay(`  ${currentEvent.desc}`, 10, 140, {
               fontSize: '16px',
               width: '300px',
@@ -772,12 +759,6 @@ export class EventSequence {
 
         }
 
-        // new way, using PersonSystem
-        if(currentEvent.kidPositions) this.scene.personSystem.movePeople('kids', currentEvent.kidPositions);
-        if(currentEvent.appraiserPositions) this.scene.personSystem.movePeople('appraisers', currentEvent.appraiserPositions);
-        if(currentEvent.audiencePositions) this.scene.personSystem.movePeople('audience', currentEvent.audiencePositions);
-
-        // Handle speech events
         if(currentEvent.speechEvents) {
             currentEvent.speechEvents.forEach(speech => {
                 if(speech.index !== undefined) {
@@ -800,6 +781,12 @@ export class EventSequence {
         if(currentEvent.onStart) {
           currentEvent.onStart.call(this, this.scene);
         }
+
+        if(currentEvent.cam) {
+          this.scene.personSystem.makeGroupLookAt('kids', {x: currentEvent.cam.x, y: currentEvent.cam.y, z: currentEvent.cam.z});
+          this.scene.personSystem.makeGroupLookAt('appraisers', {x: currentEvent.cam.x, y: currentEvent.cam.y, z: currentEvent.cam.z});
+        } 
+
     } // end of first frame of new event
 
     if(currentEvent.camLerpSpeed !== undefined && currentEvent.cam) {
@@ -811,37 +798,31 @@ export class EventSequence {
         camera.position.set(currentEvent.cam.x, currentEvent.cam.y, currentEvent.cam.z);
     }
 
-    // use scene.personSystem.makeGroupLookAt to get the kids and appraisers to look at the camera after ever change
-    if(currentEvent.cam) {
-        this.scene.personSystem.makeGroupLookAt('kids', {x: currentEvent.cam.x, y: currentEvent.cam.y, z: currentEvent.cam.z});
-        this.scene.personSystem.makeGroupLookAt('appraisers', {x: currentEvent.cam.x, y: currentEvent.cam.y, z: currentEvent.cam.z});
-    } 
-
-  // Handle lookAt target
-  const lookAtTarget = this.getLookAtTarget(currentEvent.lookAt);
-  if (lookAtTarget) {
-    // Store the lookAt target for controls
-    this.currentLookAtTarget = lookAtTarget;
-    
-    if (currentEvent.camLerpSpeed !== undefined) {
-      // If we're lerping the camera, also lerp the lookAt
-      if (!this.lastLookAtTarget) {
+    // Handle lookAt target
+    const lookAtTarget = this.getLookAtTarget(currentEvent.lookAt);
+    if (lookAtTarget) {
+      // Store the lookAt target for controls
+      this.currentLookAtTarget = lookAtTarget;
+      
+      if (currentEvent.camLerpSpeed !== undefined) {
+        // If we're lerping the camera, also lerp the lookAt
+        if (!this.lastLookAtTarget) {
+          this.lastLookAtTarget = lookAtTarget.clone();
+        }
+        
+        this.lastLookAtTarget.lerp(lookAtTarget, currentEvent.camLerpSpeed);
+        camera.lookAt(this.lastLookAtTarget);
+        this.controls.target.copy(this.lastLookAtTarget);
+      } else {
+        // Immediate lookAt
+        camera.lookAt(lookAtTarget);
+        this.controls.target.copy(lookAtTarget);
         this.lastLookAtTarget = lookAtTarget.clone();
       }
-      
-      this.lastLookAtTarget.lerp(lookAtTarget, currentEvent.camLerpSpeed);
-      camera.lookAt(this.lastLookAtTarget);
-      this.controls.target.copy(this.lastLookAtTarget);
-    } else {
-      // Immediate lookAt
-      camera.lookAt(lookAtTarget);
-      this.controls.target.copy(lookAtTarget);
-      this.lastLookAtTarget = lookAtTarget.clone();
     }
-  }
 
-  // Important: Update controls after changing target
-  this.controls.update();
+    // Important: Update controls after changing target
+    this.controls.update();
     // Handle particle emissions with cooldown
     if (currentEvent.emitParticles && this.particleCooldown <= 0) {
       if (Array.isArray(currentEvent.emitParticles)) {
@@ -938,8 +919,6 @@ class TossAnimation {
       const z = this.startPos.z + (this.endPos.z - this.startPos.z) * t;
 
       // Parabolic arc for y
-      // h(t) = h0 * (1-t) + h1 * t + t * (1-t) * maxHeight
-      // where h0 is start height, h1 is end height
       const h0 = this.startPos.y;
       const h1 = this.endPos.y;
       const y = h0 * (1-t) + h1 * t + 4 * t * (1-t) * this.maxHeight;
