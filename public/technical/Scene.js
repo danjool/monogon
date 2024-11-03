@@ -79,11 +79,13 @@ export class Scene extends THREE.Scene {
   initProps() {
     // magic wand
     this.magicWand = new SpriteText('🎆', 1, 'white'); // magic wand emoji options: ✨🌟🎉🎊🎈🎇 emojis are accessed with windows-period 🔌🧲
+    this.magicWand.scale.set(3.0, 3.0, 3.0);
     this.magicWand.position.set(-122, 2.5, -5);
     this.add(this.magicWand);
 
     // megaphone
     this.megaphone = new SpriteText('📢', 1, 'white')
+    this.megaphone.scale.set(3.0, 3.0, 3.0);
     this.megaphone.position.set(-122, 2.5, -5);
     this.add(this.megaphone);
 

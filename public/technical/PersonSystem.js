@@ -22,7 +22,7 @@ class Person extends THREE.Group {
         this.legWidth = 0.3;
         this.legHeight = isChild ? 1.5 : 2;
         this.armWidth = 0.25;
-        this.armHeight = isChild ? 1.2 : 1.8;
+        this.armHeight = isChild ? 1.5 : 1.8;
         
         // Create materials
         this.material = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
@@ -132,15 +132,17 @@ class Person extends THREE.Group {
         this.heldObject = object;
         this.isHolding = true;
         
-        this.rightArm.rotation.z = -3 * Math.PI / 2;
+        // this.rightArm.rotation.z = -3 * Math.PI / 2;
+        this.leftArm.rotation.z = 3 * Math.PI / 2
         
         if (object) {
-            this.rightArm.add(object);
+            // this.rightArm.add(object);
+            this.leftArm.add(object);
             // Position at the end of the arm
-            object.position.set(0, this.armHeight, 0);
+            object.position.set(0, this.armHeight * 1.3, 0);
             // If it's a SpriteText, we might want to adjust its scale
             if (object.type === 'Sprite') {
-                object.scale.set(0.5, 0.5, 0.5);
+                // object.scale.set(0.5, 0.5, 0.5);
             }
         }
     }
@@ -305,7 +307,8 @@ class Person extends THREE.Group {
 
         // If holding an object, keep the arm up
         if (this.isHolding) {
-            this.rightArm.rotation.z = -3 * Math.PI / 2;
+            this.leftArm.rotation.z = 3 * Math.PI / 2;
+            // this.rightArm.rotation.z = -3 * Math.PI / 2;
         }
          
         return { shouldEmit: false };

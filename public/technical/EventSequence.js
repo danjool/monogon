@@ -183,12 +183,12 @@ export class EventSequence {
             ]);
             scene.personSystem.makeGroupSpeak('kids', '🔧', 2);
             // toss the other props into the presentation zone, like the two team choice elements
-            this.startToss(scene.magicWand, scene.magicWand.position, new  THREE.Vector3(-10, 1, 30), 2, 5, 1, 5);
-            this.startToss(scene.megaphone, scene.megaphone.position, new  THREE.Vector3(-20, 1, 30), 2, 5, 1, 5);
+            this.startToss(scene.magicWand, scene.magicWand.position, new  THREE.Vector3(10, 1, -50), 2, 5, 1, 5);
+            this.startToss(scene.megaphone, scene.megaphone.position, new  THREE.Vector3(-10, 1, -50), 2, 5, 1, 5);
 
             // toss the teacm choice elements
-            this.startToss(scene.teamChoiceElement1, scene.teamChoiceElement1.position, new  THREE.Vector3(-10, 1, -30), 2, 5, 1, 5);
-            this.startToss(scene.teamChoiceElement2, scene.teamChoiceElement2.position, new  THREE.Vector3(-20, 1, -30), 2, 5, 1, 5);
+            this.startToss(scene.teamChoiceElement1, scene.teamChoiceElement1.position, new  THREE.Vector3(-10, 1, -45), 2, 5, 1, 5);
+            this.startToss(scene.teamChoiceElement2, scene.teamChoiceElement2.position, new  THREE.Vector3(-20, 1, -45), 2, 5, 1, 5);
 
             // toss the teamSign
             this.startToss(scene.teamSign, scene.teamSign.position, new  THREE.Vector3(-54, 1, 10), 2, 5, 1, 5);
@@ -328,7 +328,23 @@ export class EventSequence {
       {
           desc: "Team Choice Element 1",
           duration: 4,
+          cam: { x: -20, y: 1, z: -25 },
+          lookAt: { x: -20, y: 4, z: -45 },
+          camLerpSpeed: 0.05,
           onStart: function(scene) {
+
+            // move kids around the team choice element 1
+            scene.personSystem.movePeople('kids', [
+                {x: -15, y: 1, z: -45}, 
+                {x: -25, y: 1, z: -45}, 
+                {x: -25, y: 1, z: -40}
+            ]);
+            // move appraisers behind the kids
+            scene.personSystem.movePeople('appraisers', [
+                {x: -10, y: 1, z: -60},
+                {x: -20, y: 1, z: -60}
+            ]);
+
             scene.personSystem.makePersonSpeak('kids', 1, '🎨', 2);            
             this.setManagedTimeout(() => {
                 scene.scoringSystem.emitScoreParticles(
@@ -367,14 +383,14 @@ export class EventSequence {
       },
       {
           desc: "Frustration Point",
-          duration: 3,
+          duration: 4,
+          cam: { x: -20, y: 8, z: 45 },
+          lookAt: { x: -20, y: 8, z: -45 },
+          camLerpSpeed: 0.05,
           onStart: function(scene) {
               scene.personSystem.makePersonSpeak('kids', 0, '😖', 3);
               scene.personSystem.makePersonSpeak('kids', 1, '😟', 3);
               scene.personSystem.makePersonSpeak('kids', 2, '😨', 3);
-              
-        //       (5/15 middle points for Clear and Effective Storytelling, things are easy to understand, and events happen for reasons)
-        // (15/15 pts for Dramatic Impact of Frustration Point)
 
               this.setManagedTimeout(() => {
                 scene.scoringSystem.emitScoreParticles(
@@ -397,11 +413,22 @@ export class EventSequence {
                   this.textOverlaySystem.addFixedOverlay('Dramatic Impact of Frustration Point! 15 points', 20, 380, {width: '550px' })
                 )
               }, 2000);
+
+              scene.personSystem.movePeople('kids', [
+                  {x: -15, y: 1, z: -25}, 
+                  {x: -25, y: 1, z: -35}, 
+                  {x: -25, y: 1, z: -30}
+              ]);
+              // makePersonHoldObject(group, personIndex, object) {
+              scene.personSystem.makePersonHoldObject('kids', 0, scene.megaphone);
+
           }
       },
       {
         desc: "Destruction Equipment Activates",
         duration: 6,
+        cam: { x: -20, y: 10, z: 80 },
+        lookAt: { x: -20, y: 11, z: -20 },
         onStart: function(scene) {
             this.toggleAttraction(false);
             
@@ -478,7 +505,7 @@ export class EventSequence {
         },
       },
       {
-          desc: "Items Come to Rest in Zones",
+          desc: "S'pose Items Come to Rest in Zones",
           duration: 3,
           onStart: function(scene) {
               scene.swapStackablesVisibility(true);
@@ -729,21 +756,6 @@ export class EventSequence {
     this.particleCooldown -= deltaTime;
 
     if(deltaTime === this.eventTimer || 0 === this.eventTimer) { // First frame of new event
-        
-        if (currentEvent.fixedOverlays) {
-            if (currentEvent.fixedOverlays.length < 1) {
-                console.log('Removing all Fixed Overlays');
-                this.textOverlays.forEach(overlay => {
-                    if(overlay.type === 'fixed') this.textOverlaySystem.removeOverlay(overlay);
-                });
-            }
-            
-            currentEvent.fixedOverlays.forEach(overlay => {
-                console.log('Adding Fixed Overlay', overlay.text);
-                const element = this.textOverlaySystem.addFixedOverlay(...Object.values(overlay));
-                this.textOverlays.push(element);
-            });
-        }
         if (currentEvent.desc){
           
           this.textOverlays.forEach(overlay => {
