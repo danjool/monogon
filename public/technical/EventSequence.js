@@ -191,7 +191,7 @@ export class EventSequence {
             this.startToss(scene.teamChoiceElement2, scene.teamChoiceElement2.position, new  THREE.Vector3(-20, 1, -30), 2, 5, 1, 5);
 
             // toss the teamSign
-            this.startToss(scene.teamSign, scene.teamSign.position, new  THREE.Vector3(-50, 1, 10), 2, 5, 1, 5);
+            this.startToss(scene.teamSign, scene.teamSign.position, new  THREE.Vector3(-54, 1, 10), 2, 5, 1, 5);
 
             scene.visualStackables.forEach((mesh, index) => {
               this.startToss(mesh, mesh.position, scene.assemblyZone.position, 2, 5);
@@ -746,12 +746,11 @@ export class EventSequence {
         }
         if (currentEvent.desc){
           
-          console.log('Removing all Fixed Overlays');
           this.textOverlays.forEach(overlay => {
             if(overlay.type === 'fixed') this.textOverlaySystem.removeOverlay(overlay);
           });
           
-          const element = this.textOverlaySystem.addFixedOverlay(`  ${currentEvent.desc}`, 10, 140, {
+          const element = this.textOverlaySystem.addFixedOverlay(`  ${currentEvent.desc}`, 10, 60, {
               fontSize: '16px',
               width: '300px',
           });

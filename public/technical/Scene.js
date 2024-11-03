@@ -95,7 +95,20 @@ export class Scene extends THREE.Scene {
 
     // the Team Sign, a flag, in three js geom not emoji
     const flagGeometry = new THREE.PlaneGeometry(5, 2);
-    const flagMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+    // const flagMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+    // let's use a texture instead we can put an emoji on it, we'll make the texture ourselves out of a canvas
+    const flagMaterial = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(document.createElement('canvas')) });
+    // put the emoji on the canvas
+    const canvas = flagMaterial.map.image;
+    const context = canvas.getContext('2d');
+    context.fillStyle = 'white';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.font = '48px Arial';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillStyle = 'blue';
+    context.fillText('HEDRA🐉', canvas.width / 2, canvas.height / 2);
+
     this.teamSign = new THREE.Mesh(flagGeometry, flagMaterial);
     this.teamSign.position.set(-122, 1., 5);
     this.add(this.teamSign);

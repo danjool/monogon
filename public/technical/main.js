@@ -32,11 +32,11 @@ export class Main {
   }
 
   createTextOverlays() {
-    this.textOverlaySystem.addFixedOverlay('Tech Challenge Simulation', 10, 80, {
+    this.textOverlaySystem.addFixedOverlay('Tech Challenge Simulation', 10, 10, {
       fontSize: '20px',
       fontWeight: 'bold',
-        textAlign: 'left',
-        width: '300px',
+      textAlign: 'left',
+      width: '300px',
     });
 
     // Add an overlay for each box
@@ -84,6 +84,8 @@ export class Main {
   initStats() {
     this.stats = new Stats();
     document.body.appendChild(this.stats.dom);
+    // hide initially
+    this.stats.dom.style.display = 'none';
   }
 
   initEventListeners() {
