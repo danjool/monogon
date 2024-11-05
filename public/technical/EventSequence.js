@@ -38,6 +38,9 @@ export class EventSequence {
         cam: { x: -140, y: 9, z: -52 },
         lookAt: "kid1",
         onStart: function(scene) {
+
+          scene.resetProps();
+
           scene.personSystem.movePeople('kids', [
                 {x: -115, y: 1, z: 10},
                 {x: -125, y: 1, z: 10},

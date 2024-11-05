@@ -37,6 +37,23 @@ export class Scene extends THREE.Scene {
     this.scoringSystem = new ScoringSystem(this);
   }
 
+  resetProps() {
+    this.magicWand.visible = true;
+    this.megaphone.visible = true;
+    this.blackHole.visible = true;
+    this.teamSign.visible = true;
+    this.teamChoiceElement1.visible = true;
+    this.teamChoiceElement2.visible = true;
+
+    // positions 
+    this.magicWand.position.set(-122, 1.0, 11);
+    this.megaphone.position.set(-122, 1.0, 13);
+    this.blackHole.position.set(-122, 2.5, -5);
+    this.teamSign.position.set(-122, 1., 5);
+    this.teamChoiceElement1.position.set(-120, 1.0, 0);
+    this.teamChoiceElement2.position.set(-125, 1., 4);
+  }
+
   swapStackablesVisibility(val=false) {
     console.log('Swapping stackables visibility');
     this.visualStackables.forEach(mesh => mesh.visible = val);
