@@ -419,9 +419,8 @@ export class EventSequence {
                   {x: -25, y: 1, z: -35}, 
                   {x: -25, y: 1, z: -30}
               ]);
-              // makePersonHoldObject(group, personIndex, object) {
+              
               scene.personSystem.makePersonHoldObject('kids', 0, scene.megaphone);
-
           }
       },
       {
@@ -502,6 +501,10 @@ export class EventSequence {
                   this.textOverlaySystem.addFixedOverlay('Innovative Destruction! 15 points', 20, 380, {width: '550px'})
                 )
             }, 2000);
+
+            this.setManagedTimeout(() => {
+              scene.personSystem.makePersonReleaseObject('kids', 0); // drop that megaphone
+            }, 5000);
         },
       },
       {
