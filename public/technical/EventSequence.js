@@ -667,6 +667,18 @@ export class EventSequence {
                   ], 2.0);
                 }, i * 2000);
               }
+
+              this.setManagedTimeout(() => {
+                // story telling end
+                scene.scoringSystem.emitScoreParticles(
+                    'storytellingEnd',
+                    scene.personSystem.getAppraisers()[1].getSpeechPosition(),
+                    5
+                );
+                this.textOverlays.push(
+                  this.textOverlaySystem.addFixedOverlay('Storytelling is Clear and Effective! 5 points', 20, 480, {width: '550px' })
+                )
+              }, 1000);
           }
       },
       {
