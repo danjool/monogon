@@ -10,7 +10,6 @@ export class ScoringSystem {
         this.MAX_PARTICLES = 400; // Room for all possible points
         
         // Grid configuration
-        // Grid configuration
         this.gridConfig = {
             startX: -100.,   // Left-right position
             startY: 0,  // Height of the grid
@@ -22,7 +21,6 @@ export class ScoringSystem {
             columnOffset: new THREE.Vector3(4, 0, 0)  // Horizontal spacing between columns
         };
 
-        // Score categories and their positions in the grid
         this.categories = {
             instantChallenge: { startRow: 8, points: 100, emoji: '⚡', currentIndex: 20, originalIndex: 20, },
             creativity: { startRow: 8, points: 20, emoji: '💭', currentIndex: 0, originalIndex:  0, },
@@ -97,7 +95,11 @@ export class ScoringSystem {
 
     emitScoreParticles(category, sourcePosition, quantity = 1) {
         for (let i = 0; i < quantity; i++) {
-            this.emitScoreParticle(category, sourcePosition);
+            // this.emitScoreParticle(category, sourcePosition);
+            // Emit a particle for each point in the category, delaying by .25 seconds between each
+            setTimeout(() => {
+                this.emitScoreParticle(category, sourcePosition);
+            }, i * 150);
         }
     }
 
