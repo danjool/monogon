@@ -2,6 +2,11 @@
 import * as THREE from 'three';
 import { TextOverlaySystem } from './TextOverlaySystem.js';
 
+/**
+ * Story Begins: move text to left
+ * Teach Choice Element 1: move labels to bottom
+ */
+
 export class EventSequence {
     constructor(particleSystem, scene, physicsWorker, controls, renderer, camera) {
     this.particleSystem = particleSystem;
@@ -42,7 +47,7 @@ export class EventSequence {
           scene.resetProps();
 
           scene.personSystem.movePeople('kids', [
-                {x: -115, y: 1, z: 10},
+                {x: -115, y: 1, z: 17},
                 {x: -125, y: 1, z: 10},
                 {x: -120, y: 1, z: 15},
             ],
@@ -56,6 +61,11 @@ export class EventSequence {
 
           // this.scene.scoringSystem.emitAllScoreParticles();
           this.scene.scoringSystem.clearScores()
+
+          // reset the stackables
+          scene.visualStackables.forEach((mesh, index) => {
+            mesh.position.set(-110, 0, index * .5 * 2.1);
+          });
         }
     },
     {
@@ -78,25 +88,25 @@ export class EventSequence {
             this.textOverlaySystem.removeAll3DOverlays();
 
             this.textOverlaySystem.addObject3DOverlay('Assembly Zone', (new THREE.Object3D()).translateX(-10).translateZ(-10));
-            this.textOverlaySystem.addObject3DOverlay('2\'', (new THREE.Object3D()).translateX(-2).translateZ(7));
+            this.textOverlaySystem.addObject3DOverlay('2\'', (new THREE.Object3D()).translateX(-2).translateZ(6));
             this.textOverlaySystem.addObject3DOverlay('2\'', (new THREE.Object3D()).translateX(-10).translateZ(0));
 
             this.textOverlaySystem.addObject3DOverlay('Target Zone 1', (new THREE.Object3D()).translateX(-25).translateZ(-25));
-            this.textOverlaySystem.addObject3DOverlay('5\'', (new THREE.Object3D()).translateX(-2).translateZ(22));
+            this.textOverlaySystem.addObject3DOverlay('5\'', (new THREE.Object3D()).translateX(-2).translateZ(21));
             this.textOverlaySystem.addObject3DOverlay('5\'', (new THREE.Object3D()).translateX(-25).translateZ(0));
 
             this.textOverlaySystem.addObject3DOverlay('Target Zone 2', (new THREE.Object3D()).translateX(-35).translateZ(-35));
-            this.textOverlaySystem.addObject3DOverlay('7\'', (new THREE.Object3D()).translateX(-2).translateZ(32));
+            this.textOverlaySystem.addObject3DOverlay('7\'', (new THREE.Object3D()).translateX(-2).translateZ(31));
             this.textOverlaySystem.addObject3DOverlay('7\'', (new THREE.Object3D()).translateX(-35).translateZ(0));
 
             this.textOverlaySystem.addObject3DOverlay('Target Zone 3', (new THREE.Object3D()).translateX(-40).translateZ(-40));
-            this.textOverlaySystem.addObject3DOverlay('8\'', (new THREE.Object3D()).translateX(-2).translateZ(37));
+            this.textOverlaySystem.addObject3DOverlay('8\'', (new THREE.Object3D()).translateX(-2).translateZ(36));
             this.textOverlaySystem.addObject3DOverlay('8\'', (new THREE.Object3D()).translateX(-40).translateZ(0));
 
             this.textOverlays.push(
-              this.textOverlaySystem.addFixedOverlay('Stackables receive 1/2, 1, or 2 points for coming to rest in Target Zones', 10, 650, {
+              this.textOverlaySystem.addFixedOverlay('Stackables receive 1/2, 1, or 2 points for coming to rest in Target Zones', 10, 200, {
                   fontSize: '16px',
-                  width: '550px',
+                  width: '300px',
               })
             )
         }
@@ -148,6 +158,7 @@ export class EventSequence {
                   {x: -30, y: 1.0, z: 20}
               ]);
 
+              scene.personSystem.makeGroupLookAt('audience', {x: -150, y: 10, z: 20});
           }
       },
       {
@@ -197,19 +208,25 @@ export class EventSequence {
             this.startToss(scene.teamSign, scene.teamSign.position, new  THREE.Vector3(-54, 1, 10), 2, 5, 1, 5);
 
             scene.visualStackables.forEach((mesh, index) => {
-              this.startToss(mesh, mesh.position, scene.assemblyZone.position, 2, 5);
+              // this.startToss(mesh, mesh.position, scene.assemblyZone.position, 2, 5);
+              this.startToss(mesh, mesh.position, 
+                {
+                  x: -5 + Math.random() * 10,
+                  y: 1,
+                  z: -5 + Math.random() * 10
+                }, 2, 5);
             });
           }
       },
       {
         desc: "Story Begins - Wishful Scene",
         duration: 10,
-        cam: { x: -20, y: 10, z: 80 },
-        lookAt: { x: -20, y: 11, z: -20 },
+        cam: { x: -28, y: 16, z: 80 },
+        lookAt: { x: -28, y: 8, z: -20 },
         camLerpSpeed: 0.05,
         onStart: function(scene) {
+          scene.personSystem.makeGroupLookAt('audience', {x: 0, y: 0, z: 0});
 
-          // switch visibility of the stackables
           scene.swapStackablesVisibility();
 
           scene.personSystem.movePeople('appraisers', [
@@ -221,7 +238,6 @@ export class EventSequence {
           scene.personSystem.makePersonSpeak('kids', 0, '✨', 3);
           scene.personSystem.makePersonSpeak('kids', 1, '🌟', 3);
 
-          // loop 4 times getting the kids to pirouette towards rotating invisible points on a ciricle radius 5
           for (let i = 0; i < 4; i++) {
             this.setManagedTimeout(() => {
               scene.personSystem.makePeoplePirouette('kids', [
@@ -240,7 +256,7 @@ export class EventSequence {
             );
            
           this.textOverlays.push(
-              this.textOverlaySystem.addFixedOverlay('A wishful scene was memorable! 15 points', 900, 100, { width: '550px' })
+              this.textOverlaySystem.addFixedOverlay('A wishful scene was memorable! 15 points', 10, 200, { width: '300px' })
             )
           }, 6000);
 
@@ -252,7 +268,7 @@ export class EventSequence {
                 20
             );
             this.textOverlays.push(
-              this.textOverlaySystem.addFixedOverlay('Something is lacked, Creatively told! 20 points', 900, 200, { width: '550px',})
+              this.textOverlaySystem.addFixedOverlay('A THING lacked, Creatively told! 20 points', 10, 250, { width: '300px',})
             )
           }, 7000);
 
@@ -263,7 +279,7 @@ export class EventSequence {
                 5
             );
             this.textOverlays.push(
-              this.textOverlaySystem.addFixedOverlay('Storytelling is Clear and Effective! 5 points', 900, 300, { width: '550px',})
+              this.textOverlaySystem.addFixedOverlay('Storytelling is Clear and Effective! 5 points', 10, 300, { width: '300px',})
             )
           }, 8000);            
           }
@@ -283,7 +299,7 @@ export class EventSequence {
                   15
               );
               this.textOverlays.push(
-                this.textOverlaySystem.addFixedOverlay('Design Assembly is well done! 15 points', 20, 200, { width: '350px' })
+                this.textOverlaySystem.addFixedOverlay('Design Assembly is well done! 15 points', 20, 200, { width: '300px' })
               )
             }, 2000);
 
@@ -294,7 +310,7 @@ export class EventSequence {
                   15
               );
               this.textOverlays.push(
-                this.textOverlaySystem.addFixedOverlay('Innovation Assembly is well done! 15 points', 20, 250, { width: '350px' })
+                this.textOverlaySystem.addFixedOverlay('Innovation Assembly is well done! 15 points', 20, 250, { width: '300px' })
               )
             }, 4000);
           }
@@ -312,7 +328,7 @@ export class EventSequence {
                       30
                   );
                   this.textOverlays.push(
-                    this.textOverlaySystem.addFixedOverlay('Stackables least risky shape! 0/30 points', 20, 300, { width: '350px' })
+                    this.textOverlaySystem.addFixedOverlay('Stackables least risky shape! 30 points', 20, 300, { width: '300px' })
                   )
               }, 1000);
 
@@ -323,7 +339,7 @@ export class EventSequence {
                     30
                 );
                 this.textOverlays.push(
-                  this.textOverlaySystem.addFixedOverlay('Stacked one atop another! 0/30 points', 20, 350, { width: '350px' })
+                  this.textOverlaySystem.addFixedOverlay('Stacked one atop another! 30 points', 20, 350, { width: '300px' })
                 )
             }, 2000);
           }
@@ -356,7 +372,7 @@ export class EventSequence {
                     10
                 );
                 this.textOverlays.push(
-                  this.textOverlaySystem.addFixedOverlay('Creativity and Originality! 10 points', 20, 380, {width: '550px'})
+                  this.textOverlaySystem.addFixedOverlay('Creativity and Originality! 10 points', 10, 580, {width: '300px'})
                 )
             }, 1000);
 
@@ -367,7 +383,7 @@ export class EventSequence {
                     10
                 );
                 this.textOverlays.push(
-                  this.textOverlaySystem.addFixedOverlay('Quality, Workmanship, or Effort! 10 points', 20, 480, {width: '550px'})
+                  this.textOverlaySystem.addFixedOverlay('Quality, Workmanship, or Effort! 10 points', 320, 580, {width: '300px'})
                 )
             }, 2000);
 
@@ -378,7 +394,7 @@ export class EventSequence {
                     10
                 );
                 this.textOverlays.push(
-                  this.textOverlaySystem.addFixedOverlay('Integration into the Presentation! 10 points', 20, 580, {width: '550px'})
+                  this.textOverlaySystem.addFixedOverlay('Integration into the Presentation! 10 points', 640, 580, {width: '400px'})
                 )
             }, 3000);
 
@@ -402,7 +418,7 @@ export class EventSequence {
                     5
                 );
                 this.textOverlays.push(
-                  this.textOverlaySystem.addFixedOverlay('Storytelling is Clear and Effective! 5 points', 20, 480, {width: '550px' })
+                  this.textOverlaySystem.addFixedOverlay('Storytelling is Clear and Effective! 5 points', 20, 480, {width: '300px' })
                 )
               }, 1000);
 
@@ -413,7 +429,7 @@ export class EventSequence {
                     15
                 );
                 this.textOverlays.push(
-                  this.textOverlaySystem.addFixedOverlay('Dramatic Impact of Frustration Point! 15 points', 20, 380, {width: '550px' })
+                  this.textOverlaySystem.addFixedOverlay('Dramatic Impact of Frustration Point! 15 points', 20, 400, {width: '300px' })
                 )
               }, 2000);
 
@@ -672,7 +688,6 @@ export class EventSequence {
               }
 
               this.setManagedTimeout(() => {
-                // story telling end
                 scene.scoringSystem.emitScoreParticles(
                     'storytellingEnd',
                     scene.personSystem.getAppraisers()[1].getSpeechPosition(),
@@ -690,7 +705,7 @@ export class EventSequence {
           cam: { x: 0, y: 10, z: 100 },
           lookAt: "centerOfScene",
           onStart: function(scene) {
-              scene.personSystem.makeGroupSpeak('kids', '⏰', 1);
+              scene.personSystem.makeGroupSpeak('kids', '⏰', 9);
           }
       },
       {
@@ -700,22 +715,19 @@ export class EventSequence {
           lookAt: { x: -20, y: 20, z: -20 },
           onStart: function(scene) {
               scene.personSystem.movePeople('kids', [
-                  {x: 0, y: 0, z: -5}
+                {x: 0, y: 0, z: -5},
+                {x: 0, y: 0, z: -15},
+                {x: 0, y: 0, z: -10}
               ]);
               scene.personSystem.movePeople('appraisers', [
                   {x: 0, y: 0, z: 5}
               ]);
-              scene.personSystem.makeGroupSpeak('appraisers', '❓', 3);
-              this.particleSystem.emitEmojiParticles(
-                  {x: 0, y: 5, z: 0},
-                  "❓",
-                  3
-              );
+              scene.personSystem.makeGroupSpeak('appraisers', '❓', 9);
           }
       },
       {
           desc: "Review Points",
-          duration: 3,
+          duration: 10,
           cam: { x: -20, y: 10, z: 80 },
           lookAt: { x: -20, y: 20, z: -20 },
           camLerpSpeed: 0.05,
@@ -729,7 +741,7 @@ export class EventSequence {
                     100
                 );
                 this.textOverlays.push(
-                  this.textOverlaySystem.addFixedOverlay('Instant Challenge! 100 points', 600, 380, { width: '550px' })
+                  this.textOverlaySystem.addFixedOverlay('Instant Challenge! 100 points', 10, 380, { width: '300px' })
                 )
               }, 1000);
           }

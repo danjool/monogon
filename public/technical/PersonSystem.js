@@ -16,7 +16,7 @@ class Person extends THREE.Group {
 
         // Configuration
         this.bodyWidth = isChild ? 1.2 : 1;
-        this.bodyHeight = isChild ? 2 : 3;
+        this.bodyHeight = isChild ? 2 : 4;
         this.headRadius = isChild ? 0.6 : 0.5;
         this.neckDistance = 1.0 * this.headRadius;
         this.legWidth = 0.3;
@@ -45,7 +45,7 @@ class Person extends THREE.Group {
         // speech properties
         this.isSpeaking = false;
         this.speechTimer = 0;
-        this.speechInterval = 0.5; // Time between speech particles
+        this.speechInterval = 0.75; // Time between speech particles
         this.currentSpeechEmoji = '💭';
 
          // holding properties
