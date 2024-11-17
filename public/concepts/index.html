@@ -8,7 +8,7 @@
   <script src="https://unpkg.com/three-spritetext"></script>
   <script src="https://unpkg.com/dat.gui"></script>
   <script type="text/javascript" src="./js/yaml.min.js"></script>
-  <title>force directed graphs</title>
+  <title>concepts and influence</title>
 </head>
 
 <style>
@@ -129,6 +129,18 @@ let valToStr = {
     };
 let relationForces = {}
 let relationVisibility = {}
+
+let relationToColorMap = {
+      Is: "yellow", Demonstrates: "yellow", Equivalent: "yellow", Synonym: "yellow", Defines: "yellow", Explains: "yellow", IsA: "yellow",
+      Antonym: "red", Criticizes: "red", Rejects: "red", Refuted: "red",
+      Wrote: "green", Discovered: "green", Introduced: "green", Created: "green", 
+      Invented: "green", Made: "green", Observed: "green", Anticipated: "green", Proved: "green", 
+      Succeeds: "lightblue", Influenced: "lightblue", Proposed: "lightblue", Believed: "lightblue", Inspired: "lightblue",
+      Adjacent: "pink",
+      About:"pink", References:"pink", 'Referenced By':"pink", Related:"pink",
+      Knew: "brown", Married: "brown", Mothered: "brown", Fathered: "brown", Taught: "brown", 
+      Translated: "orange", 'Commented On': "orange", Edited: "orange"
+  };
 
 let relationsMap = {
   'Equivalent':'Is',
@@ -405,67 +417,6 @@ function setLinkStrengthsFromAttribute(fGraph, attribute, valueToStrengthMap) {
   });
 }
 
-function setLinkGradient(fGraph){
-  fGraph.linkThreeObject(link=>{
-    const colors = new Float32Array([1,0,0,0,0,1]
-      //[].concat(
-            // ...[link.source, link.target]
-              // .map(nodeColorScale)
-              // .map(d3.color)
-              // .map(({ r, g, b }) => [r, g, b].map(v => v / 255)
-              
-      );
-
-
-      // const maxPoints = fGraph.graphData().links.length
-      // const drawCount = fGraph.graphData().links.length
-      // let geometry = new THREE.BufferGeometry();
-      // let positions = new Float32Array(3 *  maxPoints);
-      // positions[0] = 1.*Math.random();
-      // positions[1] = 1.*Math.random();
-      // positions[2] = 1.*Math.random();
-      // geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-      // var ds = 1.0 / maxPoints;
-      // var vertPos = new Float32Array(maxPoints);
-      // for (var i = 1; i < maxPoints; i++)
-      //   vertPos[i] = i * ds;
-      // geometry.setAttribute('vertPos', new THREE.BufferAttribute(vertPos, 1));
-      // geometry.setDrawRange(0, drawCount);
-      
-
-          const material = new THREE.LineBasicMaterial({ 
-            vertexColors: THREE.VertexColors, transparent: true, opacity:.1
-          });
-
-          const geometry = new THREE.BufferGeometry();
-          geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(2 * 3), 3));
-          geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-
-// let col = new THREE.Vector3(1, 0, 1)
-//           const material = new THREE.ShaderMaterial({
-//               vertexShader: document.getElementById('vshader').textContent,
-//               fragmentShader: document.getElementById('fshader').textContent,
-//               uniforms: {
-//                 color: {
-//                     type: 'v3',
-//                     value: col
-//                 }
-//               },
-//               vertexColors: THREE.VertexColors,
-//               depthWrite: false,
-//               depthTest: false,
-//               // lineWidth: 1, //this always defaults to 1, unfortunately
-//               transparent: true
-//           });
-
-          
-
-          return new THREE.Line(geometry, material);
-  })
-}
-
 function setLinkDistancesFromAttribute(fGraph, attribute, valueToDistanceMap) {
   fGraph.d3Force("link").distance((link) => {
     if (link[attribute] && valueToDistanceMap.hasOwnProperty(link[attribute])) {
@@ -549,18 +500,6 @@ function reinitializeForceGraph(fGraph){
   // fGraph.d3Force("link").force(fGraph.d3Force("link"))
   setNodeObjectsToSpriteLabels( fGraph, 16, null )
   setEdgeLabelByAttribute(fGraph, "relation");
-
-  let relationToColorMap = {
-      Is: "yellow", Demonstrates: "yellow", Equivalent: "yellow", Synonym: "yellow", Defines: "yellow", Explains: "yellow", IsA: "yellow",
-      Antonym: "red", Criticizes: "red", Rejects: "red", Refuted: "red",
-      Wrote: "green", Discovered: "green", Introduced: "green", Created: "green", 
-      Invented: "green", Made: "green", Observed: "green", Anticipated: "green", Proved: "green", 
-      Succeeds: "lightblue", Influenced: "lightblue", Proposed: "lightblue", Believed: "lightblue", Inspired: "lightblue",
-      Adjacent: "pink",
-      About:"pink", References:"pink", 'Referenced By':"pink", Related:"pink",
-      Knew: "brown", Married: "brown", Mothered: "brown", Fathered: "brown", Taught: "brown", 
-      Translated: "orange", 'Commented On': "orange", Edited: "orange"
-  };
   setLinkColorByAttributeMap(fGraph, "relation", relationToColorMap);
 
   
@@ -798,7 +737,6 @@ fetch(filePath).then( async (res) => {
   // return json //.nodes.filter( n => n.type !== 'concept')
   const filteredNodes = json.nodes.filter( n => n.type !== 'concept')
   const filteredNodeIds = filteredNodes.map( n => n.id)
-  console.log("filteredNodeIds", json.nodes.filter(n=>n.type === 'concept')  )
   const filteredEdges = json.links.filter( l => 
     filteredNodeIds.includes(l.source) && filteredNodeIds.includes(l.target)
   )
@@ -818,7 +756,7 @@ fetch(filePath).then( async (res) => {
     .nodeAutoColorBy('id')
     .onNodeClick((node, event) => {
       console.log("event", event)
-      if(!togglePinNode(node)) swingCameraToNode(fGraph,node)
+      if(!togglePinNode(node)) swingToNode(fGraph,node)
       reinitTime()
       if(event.ctrlKey){
         compressNode(node)
@@ -841,10 +779,55 @@ fetch(filePath).then( async (res) => {
     //   return label
     // })
     // .linkWidth(0.0) // 0 gives a Line
-    .linkWidth(link => highlightLinks.has(link) ? 3.0 : 1.0)
+    .linkWidth(link => highlightLinks.has(link) ? 4.5 : 2.5) // just calling linkWidth makes the mesh a Cylinder instead of a Line
     // .linkWidth(1)
-    // .linkOpacity(link => { highlightLinks.has(link) ? .2 : .1 })
-    .linkOpacity(.4)
+    // .linkOpacity(link => { highlightLinks.has(link) ? .2 : .05 })
+.linkMaterial(link => {
+  let material = new THREE.ShaderMaterial({
+    uniforms: {
+      dashScale: { value: highlightLinks.has(link) ? 1.5 : 1.0 },
+      color: { value: new THREE.Color('white') },
+      time: { value: 0.0 }
+    },
+    vertexShader: `
+      varying float vPos;
+      
+      void main() {
+        vPos = position.z;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float dashScale;
+      uniform vec3 color;
+      uniform float time;
+      varying float vPos;
+      
+      void main() {
+        // Create bell curve falloff for opacity
+        // float opacity = smoothstep(0.0, 0.3, vPos) * smoothstep(1.0, 0.7, vPos); // ranging from 0.0 to 1.0
+        // opacity = pow(opacity, 0.5) * dashScale;
+        float op2 = .2 - .5*abs(vPos - .5);
+        gl_FragColor = vec4(color.r, color.g, color.b, op2);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide
+  });
+
+  // set the color based on link's relation
+  if (link.relation) {
+    const color = new THREE.Color(relationToColorMap[link.relation] || 'white');
+    
+    material.uniforms.color.value = color;
+  } else {
+    material.uniforms.color.value = new THREE.Color('white');
+  }
+
+  return material;
+})
+    .linkOpacity(.04)
     .linkResolution(4)
     .d3AlphaDecay(0.0)
     .d3VelocityDecay(params.velocityDecay)
@@ -862,13 +845,13 @@ fetch(filePath).then( async (res) => {
   setForceStrength()
 
   fGraph.renderer().autoClear = false;
+  fGraph.renderer().setPixelRatio( window.devicePixelRatio * 2.0 );
 
   let address = window.location.search
   let parameterList = new URLSearchParams(address)
 
 	fGraph.scene().background = "red"
   // fixNodesAttributeToAttribute(fGraph, 'fx', 'time', null, -1900)
-  // setLinkGradient(fGraph)
 
   reinitializeForceGraph(fGraph)
   initDatGui(fGraph)
@@ -880,7 +863,7 @@ fetch(filePath).then( async (res) => {
   return fGraph
 
 }).then(fGraph=>{
-  console.log("sdfas", fGraph)
+  fGraph.cameraPosition({ x: 0, y: -1600, z: 3200 }, { x: 0, y: -1600, z: 0 }, 4000);
   reinitTime()
 }
 )
