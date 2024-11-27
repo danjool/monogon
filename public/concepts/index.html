@@ -179,6 +179,7 @@ function reinitTime(){
     pinNodeAxisToProperty(fGraph, 'y', 'time', (val)=> { 
       return timeFunc(val)
     } ) 
+    fGraph.renderer
   }
   else { 
     unpinAllNodes()
@@ -271,8 +272,6 @@ function toggleCategories( categoriesArray=['Science Fiction'], onOff=true, thro
     if( !categoryNode ) return
     categoryNode.visible = onOff
     categoryNode.links.forEach(l=>{
-      // console.log("l", throughRelations, l.target.id, l.target.id === categoryNode.id, throughRelations.includes(l.relation),
-      //  l.target.id === categoryNode.id && ( throughRelations.includes(l.relation) ) 
       if( l.target.id === categoryNode.id && ( throughRelations.includes(l.relation) ) ){
         if(onOff){
           l.source.categories ? l.source.categories = l.source.categories.filter(c=> c.id !== category) : l.source.categories = []
@@ -367,7 +366,6 @@ function setNodeObjectsToSpriteLabels(fGraph, textHeight, colorFunc) {
       return sprite;
     
     } else {
-      console.log('fGraph.nodeThreeObject')
       let backgroundColor = null
       let label = node.label ? node.label : node.id;
       if(node.categories && node.categories.length > 0){
@@ -464,7 +462,6 @@ if(window.location.search.substr(1)){
 	if(key==='c'){
 		switch(val){
 			case 'bios': filePath = './data/bios.json' 
-        console.log("val", val)
 				break;
       case 'coop': filePath = './data/coop.json' 
         break;
@@ -572,7 +569,7 @@ function difference(setA, setB) {
 }
 
 function checkForMissingNodeIds(data){
-  console.log("nodes", data.nodes.length)
+  console.log("checkForMissingNodeIds, data.nodes.length:", data.nodes.length)
   let necessaryIds = new Set()
   let ids = new Set()
   data.links.forEach(l=>{
@@ -732,19 +729,15 @@ function disperseNode(node){
 
 }
 
-fetch(filePath).then( async (res) => {
+fetch(filePath)
+.then( async (res) => {
   let json = await res.json()
-  // return json //.nodes.filter( n => n.type !== 'concept')
-  const filteredNodes = json.nodes.filter( n => n.type !== 'concept')
-  const filteredNodeIds = filteredNodes.map( n => n.id)
-  const filteredEdges = json.links.filter( l => 
-    filteredNodeIds.includes(l.source) && filteredNodeIds.includes(l.target)
-  )
   return {
-    nodes: filteredNodes,
-    links: filteredEdges
+    nodes: json.nodes,
+    links: json.links
   }
-}).then(data => {
+})
+.then(data => {
   console.log("data", data)
   // makeAttrsValueOfAttr2(data, 'concept', 'type')  
   checkForMissingNodeIds(data)
@@ -754,6 +747,7 @@ fetch(filePath).then( async (res) => {
     .graphData(data)
     .nodeId('id')
     .nodeAutoColorBy('id')
+    .linkDirectionalParticles(0)
     .onNodeClick((node, event) => {
       console.log("event", event)
       if(!togglePinNode(node)) swingToNode(fGraph,node)
@@ -787,7 +781,7 @@ fetch(filePath).then( async (res) => {
     uniforms: {
       dashScale: { value: highlightLinks.has(link) ? 1.5 : 1.0 },
       color: { value: new THREE.Color('white') },
-      time: { value: 0.0 }
+      time: { value: 1.0 }
     },
     vertexShader: `
       varying float vPos;
@@ -804,11 +798,12 @@ fetch(filePath).then( async (res) => {
       varying float vPos;
       
       void main() {
-        // Create bell curve falloff for opacity
-        // float opacity = smoothstep(0.0, 0.3, vPos) * smoothstep(1.0, 0.7, vPos); // ranging from 0.0 to 1.0
-        // opacity = pow(opacity, 0.5) * dashScale;
-        float op2 = .2 - .5*abs(vPos - .5);
-        gl_FragColor = vec4(color.r, color.g, color.b, op2);
+        float pulseRate = 0.0;
+        float pulseFreq = 0.0;
+        float op1 = .5 - .6*abs(vPos - .3);
+        float op2 = .5 - .6*abs(vPos - .7);
+        float sintime = (1. + sin(time*pulseRate - vPos*pulseFreq)*.5);
+        gl_FragColor = vec4(color.r, color.g, color.b, op2*op1*sintime);
       }
     `,
     transparent: true,
@@ -833,8 +828,8 @@ fetch(filePath).then( async (res) => {
     .d3VelocityDecay(params.velocityDecay)
     .cooldownTicks(Infinity)
     .cooldownTime(Infinity)
-    .linkDirectionalParticles(link => highlightLinks.has(link) ? 1 : 2)
-    .linkDirectionalParticleSpeed(0.0125)
+    // .linkDirectionalParticles(link => highlightLinks.has(link) ? 1 : 2)
+    // .linkDirectionalParticleSpeed(0.0125)
     .linkDirectionalParticleWidth(1)
     .linkDirectionalParticleColor("white")
     .linkDirectionalParticleResolution(4)
@@ -873,7 +868,6 @@ async function addNeighborsAndNodes(fGraph) {
     const a = fGraph.graphData().nodes.find((n) => n.id === link.source);
     const b = fGraph.graphData().nodes.find((n) => n.id === link.target);
     if (!a || !b) {
-      // console.log('notfound', a,b,link.source, link.target)
       return;
     }
 
@@ -894,6 +888,18 @@ async function addNeighborsAndNodes(fGraph) {
     b.links.push(link);
   })
   // fGraph.graphData(fGraph.graphData)
+}
+
+let t = 0
+function updateEdgeMaterialUniforms() {
+  t += 0.1;
+  if (!fGraph) return;
+  fGraph.graphData().links.forEach((link) => {
+    const material = link.__lineObj && link.__lineObj.material;
+    if (material) {
+      material.uniforms.time.value = t;
+    }
+  });
 }
 
 function randomlyToggleLink(){
@@ -935,18 +941,8 @@ function shuffleRelations(){
   reinitializeLinkVisibility(fGraph)
   
 }
-// setInterval( shuffleRelations, 100 )
-setInterval( randomlyToggleLink, 100 )
 
-// fetch(filePath).then(res => {
-//   console.log("res", res)
-  // let nativeObject = YAML.load(res)
-
-  // console.log("nativeObject", nativeObject)
-// })
-// console.log(YAML)
-// console.log(Yaml)
-// console.log(yaml)
+setInterval( updateEdgeMaterialUniforms, 32 )
 
 </script>
     
