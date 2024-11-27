@@ -58,3 +58,10 @@ typings/
 .env
 
 package-lock.json
+
+# VS Code specific files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+*.code-workspace
