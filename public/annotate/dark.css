@@ -1,0 +1,79 @@
+body {
+    background-color: #111;
+    color: #cfcfcf;
+    font-family: 'Baskerville', sans-serif;
+}
+
+html {
+    scrollbar-width: none;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: 2fr 2fr 120px;
+    max-width: 1200px;
+    margin: auto;
+    gap: 20px;
+}
+
+.content {
+    padding: 0px 20px;
+    text-align: auto;
+    font-size: 16px;
+    background-color: #222;
+    white-space: pre;
+}
+
+.ref-link {
+    background-color: #612c2c;
+    cursor: pointer;
+    padding: 0px;
+    border-radius: 3px;
+}
+
+#ref-editor {
+    display: block;
+    visibility: hidden;
+    padding: 4px;
+    background-color: #222;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+    height: fit-content;
+}
+
+#minimap {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#viewport {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.1);
+    min-width: 100%;
+}
+
+canvas {
+    position: relative;
+}
+
+#annotation {
+    min-height: 16px;
+    outline: none; /* no content-editable border */
+}
+
+.palette {
+    margin-top: 16px;
+}
+
+.color-option {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    padding-left: 5px;
+    padding-right: 5px;
+}
