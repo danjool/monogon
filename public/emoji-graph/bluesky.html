@@ -17,53 +17,53 @@
     <script src="https://unpkg.com/three-spritetext"></script>
     <script src="https://unpkg.com/d3@6.7.0"></script>
     <script>
-        const graphData = {
+        const baseGraphData = {
             nodes: [
     // Infrastructure
-    { id: 'PDS', emoji: '🏢', kind: 'infrastructure', name: 'Personal Data Store' },
-    { id: 'APPVIEW', emoji: '🔍', kind: 'infrastructure' },
-    { id: 'RELAY', emoji: '📡', kind: 'infrastructure' },
+    { id: 'PDS', emoji: '🏢', kind: 'infrastructure', name: 'Personal Data Store', quantity: 3 },
+    { id: 'APPVIEW', emoji: '🔍', kind: 'infrastructure', quantity: 2 },
+    { id: 'RELAY', emoji: '📡', kind: 'infrastructure', quantity: 4 },
     
     // Core AT Protocol
-    { id: 'REPO', emoji: '📦', kind: 'at-protocol' },
-    { id: 'DID', emoji: '🆔', kind: 'at-protocol' },
-    { id: 'HANDLE', emoji2: '@', emoji: '📦', kind: 'at-protocol' },
-    { id: 'RECORD', emoji: '📝', kind: 'at-protocol' },
-    { id: 'COLLECTION', emoji: '📋', kind: 'at-protocol' },
-    { id: 'NSID', emoji: '🗂️', kind: 'at-protocol' },
-    { id: 'TID', emoji: '⏱️', kind: 'at-protocol' },
-    { id: 'CID', emoji: '📎', kind: 'at-protocol' },
-    { id: 'LEXICON', emoji: '📜', kind: 'at-protocol' },
+    { id: 'REPO', emoji: '📦', kind: 'at-protocol', quantity: 3 },
+    { id: 'DID', emoji: '🆔', kind: 'at-protocol', quantity: 3 },
+    { id: 'HANDLE', emoji2: '@', emoji: '📦', kind: 'at-protocol', quantity: 3 },
+    { id: 'RECORD', emoji: '📝', kind: 'at-protocol', quantity: 6 },
+    { id: 'COLLECTION', emoji: '📋', kind: 'at-protocol', quantity: 3 },
+    { id: 'NSID', emoji: '🗂️', kind: 'at-protocol', quantity: 3 },
+    { id: 'TID', emoji: '⏱️', kind: 'at-protocol', quantity: 3 },
+    { id: 'CID', emoji: '📎', kind: 'at-protocol', quantity: 3 },
+    { id: 'LEXICON', emoji: '📜', kind: 'at-protocol', quantity: 4 },
     
     // Social
-    { id: 'ACTOR', emoji: '🧑', kind: 'social' },
-    { id: 'POST', emoji: '📮', kind: 'social' },
-    { id: 'THREAD', emoji: '🧵', kind: 'social' },
-    { id: 'LIKE', emoji: '👍', kind: 'social' },
-    { id: 'REPOST', emoji: '🔄', kind: 'social' },
-    { id: 'LIST', emoji: '📄', kind: 'social' },
-    { id: 'LIST-ITEM', emoji: '📄', kind: 'social' },
-    { id: 'NOTIFICATION', emoji: '🔔', kind: 'social' },
+    { id: 'ACTOR', emoji: '🧑', kind: 'social', quantity: 3 },
+    { id: 'POST', emoji: '📮', kind: 'social', quantity: 8 },
+    { id: 'THREAD', emoji: '🧵', kind: 'social', quantity: 3 },
+    { id: 'LIKE', emoji: '👍', kind: 'social', quantity: 6 },
+    { id: 'REPOST', emoji: '🔄', kind: 'social', quantity: 4 },
+    { id: 'LIST', emoji: '📄', kind: 'social', quantity: 3 },
+    { id: 'LIST-ITEM', emoji: '📄', kind: 'social', quantity: 5 },
+    { id: 'NOTIFICATION', emoji: '🔔', kind: 'social', quantity: 6 },
     
     // Content
-    { id: 'FACET', emoji: '🔠', kind: 'content' },
-    { id: 'FEATURE', emoji: '⭐', kind: 'content' },
-    { id: 'MENTION', emoji: '@', kind: 'content' },
-    { id: 'LINK', emoji: '🔗', kind: 'content' },
-    { id: 'LANGUAGE', emoji: '🗣️', kind: 'content' },
-    { id: 'LABEL', emoji: '🏷️', kind: 'content' },
+    { id: 'FACET', emoji: '🔠', kind: 'content', quantity: 4 },
+    { id: 'FEATURE', emoji: '⭐', kind: 'content', quantity: 3 },
+    { id: 'MENTION', emoji: '@', kind: 'content', quantity: 4 },
+    { id: 'LINK', emoji: '🔗', kind: 'content', quantity: 5 },
+    { id: 'LANGUAGE', emoji: '🗣️', kind: 'content', quantity: 2 },
+    { id: 'LABEL', emoji: '🏷️', kind: 'content', quantity: 4 },
     
     // Media
-    { id: 'BLOB', emoji: '💾', kind: 'media' },
-    { id: 'BLOB-REF', emoji: '🔗', kind: 'media' },
-    { id: 'EXTERNAL-EMBED', emoji: '🌐', kind: 'media' },
-    { id: 'THUMBNAIL-BLOB', emoji: '🖼️', kind: 'media' },
-    { id: 'POST-IMAGE', emoji: '📸', kind: 'media' },
-    { id: 'VIDEO-BLOB', emoji: '🎥', kind: 'media' },
-    { id: 'PROFILE-BLOB', emoji: '👤', kind: 'media' },
-    { id: 'BANNER-BLOB', emoji: '🧩', kind: 'media' },
-    { id: 'RECORD-EMBED', emoji: '🔄', kind: 'media' },
-    { id: 'URI-CID', emoji: '🔍', kind: 'media' }
+    { id: 'BLOB', emoji: '💾', kind: 'media', quantity: 6 },
+    { id: 'BLOB-REF', emoji: '🔗', kind: 'media', quantity: 4 },
+    { id: 'EXTERNAL-EMBED', emoji: '🌐', kind: 'media', quantity: 3 },
+    { id: 'THUMBNAIL-BLOB', emoji: '🖼️', kind: 'media', quantity: 4 },
+    { id: 'POST-IMAGE', emoji: '📸', kind: 'media', quantity: 5 },
+    { id: 'VIDEO-BLOB', emoji: '🎥', kind: 'media', quantity: 2 },
+    { id: 'PROFILE-BLOB', emoji: '👤', kind: 'media', quantity: 3 },
+    { id: 'BANNER-BLOB', emoji: '🧩', kind: 'media', quantity: 2 },
+    { id: 'RECORD-EMBED', emoji: '🔄', kind: 'media', quantity: 3 },
+    { id: 'URI-CID', emoji: '🔍', kind: 'media', quantity: 4 }
 ],
             links: [
     // Infrastructure Layer
@@ -134,6 +134,32 @@
 ]
         };
 
+        const oneToOneLinkTypes = [
+            'identified by',      // Like DID->REPO, HANDLE->REPO 
+            'typed by',          // COLLECTION->NSID
+            'versioned by',      // RECORD->CID
+            'keyed by',          // RECORD->TID
+            'conforms to',       // RECORD->LEXICON
+            'has profile in',    // ACTOR->PROFILE-BLOB
+            'has banner in',     // ACTOR->BANNER-BLOB
+            'owned by',          // ACTOR->REPO 
+        ]
+        const hasManyLinkTypes = [
+        'contains',          // Collection->Record, List->ListItem
+        'creates',           // Actor->Post, Actor->List
+        'receives',          // Post->Like
+        'gets',             // Post->Repost
+        'attaches',         // Post->PostImage
+        'hosts',            // PDS->REPO
+        'references'         // ListItem->Actor, Notification->Post
+        ];
+        const manyToManyLinkTypes = [
+        'syncs with',        // PDS->APPVIEW
+        'reads from',        // APPVIEW->REPO
+        'syncs to',          // PDS->RELAY
+        'aggregates',        // RELAY->REPO
+    ]
+
         function createColoredEmoji(emoji, color, size = 64, emoji2) {
             const canvas = document.createElement('canvas');
             canvas.width = size;
@@ -151,10 +177,9 @@
                 ctx.fillRect(0, 0, size, size);    
             }
 
-            // Draw emoji
             ctx.globalCompositeOperation = 'destination-over'; // other optoins: 'source-atop', 'source-over', 'destination-in', 'destination-out', 'destination-over', 'lighter', 'copy', 'xor'
             ctx.font = `${size * .75}px Arial`;
-            ctx.fillText(emoji, 0, size * .8); // fillText args go: text, x, y, maxWidth, so y = size to center vertically
+            ctx.fillText(emoji, 0, size * .8);
 
             if (emoji2) {
                 console.log('emoji2', emoji2);  
@@ -167,11 +192,97 @@
             const material = new THREE.SpriteMaterial({ map: texture });
             return new THREE.Sprite(material);
         }
-
+        let isExpandedView = false;
         let linkSprites = [];
-        const Graph = ForceGraph3D()
+        let Graph;
+
+        function expandNodes(data) {
+    const expandedNodes = [];
+    const expandedLinks = [];
+    
+    data.nodes.forEach(node => {
+        const qty = node.quantity || 1;
+        for(let i = 0; i < qty; i++) {
+            expandedNodes.push({
+                ...node,
+                id: `${node.id}-${i}`
+            });
+        }
+    });
+
+    data.links.forEach(link => {
+        const sourceQty = link.source.quantity || 1;
+        const targetQty = link.target.quantity || 1;
+        
+        // Original connections
+for(let i = 0; i < sourceQty; i++) {
+   for(let j = 0; j < targetQty; j++) {
+       if (oneToOneLinkTypes.includes(link.type)) {
+           if (i === j) {
+               expandedLinks.push({
+                   ...link,
+                   source: `${link.source.id}-${i}`,
+                   target: `${link.target.id}-${j}`,
+                   type: link.type
+               });
+           }
+       } else if (hasManyLinkTypes.includes(link.type)) {
+           // Each source connects to roughly half of targets randomly
+           if (Math.random() < 0.5) {
+               expandedLinks.push({
+                   ...link,
+                   source: `${link.source.id}-${i}`,
+                   target: `${link.target.id}-${j}`,
+                   type: link.type
+               });
+           }
+       } else {
+           // Default many-to-many behavior for other types
+           expandedLinks.push({
+               ...link,
+               source: `${link.source.id}-${i}`,
+               target: `${link.target.id}-${j}`,
+               type: link.type
+           });
+       }
+   }
+}
+
+        // Cross-connections between duplicates
+        // for(let i = 0; i < sourceQty; i++) {
+        //     for(let j = 0; j < targetQty; j++) {
+        //         if(i !== j) {
+        //             expandedLinks.push({
+        //                 source: `${link.source.id}-${i}`,
+        //                 target: `${link.target.id}-${j}`,
+        //                 type: 'duplicate link'
+        //             });
+        //         }
+        //     }
+        // }
+    });
+
+    return { nodes: expandedNodes, links: expandedLinks };
+}
+
+
+        function toggleView() {
+            isExpandedView = !isExpandedView;
+            const newData = isExpandedView ? expandNodes(baseGraphData) : baseGraphData;
+            console.log('newData', newData);
+            Graph.graphData(newData);
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                event.preventDefault();
+                toggleView();
+            }
+        });
+
+        Graph = ForceGraph3D()
             (document.getElementById('3d-graph'))
-            .graphData(graphData)
+            .graphData(baseGraphData)
             .showNavInfo(false)
             .nodeThreeObject(node => {
                 const group = new THREE.Group();
@@ -183,24 +294,19 @@
                     'media': '#ffd700'
                 };
                 
-                const mainSprite = createColoredEmoji(node.emoji, colors[node.kind], 64, node.emoji2);
+                const mainSprite = createColoredEmoji(
+                    node.emoji, 
+                    null, // colors[node.kind], 
+                    64, 
+                    node.emoji2
+                );
                 mainSprite.scale.set(10, 10, 1);
                 group.add(mainSprite);
-                
-                // if (node.emoji2) {
-                //     const secondarySprite = createColoredEmoji(node.emoji2, colors[node.kind], 24);
-                //     secondarySprite.position.set(5, -5, 0);
-                //     secondarySprite.scale.set(5, 5, 1);
-                //     group.add(secondarySprite);
-                // }
                 
                 return group;
             })
             .linkWidth(0.2)
-            .linkOpacity(0.5)
-            // .linkDirectionalParticles(2)
-            // .linkDirectionalParticleWidth(1.5)
-            // .linkDirectionalParticleSpeed(0.005)
+            .linkOpacity(1.0)
             .onNodeDragEnd(node => {
                 node.fx = node.x;
                 node.fy = node.y;
@@ -208,7 +314,15 @@
             })
             .nodeLabel(node => `${node.id} ${node.emoji}`)
             .backgroundColor('#161e27')
-            .linkColor(link => '#2e4052')
+            .linkColor(link => {
+                if (oneToOneLinkTypes.includes(link.type)) {
+                    return '#ff5050';
+                } else if (hasManyLinkTypes.includes(link.type)) {
+                    return '#32cd32';
+                } else {
+                    return '#12d7ff';
+                }
+            })
             .linkPositionUpdate((sprite, { start, end }) => {
                 if (sprite) {
                     const middlePos = Object.assign(...['x', 'y', 'z'].map(c => ({
@@ -220,7 +334,7 @@
             .linkThreeObjectExtend(true)
             .linkThreeObject(link => {
                 const sprite = new SpriteText(`${link.type}`);
-                sprite.color = 'lightgrey';
+                sprite.color = 'white';
                 sprite.textHeight = 3;
                 sprite.visible = false;
                 linkSprites.push(sprite);
@@ -235,13 +349,13 @@
             .linkHoverPrecision(.1) 
 
             //  func to return a node's order in the graph
-            const getNodeOrder = node => node ? graphData.links.filter(link => (link.source === node.id || link.target === node.id)).length : 0;
+            const getNodeOrder = node => node ? baseGraphData.links.filter(link => (link.source === node.id || link.target === node.id)).length : 0;
             const getLinkOrder = link => link ? getNodeOrder(link.source) + getNodeOrder(link.target) : 0;
 
             function linkSpreadForce() { // inefficient to push nodes away from links
                 let nodes;
                 let links;
-                const strength = 4;
+                const strength = 8;
                 const minDistance = 10;
 
                 let nodesToValidLinks = {}; // where valid links are within two degrees of separation
@@ -308,7 +422,7 @@
 
             Graph.d3Force('link').distance(link => 5 + 15 * getLinkOrder(link));
             Graph.d3Force('link-spread', linkSpreadForce())
-    .d3Force('link-spread').links(Graph.graphData().links);
+                .d3Force('link-spread').links(Graph.graphData().links);
 
 
     </script>
