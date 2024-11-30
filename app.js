@@ -13,6 +13,9 @@ const { Pool } = require('pg');
 
 let pool, credentials
 
+app.use('/', express.static(path.join(__dirname, 'public')))
+app.use(express.json())
+
 try {
 	const privateKey = fs.readFileSync('/etc/letsencrypt/live/monogon.net/privkey.pem', 'utf8')
 	const certificate = fs.readFileSync('/etc/letsencrypt/live/monogon.net/cert.pem', 'utf8')
@@ -46,6 +49,36 @@ if( process.env.DATABASE_URL && process.env.DATABASE_URL !== undefined ){
 	})	
 }
 
+app.get('/annotate/works', (req, res) => {
+    fs.readdir('public/annotate/works', (err, files) => {
+        if (err) console.log('err', err)
+        res.status(200).send(files.map(file => file.replace('.txt', '')))
+    })
+})
+
+app.post('/annotate/updateRefs', (req, res) => {
+    const refs = req.body.refs
+	console.log('refs', refs)
+    const workId = req.body.workId
+
+	const htmlStringSanitizer = (str) => {
+		return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+	}
+
+    for (const key in refs) {
+		if (refs[key].annotation === "") delete refs[key]
+		else refs[key].annotation = htmlStringSanitizer(refs[key].annotation)
+	}
+
+    fs.writeFile(`public/annotate/works/${workId}-refs.json`, JSON.stringify(refs, null, 2), err => {
+        if (err) {
+			console.log('err', err)
+			res.status(500).send()
+		}
+        res.status(200).send()
+    })
+})
+
 app.get('/db', async (req, res) => {
     try {
 		const client = await pool.connect();
@@ -73,13 +106,13 @@ const PORT = process.env.PORT || 80
 // app.use('/cards/images/rws', directory(path.resolve(__dirname, './public/cards/images/rws/')));
 
 // app.use('/old', express.static(path.join(__dirname, 'old')))
-app.use('/', express.static(path.join(__dirname, 'public')))
+
 
 // app.use(vhost('kowl', (req, res, next)=>{
 // 	res.send('woot')
 // }))
 
-app.use(express.json())
+
 app.use(express.urlencoded({extended:true}))
 
 const httpServer = http.createServer(app)
