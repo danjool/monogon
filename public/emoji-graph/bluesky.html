@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bluesky Entity Graph</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <div id="3d-graph" style="width: 100vw; height: 100vh;"></div>
+
+    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/3d-force-graph"></script>
+    <script src="https://unpkg.com/three-spritetext"></script>
+    <script>
+        const graphData = {
+            nodes: [
+                { id: 'PDS', emoji: '🏢', name: 'Personal Data Store' },
+                { id: 'ACTOR', emoji: '🧑' },
+                { id: 'REPO', emoji: '📦' },
+                { id: 'LABEL', emoji: '🏷️' },
+                { id: 'RECORD', emoji: '📝' },
+                { id: 'POST', emoji: '📮' },
+                { id: 'COLLECTION', emoji: '📋' },
+                { id: 'APPVIEW', emoji: '🔍' },
+                { id: 'RELAY', emoji: '📡' },
+                { id: 'DID', emoji: '🆔' },
+                { id: 'HANDLE', emoji: '📛' },
+                { id: 'NSID', emoji: '🗂️' },
+                { id: 'TID', emoji: '⏱️' },
+                { id: 'CID', emoji: '📎' },
+                { id: 'LEXICON', emoji: '📜' },
+                { id: 'LIST', emoji: '📄' },
+                { id: 'LIST-ITEM', emoji: '📄' },
+                { id: 'NOTIFICATION', emoji: '🔔' },
+                { id: 'BLOB', emoji: '💾' }, // alternative emojis for 'blob': '💾' '🧩' '📂' '🎨' '🔍' '🔗' '📸' '🎥' '👤' '🎨' '🔠' '⭐' '🔗' '🔄' '🔍' '🧵' '👍' '🔄' '🗣️'
+                { id: 'BLOB-REF', emoji: '🔗' },
+                { id: 'EXTERNAL-EMBED', emoji: '🌐' },
+                { id: 'THUMBNAIL-BLOB', emoji: '🖼️' },
+                { id: 'POST-IMAGE', emoji: '📸' },
+                { id: 'VIDEO-BLOB', emoji: '🎥' },
+                { id: 'PROFILE-BLOB', emoji: '👤' },
+                { id: 'BANNER-BLOB', emoji: '🧩' }, // alternative emojis for 'banner': 
+                { id: 'FACET', emoji: '🔠' },
+                { id: 'FEATURE', emoji: '⭐' },
+                { id: 'MENTION', emoji: '@' },
+                { id: 'LINK', emoji: '🔗' },
+                { id: 'RECORD-EMBED', emoji: '🔄' },
+                { id: 'URI-CID', emoji: '🔍' },
+                { id: 'THREAD', emoji: '🧵' },
+                { id: 'LIKE', emoji: '👍' },
+                { id: 'REPOST', emoji: '🔄' },
+                { id: 'LANGUAGE', emoji: '🗣️' }
+            ],
+            links: [
+    // Infrastructure Layer
+    { source: 'PDS', target: 'APPVIEW', type: 'syncs with' },
+    { source: 'APPVIEW', target: 'REPO', type: 'reads from' },
+    { source: 'PDS', target: 'REPO', type: 'hosts' },
+    { source: 'PDS', target: 'RELAY', type: 'syncs to' },
+    { source: 'RELAY', target: 'REPO', type: 'aggregates' },
+
+    // Identity Layer
+    { source: 'REPO', target: 'DID', type: 'identified by' },
+    { source: 'REPO', target: 'HANDLE', type: 'identified by' },
+    { source: 'REPO', target: 'ACTOR', type: 'owned by' },
+    { source: 'REPO', target: 'COLLECTION', type: 'contains' },
+    { source: 'REPO', target: 'LABEL', type: 'tagged with' },
+
+    // Data Structure Layer
+    { source: 'COLLECTION', target: 'RECORD', type: 'contains' },
+    { source: 'POST', target: 'RECORD', type: 'is a' },
+    { source: 'COLLECTION', target: 'NSID', type: 'typed by' },
+    { source: 'RECORD', target: 'CID', type: 'versioned by' },
+    { source: 'RECORD', target: 'TID', type: 'keyed by' },
+    { source: 'RECORD', target: 'LEXICON', type: 'conforms to' },
+    { source: 'RECORD', target: 'LABEL', type: 'tagged with' },
+
+    // Lists and Social
+    { source: 'LIST', target: 'RECORD', type: 'is a' },
+    { source: 'ACTOR', target: 'LIST', type: 'creates' },
+    { source: 'LIST', target: 'LIST-ITEM', type: 'contains' },
+    { source: 'LIST-ITEM', target: 'ACTOR', type: 'references' },
+
+    // Content Layer
+    { source: 'ACTOR', target: 'POST', type: 'creates' },
+    { source: 'ACTOR', target: 'PROFILE-BLOB', type: 'has profile in' },
+    { source: 'ACTOR', target: 'BANNER-BLOB', type: 'has banner in' },
+    { source: 'ACTOR', target: 'ACTOR', type: 'follows' },
+
+    // Notifications
+    { source: 'NOTIFICATION', target: 'ACTOR', type: 'sent to' },
+    { source: 'NOTIFICATION', target: 'POST', type: 'references' },
+
+    // Posts and Content
+    { source: 'POST', target: 'FACET', type: 'contains' },
+    { source: 'POST', target: 'EXTERNAL-EMBED', type: 'embeds websites' },
+    { source: 'POST', target: 'RECORD-EMBED', type: 'quotes records' },
+    { source: 'POST', target: 'LIKE', type: 'receives' },
+    { source: 'POST', target: 'REPOST', type: 'gets' },
+    { source: 'POST', target: 'THREAD', type: 'belongs to' },
+    { source: 'POST', target: 'LANGUAGE', type: 'written in' },
+    { source: 'POST', target: 'POST', type: 'replies to' },
+
+    // Rich Text Features
+    { source: 'FACET', target: 'FEATURE', type: 'contains' },
+    { source: 'FEATURE', target: 'MENTION', type: 'references actor' },
+    { source: 'FEATURE', target: 'LINK', type: 'references url' },
+
+    // Media & Embeds
+    { source: 'BLOB', target: 'BLOB-REF', type: 'referenced by' },
+    { source: 'EXTERNAL-EMBED', target: 'THUMBNAIL-BLOB', type: 'has' },
+    { source: 'THUMBNAIL-BLOB', target: 'BLOB', type: 'is a' },
+    { source: 'POST', target: 'POST-IMAGE', type: 'attaches' },
+    { source: 'POST-IMAGE', target: 'BLOB', type: 'is a' },
+    { source: 'PROFILE-BLOB', target: 'BLOB', type: 'is a' },
+    { source: 'BANNER-BLOB', target: 'BLOB', type: 'is a' },
+    { source: 'VIDEO-BLOB', target: 'BLOB', type: 'is a' },
+    { source: 'RECORD-EMBED', target: 'URI-CID', type: 'references' },
+    { source: 'POST', target: 'URI-CID', type: 'identified by' }
+]
+        };
+
+        const Graph = ForceGraph3D()
+            (document.getElementById('3d-graph'))
+            .graphData(graphData)
+            .nodeThreeObject(node => {
+                const sprite = new SpriteText(node.emoji);
+                sprite.material.depthWrite = false;
+                sprite.textHeight = 12;
+                return sprite;
+            })
+            .linkWidth(0.2)
+            .linkOpacity(0.5)
+            .linkDirectionalParticles(2)
+            .linkDirectionalParticleWidth(1.5)
+            .linkDirectionalParticleSpeed(0.005)
+            .onNodeDragEnd(node => {
+                node.fx = node.x;
+                node.fy = node.y;
+                node.fz = node.z;
+            })
+            .nodeLabel(node => `${node.id} ${node.emoji}`)
+            .backgroundColor('#161e27')
+            .linkColor(link => '#2e4052')
+            .linkPositionUpdate((sprite, { start, end }) => {
+                if (sprite) {
+                    const middlePos = Object.assign(...['x', 'y', 'z'].map(c => ({
+                        [c]: start[c] + (end[c] - start[c]) / 2
+                    })));
+                    Object.assign(sprite.position, middlePos);
+                }
+            })
+            .linkThreeObjectExtend(true)
+            .linkThreeObject(link => {
+                const sprite = new SpriteText(`${link.type}`);
+                sprite.color = 'lightgrey';
+                sprite.textHeight = 3;
+                return sprite;
+            })
+
+            //  func to return a node's order in the graph
+            const getNodeOrder = node => graphData.links.filter(link => (link.source === node.id || link.target === node.id)).length
+            const getLinkOrder = link => getNodeOrder(link.source) + getNodeOrder(link.target)
+
+            Graph.d3Force('link').distance(link => 5 + 15 * getLinkOrder(link));
+
+
+    </script>
+</body>
+</html>
