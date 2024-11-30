@@ -39,7 +39,7 @@
     { id: 'ACTOR', emoji: '🧑', kind: 'social', quantity: 3 },
     { id: 'POST', emoji: '📮', kind: 'social', quantity: 8 },
     { id: 'THREAD', emoji: '🧵', kind: 'social', quantity: 3 },
-    { id: 'LIKE', emoji: '👍', kind: 'social', quantity: 6 },
+    { id: 'LIKE', emoji: '👍', kind: 'social', quantity: 32 },
     { id: 'REPOST', emoji: '🔄', kind: 'social', quantity: 4 },
     { id: 'LIST', emoji: '📄', kind: 'social', quantity: 3 },
     { id: 'LIST-ITEM', emoji: '📄', kind: 'social', quantity: 5 },
@@ -151,7 +151,9 @@
         'gets',             // Post->Repost
         'attaches',         // Post->PostImage
         'hosts',            // PDS->REPO
-        'references'         // ListItem->Actor, Notification->Post
+        'references',       // ListItem->Actor, Notification->Post
+        'belongs to',        // Post->Thread
+        'is a',              // Post->Record, PostImage->Blob, ProfileBlob->Blob, BannerBlob->Blob, VideoBlob->Blob, RecordEmbed->UriCid, Blob->BlobRef
         ];
         const manyToManyLinkTypes = [
         'syncs with',        // PDS->APPVIEW
@@ -228,14 +230,15 @@ for(let i = 0; i < sourceQty; i++) {
            }
        } else if (hasManyLinkTypes.includes(link.type)) {
            // Each source connects to roughly half of targets randomly
-           if (Math.random() < 0.5) {
-               expandedLinks.push({
-                   ...link,
-                   source: `${link.source.id}-${i}`,
-                   target: `${link.target.id}-${j}`,
-                   type: link.type
-               });
-           }
+           const k = j % sourceQty; // effectivly mapping j to [0, sourceQty)
+              if (i === k) {
+                expandedLinks.push({
+                     ...link,
+                     source: `${link.source.id}-${i}`,
+                     target: `${link.target.id}-${j}`,
+                     type: link.type
+                });
+              }
        } else {
            // Default many-to-many behavior for other types
            expandedLinks.push({
@@ -265,7 +268,6 @@ for(let i = 0; i < sourceQty; i++) {
     return { nodes: expandedNodes, links: expandedLinks };
 }
 
-
         function toggleView() {
             isExpandedView = !isExpandedView;
             const newData = isExpandedView ? expandNodes(baseGraphData) : baseGraphData;
@@ -280,7 +282,7 @@ for(let i = 0; i < sourceQty; i++) {
             }
         });
 
-        Graph = ForceGraph3D()
+        Graph = ForceGraph3D({rendererConfig:{ antialias: true, alpha: true, clearColor: "black" }, controlType:'orbit' })
             (document.getElementById('3d-graph'))
             .graphData(baseGraphData)
             .showNavInfo(false)
@@ -424,6 +426,7 @@ for(let i = 0; i < sourceQty; i++) {
             Graph.d3Force('link-spread', linkSpreadForce())
                 .d3Force('link-spread').links(Graph.graphData().links);
 
+            Graph.cameraPosition({ x: 300, y: 0, z: 0 });
 
     </script>
 </body>
