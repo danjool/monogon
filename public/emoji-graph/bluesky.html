@@ -168,10 +168,11 @@
             return new THREE.Sprite(material);
         }
 
-
+        let linkSprites = [];
         const Graph = ForceGraph3D()
             (document.getElementById('3d-graph'))
             .graphData(graphData)
+            .showNavInfo(false)
             .nodeThreeObject(node => {
                 const group = new THREE.Group();
                 const colors = {
@@ -221,8 +222,17 @@
                 const sprite = new SpriteText(`${link.type}`);
                 sprite.color = 'lightgrey';
                 sprite.textHeight = 3;
+                sprite.visible = false;
+                linkSprites.push(sprite);
                 return sprite;
             })
+            .onLinkHover(link => {
+                if (link) { 
+                    linkSprites.forEach(sprite => sprite.visible = false);
+                    linkSprites[link.index].visible = true; 
+                }
+            })
+            .linkHoverPrecision(.1) 
 
             //  func to return a node's order in the graph
             const getNodeOrder = node => node ? graphData.links.filter(link => (link.source === node.id || link.target === node.id)).length : 0;
