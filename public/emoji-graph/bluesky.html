@@ -228,14 +228,77 @@
             const getNodeOrder = node => node ? graphData.links.filter(link => (link.source === node.id || link.target === node.id)).length : 0;
             const getLinkOrder = link => link ? getNodeOrder(link.source) + getNodeOrder(link.target) : 0;
 
-            Graph.d3Force('link').distance(link => 5 + 15 * getLinkOrder(link));
-            Graph.d3Force('link-spread', 
-                link => {
-                    console.log('link', link);
-                    const dist = 5 + 15 * getLinkOrder(link);
-                    return dist;
+            function linkSpreadForce() { // inefficient to push nodes away from links
+                let nodes;
+                let links;
+                const strength = 4;
+                const minDistance = 10;
+
+                let nodesToValidLinks = {}; // where valid links are within two degrees of separation
+
+                function force(alpha) {
+                    nodes.forEach(node => {
+                        let fx = 0, fy = 0, fz = 0;
+                        
+                        // Check distance to each link
+                        if (!links) return;
+                        links.forEach(link => {
+                            if (node === link.source || node === link.target) return;
+                            
+                            // Get vector from link source to target
+                            const dx = link.target.x - link.source.x;
+                            const dy = link.target.y - link.source.y;
+                            const dz = link.target.z - link.source.z;
+                            
+                            // Project node position onto line
+                            const t = ((node.x - link.source.x) * dx + 
+                                    (node.y - link.source.y) * dy + 
+                                    (node.z - link.source.z) * dz) / 
+                                    (dx * dx + dy * dy + dz * dz);
+                            
+                            if (t < 0 || t > 1) return; // Outside link segment
+                            
+                            // Find closest point on line
+                            const projX = link.source.x + t * dx;
+                            const projY = link.source.y + t * dy;
+                            const projZ = link.source.z + t * dz;
+                            
+                            // Vector from projection to node
+                            const vx = node.x - projX;
+                            const vy = node.y - projY;
+                            const vz = node.z - projZ;
+                            
+                            // Distance from node to line
+                            const dist = Math.sqrt(vx * vx + vy * vy + vz * vz);
+                            
+                            if (dist < minDistance) {
+                                const factor = strength * alpha * (1 - dist / minDistance);
+                                fx += vx / dist * factor;
+                                fy += vy / dist * factor;
+                                fz += vz / dist * factor;
+                            }
+                        });
+                        
+                        node.vx += fx;
+                        node.vy += fy;
+                        node.vz += fz;
+                    });
                 }
-            );   
+
+                force.initialize = (_nodes, ..._) => {
+                    nodes = _nodes;
+                };
+
+                force.links = (_) => {
+                    return _.length ? (links = _, force) : links;
+                };
+
+                return force;
+            }
+
+            Graph.d3Force('link').distance(link => 5 + 15 * getLinkOrder(link));
+            Graph.d3Force('link-spread', linkSpreadForce())
+    .d3Force('link-spread').links(Graph.graphData().links);
 
 
     </script>
