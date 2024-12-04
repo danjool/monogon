@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bluesky MUD Prototype</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js"></script>
+    <style>
+        body { max-width: 800px; margin: 2rem auto; font-family: system-ui; padding: 1rem; }
+        #gameArea { display: none; }
+        .room { border: 1px solid #c0c; padding: 1rem; margin: 1rem 0; }
+        .exits { color: #666; }
+        .messages { height: 200px; overflow-y: scroll; border: 1px solid #eee; padding: 1rem; margin: 1rem 0; }
+        button { margin: 0.5rem; padding: 0.5rem 1rem; }
+        input[type="text"] { width: 80%; padding: 0.5rem; }
+        .warning { background: #fff3cd; padding: 1rem; border: 1px solid #ffeeba; margin: 1rem 0; }
+    </style>
+</head>
+<body>
+    <div id="loginArea">
+        <h2>Bluesky MUD Prototype</h2>
+        
+        <div class="warning">
+            <h3>⚠️ Security Notice</h3>
+            <p>This is an experimental MUD using Bluesky's AT Protocol. Please:</p>
+            <ul>
+                <li>Use an App Password from bsky.social (not your main password)</li>
+                <li>Review the source code before proceeding</li>
+                <li>Understand this stores game data in your Bluesky repo</li>
+            </ul>
+        </div>
+
+        <input type="text" id="identifier" placeholder="handle.bsky.social">
+        <input type="password" id="password" placeholder="App Password">
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div id="gameArea">
+        <div class="room">
+            <h3 id="roomTitle">Loading...</h3>
+            <p id="roomDesc"></p>
+            <p class="exits" id="exits"></p>
+        </div>
+        
+        <div class="messages" id="messages"></div>
+        
+        <input type="text" id="command" placeholder="Type a command (look, go [exit], say [message])">
+        <button onclick="sendCommand()">Send</button>
+    </div>
+
+    <script>
+        let agent = null;
+        let currentRoom = null;
+        let playerDid = null;
+        
+        const BSKY_SERVICE = 'https://bsky.social';
+        const MUD_RECORD_TYPE = 'app.mud.room';
+
+        async function login() {
+            const identifier = document.getElementById('identifier').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await axios.post(`${BSKY_SERVICE}/xrpc/com.atproto.server.createSession`, {
+                    identifier,
+                    password
+                });
+
+                if (response.data.accessJwt) {
+                    agent = {
+                        jwt: response.data.accessJwt,
+                        did: response.data.did
+                    };
+                    
+                    playerDid = response.data.did;
+                    document.getElementById('loginArea').style.display = 'none';
+                    document.getElementById('gameArea').style.display = 'block';
+                    
+                    // Initialize player's room if they don't have one
+                    await initializePlayerRoom();
+                    addMessage('System', 'Connected to Bluesky MUD prototype');
+                }
+            } catch (error) {
+                alert('Login failed: ' + (error.response?.data?.message || error.message));
+            }
+        }
+
+        async function initializePlayerRoom() {
+            try {
+                // Check if player has a room record
+                const response = await axios.post(`${BSKY_SERVICE}/xrpc/com.atproto.repo.createRecord`, {
+                    repo: playerDid,
+                    collection: MUD_RECORD_TYPE,
+                    record: {
+                        title: "A New Room",
+                        description: "An empty room waiting to be described.",
+                        exits: [],
+                        $type: MUD_RECORD_TYPE
+                    }
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${agent.jwt}`
+                    }
+                });
+
+                await enterRoom(playerDid);
+            } catch (error) {
+                if (error.response?.status === 409) {
+                    // Room already exists, just enter it
+                    await enterRoom(playerDid);
+                } else {
+                    addMessage('System', 'Error initializing room: ' + error.message);
+                }
+            }
+        }
+
+        async function enterRoom(ownerDid) {
+            try {
+                const response = await axios.get(
+                    `${BSKY_SERVICE}/xrpc/com.atproto.repo.listRecords?repo=${ownerDid}&collection=${MUD_RECORD_TYPE}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${agent.jwt}`
+                        }
+                    }
+                );
+
+                if (response.data.records?.length > 0) {
+                    const roomRecord = response.data.records[0].value;
+                    currentRoom = roomRecord;
+                    document.getElementById('roomTitle').textContent = roomRecord.title;
+                    document.getElementById('roomDesc').textContent = roomRecord.description;
+                    document.getElementById('exits').textContent = `Exits: ${roomRecord.exits.join(', ') || 'none'}`;
+                    addMessage('System', `You entered ${roomRecord.title}`);
+                }
+            } catch (error) {
+                addMessage('System', 'Error fetching room: ' + error.message);
+            }
+        }
+
+        function addMessage(sender, text) {
+            const messages = document.getElementById('messages');
+            const time = luxon.DateTime.now().toLocaleString(luxon.DateTime.TIME_SIMPLE);
+            messages.innerHTML += `<p><strong>${time} - ${sender}:</strong> ${marked.parse(text)}</p>`;
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        async function sendCommand() {
+            const commandInput = document.getElementById('command');
+            const command = commandInput.value.toLowerCase();
+            commandInput.value = '';
+
+            if (command === 'look') {
+                addMessage('System', `You look around ${currentRoom.title}.\n${currentRoom.description}`);
+            }
+            else if (command.startsWith('go ')) {
+                const exit = command.substring(3);
+                if (currentRoom.exits.includes(exit)) {
+                    try {
+                        // In real implementation, would resolve exit to owner's DID
+                        const targetDid = exit;
+                        await enterRoom(targetDid);
+                    } catch (error) {
+                        addMessage('System', `Failed to move: ${error.message}`);
+                    }
+                } else {
+                    addMessage('System', `There is no exit '${exit}'`);
+                }
+            }
+            else if (command.startsWith('say ')) {
+                const message = command.substring(4);
+                addMessage('You', message);
+            }
+            else {
+                addMessage('System', 'Unknown command. Try: look, go [exit], say [message]');
+            }
+        }
+
+        document.getElementById('command').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendCommand();
+            }
+        });
+    </script>
+</body>
+</html>
