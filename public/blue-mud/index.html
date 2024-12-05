@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bluesky MUD</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "axios": "https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js",
+            "luxon": "https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js",
+            "marked": "https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"
+        }
+    }
+    </script>
+    <script type="module">
+        import { Game } from './game.js';
+        
+        const game = new Game();
+        game.initialize();
+        
+        // Expose login function for the button
+        window.login = () => {
+            const identifier = document.getElementById('identifier').value;
+            const password = document.getElementById('password').value;
+            game.login(identifier, password);
+        };
+    </script>
+    <style>
+        body { max-width: 800px; margin: 2rem auto; font-family: system-ui; padding: 1rem; }
+        #gameArea { display: none; }
+        .room { border: 1px solid #ccc; padding: 1rem; margin: 1rem 0; }
+        .exits { color: #666; }
+        .messages { height: 200px; overflow-y: scroll; border: 1px solid #eee; padding: 1rem; margin: 1rem 0; }
+        button { margin: 0.5rem; padding: 0.5rem 1rem; }
+        input[type="text"] { width: 80%; padding: 0.5rem; }
+        .warning { background: #fff3cd; padding: 1rem; border: 1px solid #ffeeba; margin: 1rem 0; }
+        .inventory { background: #e9ecef; padding: 1rem; margin: 1rem 0; }
+        .players { color: #28a745; margin-bottom: 0.5rem; }
+        .items { color: #dc3545; margin-bottom: 0.5rem; }
+        .chat { color: #0066cc; }
+    </style>
+</head>
+<body>
+    <div id="loginArea">
+        <h2>Bluesky MUD Prototype</h2>
+        
+        <div class="warning">
+            <h3>⚠️ Security Notice</h3>
+            <p>This is an experimental MUD using Bluesky's AT Protocol. Please:</p>
+            <ul>
+                <li>Use an App Password from bsky.social (not your main password)</li>
+                <li>Create an App Password at <a href="https://bsky.app/settings/app-passwords">https://bsky.app/settings/app-passwords</a></li>
+                <li>Learn about App Passwords at <a href="https://blueskyfeeds.com/en/faq-app-password">bsky.social/docs/app-passwords</a></li>
+                <li>Understand this stores game data in your Bluesky repo</li>
+            </ul>
+        </div>
+
+        <input type="text" id="identifier" placeholder="handle.bsky.social">
+        <input type="password" id="password" placeholder="App Password">
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div id="gameArea">
+        <div class="room">
+            <h3 id="roomTitle">Loading...</h3>
+            <p id="roomDesc"></p>
+            <p class="players" id="playersHere"></p>
+            <p class="items" id="itemsHere"></p>
+            <p class="exits" id="exits"></p>
+        </div>
+        
+        <div class="inventory" id="inventory">
+            <h4>Inventory</h4>
+            <div id="inventoryItems"></div>
+        </div>
+        
+        <div class="messages" id="messages"></div>
+        
+        <input type="text" id="command" placeholder="Type a command (look, go [exit], say [message], take/drop [item], edit)">
+        <button onclick="sendCommand()">Send</button>
+    </div>
+</body>
+</html>
