@@ -8,12 +8,15 @@
     <style>
         body { max-width: 800px; margin: 2rem auto; font-family: system-ui; padding: 1rem; }
         #gameArea { display: none; }
-        .room { border: 1px solid #c0c; padding: 1rem; margin: 1rem 0; }
+        .room { border: 1px solid #ccc; padding: 1rem; margin: 1rem 0; }
         .exits { color: #666; }
         .messages { height: 200px; overflow-y: scroll; border: 1px solid #eee; padding: 1rem; margin: 1rem 0; }
         button { margin: 0.5rem; padding: 0.5rem 1rem; }
         input[type="text"] { width: 80%; padding: 0.5rem; }
         .warning { background: #fff3cd; padding: 1rem; border: 1px solid #ffeeba; margin: 1rem 0; }
+        .inventory { background: #e9ecef; padding: 1rem; margin: 1rem 0; }
+        .players { color: #28a745; margin-bottom: 0.5rem; }
+        .items { color: #dc3545; margin-bottom: 0.5rem; }
     </style>
 </head>
 <body>
@@ -25,7 +28,8 @@
             <p>This is an experimental MUD using Bluesky's AT Protocol. Please:</p>
             <ul>
                 <li>Use an App Password from bsky.social (not your main password)</li>
-                <li>Review the source code before proceeding</li>
+                <li>To add an App Password at <a href="https://bsky.app/settings/app-passwords">https://bsky.app/settings/app-passwords</a></li>
+                <li>Learn App Passwords aren't nonsense at <a href="https://blueskyfeeds.com/en/faq-app-password">bsky.social/docs/app-passwords</a></li>
                 <li>Understand this stores game data in your Bluesky repo</li>
             </ul>
         </div>
@@ -39,12 +43,19 @@
         <div class="room">
             <h3 id="roomTitle">Loading...</h3>
             <p id="roomDesc"></p>
+            <p class="players" id="playersHere"></p>
+            <p class="items" id="itemsHere"></p>
             <p class="exits" id="exits"></p>
+        </div>
+        
+        <div class="inventory" id="inventory">
+            <h4>Inventory</h4>
+            <div id="inventoryItems"></div>
         </div>
         
         <div class="messages" id="messages"></div>
         
-        <input type="text" id="command" placeholder="Type a command (look, go [exit], say [message])">
+        <input type="text" id="command" placeholder="Type a command (look, go [exit], say [message], take/drop [item], edit)">
         <button onclick="sendCommand()">Send</button>
     </div>
 
@@ -52,9 +63,27 @@
         let agent = null;
         let currentRoom = null;
         let playerDid = null;
+        let playerInventory = [];
         
         const BSKY_SERVICE = 'https://bsky.social';
         const MUD_RECORD_TYPE = 'app.mud.room';
+        const MUD_INVENTORY_TYPE = 'app.mud.inventory';
+
+        // Poll for room updates every 10 seconds
+        // setInterval(async () => {
+        //     if (currentRoom && playerDid) {
+        //         await enterRoom(currentRoom.owner);
+        //     }
+        // }, 10000);
+
+        // every half second, update the first char of the Security Notice text to cycle through different warning emojis
+        let warningIndex = 0
+        setInterval(() => {
+            const warning = document.querySelector('.warning');
+            const emojis = ['⚠️', '🚨', '⚡️', '🔒', '🛑 '];
+            const nextEmoji = emojis[warningIndex++ % emojis.length];
+            warning.querySelector('h3').textContent = (nextEmoji + ' Security Notice' + nextEmoji);
+        }, 500);
 
         async function login() {
             const identifier = document.getElementById('identifier').value;
@@ -76,8 +105,7 @@
                     document.getElementById('loginArea').style.display = 'none';
                     document.getElementById('gameArea').style.display = 'block';
                     
-                    // Initialize player's room if they don't have one
-                    await initializePlayerRoom();
+                    await initializePlayerData();
                     addMessage('System', 'Connected to Bluesky MUD prototype');
                 }
             } catch (error) {
@@ -85,28 +113,59 @@
             }
         }
 
+        async function initializePlayerData() {
+            try {
+                await initializePlayerRoom();
+                
+                try {
+                    await axios.post(`${BSKY_SERVICE}/xrpc/com.atproto.repo.createRecord`, {
+                        repo: playerDid,
+                        collection: MUD_INVENTORY_TYPE,
+                        rkey: 'inv1', // Fixed rkey for inventory record
+                        record: {
+                            items: [],
+                            $type: MUD_INVENTORY_TYPE
+                        }
+                    }, {
+                        headers: { 'Authorization': `Bearer ${agent.jwt}` }
+                    });
+                } catch (error) {
+                    if (error.response?.status !== 500) { // in case record already exists
+                        console.log('Error creating inventory record, probably already exists');
+                        throw error;
+                    }
+                }
+                
+                await loadInventory();
+            } catch (error) {
+                addMessage('System', 'Error initializing player data: ' + error.message);
+            }
+        }
+
         async function initializePlayerRoom() {
             try {
-                // Check if player has a room record
-                const response = await axios.post(`${BSKY_SERVICE}/xrpc/com.atproto.repo.createRecord`, {
+                // Add static rkey for room record
+                await axios.post(`${BSKY_SERVICE}/xrpc/com.atproto.repo.createRecord`, {
                     repo: playerDid,
                     collection: MUD_RECORD_TYPE,
+                    rkey: 'room1',
                     record: {
                         title: "A New Room",
                         description: "An empty room waiting to be described.",
                         exits: [],
+                        items: [],
+                        players: [],
+                        owner: playerDid,
                         $type: MUD_RECORD_TYPE
                     }
                 }, {
-                    headers: {
-                        'Authorization': `Bearer ${agent.jwt}`
-                    }
+                    headers: { 'Authorization': `Bearer ${agent.jwt}` }
                 });
 
+                console.log('Room created');
                 await enterRoom(playerDid);
             } catch (error) {
-                if (error.response?.status === 409) {
-                    // Room already exists, just enter it
+                if (error.response?.status === 500) {
                     await enterRoom(playerDid);
                 } else {
                     addMessage('System', 'Error initializing room: ' + error.message);
@@ -114,28 +173,148 @@
             }
         }
 
+        async function loadInventory() {
+            try {
+                const response = await axios.get(
+                    `${BSKY_SERVICE}/xrpc/com.atproto.repo.listRecords?repo=${playerDid}&collection=${MUD_INVENTORY_TYPE}`,
+                    {
+                        headers: { 'Authorization': `Bearer ${agent.jwt}` }
+                    }
+                );
+
+                if (response.data.records?.length > 0) {
+                    playerInventory = response.data.records[0].value.items;
+                    updateInventoryDisplay();
+                }
+            } catch (error) {
+                addMessage('System', 'Error loading inventory: ' + error.message);
+            }
+        }
+
+        async function updateInventory() {
+            try {
+                const records = await axios.get(
+                    `${BSKY_SERVICE}/xrpc/com.atproto.repo.listRecords?repo=${playerDid}&collection=${MUD_INVENTORY_TYPE}`,
+                    {
+                        headers: { 'Authorization': `Bearer ${agent.jwt}` }
+                    }
+                );
+
+                const rkey = records.data.records[0].rkey;
+                
+                await axios.post(`${BSKY_SERVICE}/xrpc/com.atproto.repo.putRecord`, {
+                    repo: playerDid,
+                    collection: MUD_INVENTORY_TYPE,
+                    rkey: rkey,
+                    record: {
+                        items: playerInventory,
+                        $type: MUD_INVENTORY_TYPE
+                    }
+                }, {
+                    headers: { 'Authorization': `Bearer ${agent.jwt}` }
+                });
+                
+                updateInventoryDisplay();
+            } catch (error) {
+                addMessage('System', 'Error updating inventory: ' + error.message);
+            }
+        }
+
+        function updateInventoryDisplay() {
+            const inv = document.getElementById('inventoryItems');
+            inv.innerHTML = playerInventory.length ? playerInventory.join(', ') : 'Empty';
+        }
+
         async function enterRoom(ownerDid) {
             try {
+                // Remove player from previous room
+                if (currentRoom) {
+                    await updateRoom(currentRoom.owner, room => {
+                        room.players = room.players.filter(p => p !== playerDid);
+                        return room;
+                    });
+                }
+
                 const response = await axios.get(
                     `${BSKY_SERVICE}/xrpc/com.atproto.repo.listRecords?repo=${ownerDid}&collection=${MUD_RECORD_TYPE}`,
                     {
-                        headers: {
-                            'Authorization': `Bearer ${agent.jwt}`
-                        }
+                        headers: { 'Authorization': `Bearer ${agent.jwt}` }
                     }
                 );
 
                 if (response.data.records?.length > 0) {
                     const roomRecord = response.data.records[0].value;
                     currentRoom = roomRecord;
+                    
+                    // Add player to new room
+                    await updateRoom(ownerDid, room => {
+                        if (!room.players.includes(playerDid)) {
+                            room.players.push(playerDid);
+                        }
+                        return room;
+                    });
+
+                    // Update display
                     document.getElementById('roomTitle').textContent = roomRecord.title;
                     document.getElementById('roomDesc').textContent = roomRecord.description;
                     document.getElementById('exits').textContent = `Exits: ${roomRecord.exits.join(', ') || 'none'}`;
+                    document.getElementById('playersHere').textContent = `Players here: ${roomRecord.players.join(', ') || 'none'}`;
+                    document.getElementById('itemsHere').textContent = `Items here: ${roomRecord.items?.join(', ') || 'none'}`;
                     addMessage('System', `You entered ${roomRecord.title}`);
                 }
             } catch (error) {
                 addMessage('System', 'Error fetching room: ' + error.message);
             }
+        }
+
+        async function updateRoom(ownerDid, updateFn) {
+            try {
+                const response = await axios.get(
+                    `${BSKY_SERVICE}/xrpc/com.atproto.repo.listRecords?repo=${ownerDid}&collection=${MUD_RECORD_TYPE}`,
+                    {
+                        headers: { 'Authorization': `Bearer ${agent.jwt}` }
+                    }
+                );
+
+                if (response.data.records?.length > 0) {
+                    const record = response.data.records[0];
+                    const updatedRoom = updateFn(record.value);
+
+                    await axios.post(`${BSKY_SERVICE}/xrpc/com.atproto.repo.putRecord`, {
+                        repo: ownerDid,
+                        collection: MUD_RECORD_TYPE,
+                        rkey: record.rkey || 'room1', // Fallback to static rkey
+                        record: {
+                            ...updatedRoom,
+                            $type: MUD_RECORD_TYPE
+                        }
+                    }, {
+                        headers: { 'Authorization': `Bearer ${agent.jwt}` }
+                    });
+                }
+            } catch (error) {
+                addMessage('System', 'Error updating room: ' + error.message);
+            }
+        }
+
+        async function editRoom() {
+            if (currentRoom.owner !== playerDid) {
+                addMessage('System', "You can only edit your own room!");
+                return;
+            }
+
+            const newTitle = prompt('Enter new room title:', currentRoom.title);
+            const newDesc = prompt('Enter new room description:', currentRoom.description);
+            const newExits = prompt('Enter exits (comma-separated DIDs):', currentRoom.exits.join(',')).split(',').map(e => e.trim());
+
+            await updateRoom(playerDid, room => ({
+                ...room,
+                title: newTitle || room.title,
+                description: newDesc || room.description,
+                exits: newExits
+            }));
+
+            await enterRoom(playerDid);
         }
 
         function addMessage(sender, text) {
@@ -156,13 +335,7 @@
             else if (command.startsWith('go ')) {
                 const exit = command.substring(3);
                 if (currentRoom.exits.includes(exit)) {
-                    try {
-                        // In real implementation, would resolve exit to owner's DID
-                        const targetDid = exit;
-                        await enterRoom(targetDid);
-                    } catch (error) {
-                        addMessage('System', `Failed to move: ${error.message}`);
-                    }
+                    await enterRoom(exit);
                 } else {
                     addMessage('System', `There is no exit '${exit}'`);
                 }
@@ -170,9 +343,44 @@
             else if (command.startsWith('say ')) {
                 const message = command.substring(4);
                 addMessage('You', message);
+                // In a full implementation, this would broadcast to other players
+            }
+            else if (command === 'edit') {
+                await editRoom();
+            }
+            else if (command.startsWith('take ')) {
+                const item = command.substring(5);
+                if (currentRoom.items?.includes(item)) {
+                    await updateRoom(currentRoom.owner, room => {
+                        room.items = room.items.filter(i => i !== item);
+                        return room;
+                    });
+                    playerInventory.push(item);
+                    await updateInventory();
+                    addMessage('System', `You took ${item}`);
+                    await enterRoom(currentRoom.owner);
+                } else {
+                    addMessage('System', `There is no ${item} here`);
+                }
+            }
+            else if (command.startsWith('drop ')) {
+                const item = command.substring(5);
+                if (playerInventory.includes(item)) {
+                    playerInventory = playerInventory.filter(i => i !== item);
+                    await updateInventory();
+                    await updateRoom(currentRoom.owner, room => {
+                        if (!room.items) room.items = [];
+                        room.items.push(item);
+                        return room;
+                    });
+                    addMessage('System', `You dropped ${item}`);
+                    await enterRoom(currentRoom.owner);
+                } else {
+                    addMessage('System', `You don't have ${item}`);
+                }
             }
             else {
-                addMessage('System', 'Unknown command. Try: look, go [exit], say [message]');
+                addMessage('System', 'Unknown command. Try: look, go [exit], say [message], take [item], drop [item], edit');
             }
         }
 
