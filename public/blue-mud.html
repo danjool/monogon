@@ -17,6 +17,7 @@
         .inventory { background: #e9ecef; padding: 1rem; margin: 1rem 0; }
         .players { color: #28a745; margin-bottom: 0.5rem; }
         .items { color: #dc3545; margin-bottom: 0.5rem; }
+        .chat { color: #0066cc; }
     </style>
 </head>
 <body>
@@ -28,8 +29,8 @@
             <p>This is an experimental MUD using Bluesky's AT Protocol. Please:</p>
             <ul>
                 <li>Use an App Password from bsky.social (not your main password)</li>
-                <li>To add an App Password at <a href="https://bsky.app/settings/app-passwords">https://bsky.app/settings/app-passwords</a></li>
-                <li>Learn App Passwords aren't nonsense at <a href="https://blueskyfeeds.com/en/faq-app-password">bsky.social/docs/app-passwords</a></li>
+                <li>Create an App Password at <a href="https://bsky.app/settings/app-passwords">https://bsky.app/settings/app-passwords</a></li>
+                <li>Learn about App Passwords at <a href="https://blueskyfeeds.com/en/faq-app-password">bsky.social/docs/app-passwords</a></li>
                 <li>Understand this stores game data in your Bluesky repo</li>
             </ul>
         </div>
@@ -64,20 +65,24 @@
         let currentRoom = null;
         let playerDid = null;
         let playerInventory = [];
+        let lastMessageTime = {};
         
         const BSKY_SERVICE = 'https://bsky.social';
         const MUD_RECORD_TYPE = 'app.mud.room';
         const MUD_INVENTORY_TYPE = 'app.mud.inventory';
+        const MUD_CHAT_TYPE = 'app.mud.chat';
 
-        // Poll for room updates every 10 seconds
-        // setInterval(async () => {
-        //     if (currentRoom && playerDid) {
-        //         await enterRoom(currentRoom.owner);
-        //     }
-        // }, 10000);
+        // Poll for room and chat updates every 5 seconds
+        setInterval(async () => {
+            if (currentRoom && playerDid) {
+                await Promise.all([
+                    enterRoom(currentRoom.owner, false),
+                    fetchNewMessages()
+                ]);
+            }
+        }, 5000);
 
-        // every half second, update the first char of the Security Notice text to cycle through different warning emojis
-        let warningIndex = 0
+        let warningIndex = 0;
         setInterval(() => {
             const warning = document.querySelector('.warning');
             const emojis = ['⚠️', '🚨', '⚡️', '🔒', '🛑 '];
@@ -121,7 +126,7 @@
                     await axios.post(`${BSKY_SERVICE}/xrpc/com.atproto.repo.createRecord`, {
                         repo: playerDid,
                         collection: MUD_INVENTORY_TYPE,
-                        rkey: 'inv1', // Fixed rkey for inventory record
+                        rkey: 'inv1',
                         record: {
                             items: [],
                             $type: MUD_INVENTORY_TYPE
@@ -130,8 +135,7 @@
                         headers: { 'Authorization': `Bearer ${agent.jwt}` }
                     });
                 } catch (error) {
-                    if (error.response?.status !== 500) { // in case record already exists
-                        console.log('Error creating inventory record, probably already exists');
+                    if (error.response?.status !== 500) {
                         throw error;
                     }
                 }
@@ -144,7 +148,6 @@
 
         async function initializePlayerRoom() {
             try {
-                // Add static rkey for room record
                 await axios.post(`${BSKY_SERVICE}/xrpc/com.atproto.repo.createRecord`, {
                     repo: playerDid,
                     collection: MUD_RECORD_TYPE,
@@ -162,7 +165,6 @@
                     headers: { 'Authorization': `Bearer ${agent.jwt}` }
                 });
 
-                console.log('Room created');
                 await enterRoom(playerDid);
             } catch (error) {
                 if (error.response?.status === 500) {
@@ -225,10 +227,9 @@
             inv.innerHTML = playerInventory.length ? playerInventory.join(', ') : 'Empty';
         }
 
-        async function enterRoom(ownerDid) {
+        async function enterRoom(ownerDid, updatePlayers = true) {
             try {
-                // Remove player from previous room
-                if (currentRoom) {
+                if (updatePlayers && currentRoom) {
                     await updateRoom(currentRoom.owner, room => {
                         room.players = room.players.filter(p => p !== playerDid);
                         return room;
@@ -246,21 +247,31 @@
                     const roomRecord = response.data.records[0].value;
                     currentRoom = roomRecord;
                     
-                    // Add player to new room
-                    await updateRoom(ownerDid, room => {
-                        if (!room.players.includes(playerDid)) {
-                            room.players.push(playerDid);
-                        }
-                        return room;
-                    });
+                    if (updatePlayers) {
+                        await updateRoom(ownerDid, room => {
+                            if (!room.players.includes(playerDid)) {
+                                room.players.push(playerDid);
+                            }
+                            return room;
+                        });
+                    }
 
-                    // Update display
                     document.getElementById('roomTitle').textContent = roomRecord.title;
                     document.getElementById('roomDesc').textContent = roomRecord.description;
-                    document.getElementById('exits').textContent = `Exits: ${roomRecord.exits.join(', ') || 'none'}`;
-                    document.getElementById('playersHere').textContent = `Players here: ${roomRecord.players.join(', ') || 'none'}`;
-                    document.getElementById('itemsHere').textContent = `Items here: ${roomRecord.items?.join(', ') || 'none'}`;
-                    addMessage('System', `You entered ${roomRecord.title}`);
+                    
+                    const exitsList = roomRecord.exits?.map(exit => 
+                        `${exit.name} (${exit.did})`
+                    ).join(', ') || 'none';
+                    document.getElementById('exits').textContent = `Exits: ${exitsList}`;
+                    
+                    document.getElementById('playersHere').textContent = 
+                        `Players here: ${roomRecord.players.join(', ') || 'none'}`;
+                    document.getElementById('itemsHere').textContent = 
+                        `Items here: ${roomRecord.items?.join(', ') || 'none'}`;
+                    
+                    if (updatePlayers) {
+                        addMessage('System', `You entered ${roomRecord.title}`);
+                    }
                 }
             } catch (error) {
                 addMessage('System', 'Error fetching room: ' + error.message);
@@ -283,7 +294,7 @@
                     await axios.post(`${BSKY_SERVICE}/xrpc/com.atproto.repo.putRecord`, {
                         repo: ownerDid,
                         collection: MUD_RECORD_TYPE,
-                        rkey: record.rkey || 'room1', // Fallback to static rkey
+                        rkey: record.rkey || 'room1',
                         record: {
                             ...updatedRoom,
                             $type: MUD_RECORD_TYPE
@@ -304,91 +315,161 @@
             }
 
             const newTitle = prompt('Enter new room title:', currentRoom.title);
+            if (!newTitle) return;
+            
             const newDesc = prompt('Enter new room description:', currentRoom.description);
-            const newExits = prompt('Enter exits (comma-separated DIDs):', currentRoom.exits.join(',')).split(',').map(e => e.trim());
+            if (!newDesc) return;
+
+            const exits = [];
+            for (let i = 0; i < 3; i++) {
+                const exitName = prompt(`Enter name for exit ${i + 1} (or leave empty to skip):`);
+                if (!exitName) continue;
+                
+                const exitDid = prompt(`Enter DID for exit "${exitName}":`);
+                if (!exitDid) continue;
+                
+                exits.push({ name: exitName, did: exitDid });
+            }
+
+            const itemsStr = prompt('Enter items (comma-separated):', 
+                (currentRoom.items || []).join(','));
+            const items = itemsStr ? itemsStr.split(',').map(i => i.trim()) : [];
 
             await updateRoom(playerDid, room => ({
                 ...room,
-                title: newTitle || room.title,
-                description: newDesc || room.description,
-                exits: newExits
+                title: newTitle,
+                description: newDesc,
+                exits,
+                items
             }));
 
             await enterRoom(playerDid);
         }
 
-        function addMessage(sender, text) {
-            const messages = document.getElementById('messages');
-            const time = luxon.DateTime.now().toLocaleString(luxon.DateTime.TIME_SIMPLE);
-            messages.innerHTML += `<p><strong>${time} - ${sender}:</strong> ${marked.parse(text)}</p>`;
-            messages.scrollTop = messages.scrollHeight;
-        }
+        async function fetchNewMessages() {
+            try {
+                const response = await axios.get(
+                    `${BSKY_SERVICE}/xrpc/com.atproto.repo.listRecords?repo=${currentRoom.owner}&collection=${MUD_CHAT_TYPE}&limit=50`,
+                    {
+                        headers: { 'Authorization': `Bearer ${agent.jwt}` }
+                    }
+                );
 
-        async function sendCommand() {
-            const commandInput = document.getElementById('command');
-            const command = commandInput.value.toLowerCase();
-            commandInput.value = '';
-
-            if (command === 'look') {
-                addMessage('System', `You look around ${currentRoom.title}.\n${currentRoom.description}`);
-            }
-            else if (command.startsWith('go ')) {
-                const exit = command.substring(3);
-                if (currentRoom.exits.includes(exit)) {
-                    await enterRoom(exit);
-                } else {
-                    addMessage('System', `There is no exit '${exit}'`);
-                }
-            }
-            else if (command.startsWith('say ')) {
-                const message = command.substring(4);
-                addMessage('You', message);
-                // In a full implementation, this would broadcast to other players
-            }
-            else if (command === 'edit') {
-                await editRoom();
-            }
-            else if (command.startsWith('take ')) {
-                const item = command.substring(5);
-                if (currentRoom.items?.includes(item)) {
-                    await updateRoom(currentRoom.owner, room => {
-                        room.items = room.items.filter(i => i !== item);
-                        return room;
+                if (response.data.records?.length > 0) {
+                    response.data.records.forEach(record => {
+                        const chat = record.value;
+                        if (chat.timestamp > (lastMessageTime[chat.sender] || 0)) {
+                            addMessage(chat.sender, chat.message, 'chat');
+                            lastMessageTime[chat.sender] = chat.timestamp;
+                        }
                     });
-                    playerInventory.push(item);
-                    await updateInventory();
-                    addMessage('System', `You took ${item}`);
-                    await enterRoom(currentRoom.owner);
-                } else {
-                    addMessage('System', `There is no ${item} here`);
                 }
-            }
-            else if (command.startsWith('drop ')) {
-                const item = command.substring(5);
-                if (playerInventory.includes(item)) {
-                    playerInventory = playerInventory.filter(i => i !== item);
-                    await updateInventory();
-                    await updateRoom(currentRoom.owner, room => {
-                        if (!room.items) room.items = [];
-                        room.items.push(item);
-                        return room;
-                    });
-                    addMessage('System', `You dropped ${item}`);
-                    await enterRoom(currentRoom.owner);
-                } else {
-                    addMessage('System', `You don't have ${item}`);
-                }
-            }
-            else {
-                addMessage('System', 'Unknown command. Try: look, go [exit], say [message], take [item], drop [item], edit');
+            } catch (error) {
+                console.error('Error fetching messages:', error);
             }
         }
 
-        document.getElementById('command').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendCommand();
-            }
-        });
+        async function sendChatMessage(message) {
+                    try {
+                        const timestamp = Date.now();
+                        await axios.post(`${BSKY_SERVICE}/xrpc/com.atproto.repo.createRecord`, {
+                            repo: currentRoom.owner,
+                            collection: MUD_CHAT_TYPE,
+                            rkey: `chat-${timestamp}`,
+                            record: {
+                                sender: playerDid,
+                                message: message,
+                                timestamp: timestamp,
+                                $type: MUD_CHAT_TYPE
+                            }
+                        }, {
+                            headers: { 'Authorization': `Bearer ${agent.jwt}` }
+                        });
+                        
+                        addMessage('You', message, 'chat');
+                    } catch (error) {
+                        addMessage('System', 'Error sending message: ' + error.message);
+                    }
+                }
+
+                function addMessage(sender, text, className = '') {
+                    const messages = document.getElementById('messages');
+                    const time = luxon.DateTime.now().toLocaleString(luxon.DateTime.TIME_SIMPLE);
+                    const classAttr = className ? ` class="${className}"` : '';
+                    messages.innerHTML += `<p${classAttr}><strong>${time} - ${sender}:</strong> ${marked.parse(text)}</p>`;
+                    messages.scrollTop = messages.scrollHeight;
+                }
+
+                async function sendCommand() {
+                    const commandInput = document.getElementById('command');
+                    const rawCommand = commandInput.value;
+                    const lowerCommand = rawCommand.toLowerCase();
+                    commandInput.value = '';
+
+                    if (lowerCommand === 'look') {
+                        addMessage('System', `You look around ${currentRoom.title}.\n${currentRoom.description}`);
+                    }
+                    else if (lowerCommand.startsWith('go ')) {
+                        const exitName = lowerCommand.substring(3).trim();
+                        const exit = currentRoom.exits.find(e => e.name.toLowerCase() === exitName);
+                        if (exit) {
+                            await enterRoom(exit.did);
+                        } else {
+                            addMessage('System', `There is no exit named '${exitName}'`);
+                        }
+                    }
+                    else if (lowerCommand.startsWith('say ')) {
+                        const message = rawCommand.substring(4);
+                        if (message.trim()) {
+                            await sendChatMessage(message);
+                        }
+                    }
+                    else if (lowerCommand === 'edit') {
+                        await editRoom();
+                    }
+                    else if (lowerCommand.startsWith('take ')) {
+                        const item = rawCommand.substring(5);
+                        if (currentRoom.items?.includes(item)) {
+                            await updateRoom(currentRoom.owner, room => {
+                                room.items = room.items.filter(i => i !== item);
+                                return room;
+                            });
+                            playerInventory.push(item);
+                            await updateInventory();
+                            addMessage('System', `You took ${item}`);
+                            await enterRoom(currentRoom.owner);
+                        } else {
+                            addMessage('System', `There is no '${item}' here`);
+                            addMessage('System', `Available items: ${currentRoom.items?.join(', ') || 'none'}`);
+                        }
+                    }
+                    else if (lowerCommand.startsWith('drop ')) {
+                        const item = rawCommand.substring(5);
+                        if (playerInventory.includes(item)) {
+                            playerInventory = playerInventory.filter(i => i !== item);
+                            await updateInventory();
+                            await updateRoom(currentRoom.owner, room => {
+                                if (!room.items) room.items = [];
+                                room.items.push(item);
+                                return room;
+                            });
+                            addMessage('System', `You dropped ${item}`);
+                            await enterRoom(currentRoom.owner);
+                        } else {
+                            addMessage('System', `You don't have '${item}'`);
+                            addMessage('System', `Your inventory: ${playerInventory.join(', ') || 'empty'}`);
+                        }
+                    }
+                    else {
+                        addMessage('System', 'Unknown command. Try: look, go [exit name], say [message], take [item], drop [item], edit');
+                    }
+                }
+
+                document.getElementById('command').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        sendCommand();
+                    }
+                });
     </script>
 </body>
 </html>
