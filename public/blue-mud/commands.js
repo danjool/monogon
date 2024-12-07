@@ -1,7 +1,6 @@
 import { UIManager } from './ui.js';
 import { DIRECTIONS, PENNY_COST_NEW_ROOM } from './config.js';
 
-    // Helper function to get opposite direction
     function getOppositeDirection(direction) {
         const opposites = {
             'n': 's',

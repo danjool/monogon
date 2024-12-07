@@ -1,9 +1,9 @@
-import { BSKY_SERVICE, RECORD_TYPES, MUD_TAGS } from './config.js';
+import { BSKY_SERVICE, RECORD_TYPES, RECORD_FORMAT } from './config.js';
 
 export class InventoryManager {
     constructor(agent) {
         this.agent = agent;
-        this.items = []; // Initialize empty array
+        this.items = [];
     }
 
     async initialize(playerDid) {
@@ -19,18 +19,17 @@ export class InventoryManager {
                 }
             );
 
-            if (!response.data.records || response.data.records.length === 0) {
+            if (!response.data.records?.length) {
                 await this.createInventory(playerDid);
             } else {
                 const record = response.data.records[0];
-                if (record.value.tags?.includes(MUD_TAGS.INVENTORY)) {
+                if (record.value.$type === RECORD_TYPES.INVENTORY) {
                     this.items = record.value.items || [];
                 }
             }
             this.updateDisplay();
         } catch (error) {
             console.error('Inventory initialization error:', error);
-            // Initialize with empty inventory if there's an error
             this.items = [];
             this.updateDisplay();
         }
@@ -38,11 +37,9 @@ export class InventoryManager {
 
     async createInventory(playerDid) {
         const record = {
-            text: "MUD Inventory",
-            createdAt: new Date().toISOString(),
-            tags: [MUD_TAGS.INVENTORY],
+            $type: RECORD_TYPES.INVENTORY,
             items: [],
-            $type: RECORD_TYPES.INVENTORY
+            timestamp: Date.now()
         };
 
         await axios.post(
@@ -56,19 +53,6 @@ export class InventoryManager {
             { headers: { Authorization: `Bearer ${this.agent.jwt}` } }
         );
         this.items = [];
-    }
-
-
-    async load(playerDid) {
-        const response = await axios.get(
-            `${BSKY_SERVICE}/xrpc/com.atproto.repo.listRecords?repo=${playerDid}&collection=${RECORD_TYPES.INVENTORY}`,
-            { headers: { Authorization: `Bearer ${this.agent.jwt}` } }
-        );
-
-        if (response.data.records?.length > 0) {
-            this.items = response.data.records[0].value.items;
-            this.updateDisplay();
-        }
     }
 
     async save(playerDid) {
@@ -85,11 +69,9 @@ export class InventoryManager {
 
         const rkey = response.data.records[0].rkey;
         const record = {
-            text: "MUD Inventory",
-            createdAt: new Date().toISOString(),
-            tags: [MUD_TAGS.INVENTORY],
+            $type: RECORD_TYPES.INVENTORY,
             items: this.items,
-            $type: RECORD_TYPES.INVENTORY
+            timestamp: Date.now()
         };
 
         await axios.post(

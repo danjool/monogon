@@ -24,8 +24,7 @@ export class Game {
         try {
             this.agent = await AuthManager.login(identifier, password);
             this.playerDid = this.agent.did;
-    
-                            // await this.purgeOldData(); // Re-enable this to clean up old data format
+            // await this.purgeOldData();
             
             this.room = new RoomManager(this.agent, this.mapManager);
             this.inventory = new InventoryManager(this.agent);
@@ -44,14 +43,13 @@ export class Game {
                 this.inventory.initialize(this.playerDid),
                 this.pennies.initialize(this.playerDid)
             ]);
-    
-            // Add cleanup after initialization
+
             await this.room.cleanupDuplicateRooms(this.playerDid);
-    
             this.ui.toggleGameArea(true);
             this.startPolling();
         } catch (error) {
             console.error('Login failed:', error);
+            this.ui.addMessage('System', 'Login failed: ' + error.message);
         }
     }
 
@@ -69,66 +67,55 @@ export class Game {
         setInterval(async () => {
             if (this.room.currentRoom && this.playerDid) {
                 await Promise.all([
-                    this.room.enterRoom(
-                        this.room.currentRoom.owner,
-                        this.room.currentRoom.rkey,
-                        false
-                    ),
+                    this.room.enterRoom(this.room.currentRoom.owner, this.room.currentRoom.rkey, false),
                     this.chat.fetchNewMessages(this.room.currentRoom.owner)
                 ]);
             }
-        }, 5000);
+        }, 30 * 1000); // this will poll bsky every 30 seconds
     }
 
     async purgeOldData() {
-        const oldTypes = ['app.mud.room', 'app.mud.inventory'];
-        
-        console.log('=== Starting Data Purge ===');
-        console.log('BSKY_SERVICE:', BSKY_SERVICE);
-        console.log('Player DID:', this.playerDid);
-        console.log('Auth token:', this.agent.jwt.substring(0, 20) + '...');
+        const oldTypes = [
+            'app.mud.room',
+            'app.mud.inventory',
+            'app.mud.chat',
+            'app.mud.pennies',
+        ];
         
         for (const type of oldTypes) {
-            console.log(`\nPurging type: ${type}`);
             try {
-                const url = `${BSKY_SERVICE}/xrpc/com.atproto.repo.listRecords`;
-                const params = {
-                    repo: this.playerDid,
-                    collection: type
-                };
-                console.log('GET Request:', url);
-                console.log('Params:', params);
-                
-                const response = await axios.get(url, {
-                    params,
-                    headers: { 
-                        Authorization: `Bearer ${this.agent.jwt}`,
-                        'Content-Type': 'application/json'
+                const records = await this.fetchAllRecords(type);
+                for (const record of records) {
+                    if (this.isMUDRecord(record)) {
+                        await this.deleteRecord(type, record);
                     }
-                });
-                
-                console.log('Response:', response.data);
-
-                for (const record of response.data.records || []) {
-                    const deleteUrl = `${BSKY_SERVICE}/xrpc/com.atproto.repo.deleteRecord`;
-                    const deleteData = {
-                        repo: this.playerDid,
-                        collection: type,
-                        rkey: record.uri.split('/').pop()
-                    };
-                    console.log('\nDELETE Request:', deleteUrl);
-                    console.log('Data:', deleteData);
-                    
-                    await axios.post(deleteUrl, deleteData, {
-                        headers: { Authorization: `Bearer ${this.agent.jwt}` }
-                    });
                 }
             } catch (error) {
-                console.error(`\nError purging ${type}:`);
-                console.error('Status:', error.response?.status);
-                console.error('Data:', error.response?.data);
-                console.error('Message:', error.message);
+                console.error(`Failed to purge ${type}:`, error.message);
             }
         }
+    }
+
+    async fetchAllRecords(type) {
+        const response = await axios.get(`${BSKY_SERVICE}/xrpc/com.atproto.repo.listRecords`, {
+            params: { repo: this.playerDid, collection: type, limit: 100 },
+            headers: { Authorization: `Bearer ${this.agent.jwt}` }
+        });
+        return response.data.records || [];
+    }
+
+    isMUDRecord(record) {
+        return record.value.$type?.startsWith('app.mud.') ||
+               record.value.text?.startsWith('MUD ');
+    }
+
+    async deleteRecord(type, record) {
+        await axios.post(`${BSKY_SERVICE}/xrpc/com.atproto.repo.deleteRecord`, {
+            repo: this.playerDid,
+            collection: type,
+            rkey: record.uri.split('/').pop()
+        }, {
+            headers: { Authorization: `Bearer ${this.agent.jwt}` }
+        });
     }
 }

@@ -131,10 +131,11 @@ export class MapManager {
         this.ctx.fill();
         this.ctx.stroke();
 
+        // Add title fallback
+        const displayTitle = title || "Unnamed Room";
         this.ctx.fillStyle = this.colors.text;
-        const maxLength = Math.floor(size / (this.ctx.measureText('M').width * 1.2));
-        const displayTitle = title.substring(0, maxLength);
-        this.ctx.fillText(displayTitle, pos.x, pos.y);
+        const maxLength = Math.floor(size / (this.ctx.measureText('M').width * 1.2)); // 1 is fine
+        this.ctx.fillText(displayTitle.substring(0, maxLength), pos.x, pos.y);
     }
 
     clear() {

@@ -1,10 +1,10 @@
-import { BSKY_SERVICE, RECORD_TYPES, MAX_PENNIES, MUD_TAGS } from './config.js';
+import { BSKY_SERVICE, RECORD_TYPES, MAX_PENNIES } from './config.js';
 
 export class PenniesManager {
     constructor(agent) {
         this.agent = agent;
         this.pennies = 0;
-        this.currentRkey = null; // Track the current record key
+        this.currentRkey = null;
     }
 
     async initialize(playerDid) {
@@ -20,19 +20,17 @@ export class PenniesManager {
                 }
             );
 
-            if (!response.data.records || response.data.records.length === 0) {
+            if (!response.data.records?.length) {
                 await this.createPennies(playerDid);
             } else {
-                // Find the most recent pennies record
                 const record = response.data.records[0];
-                if (record.value.tags?.includes(MUD_TAGS.PENNIES)) {
+                if (record.value.$type === RECORD_TYPES.PENNIES) {
                     this.pennies = record.value.amount || 0;
                     this.currentRkey = record.rkey;
                 } else {
                     await this.createPennies(playerDid);
                 }
             }
-            console.log('Initialized pennies amount:', this.pennies, 'with rkey:', this.currentRkey);
         } catch (error) {
             console.error('Pennies initialization error:', error);
             this.pennies = 0;
@@ -40,16 +38,11 @@ export class PenniesManager {
     }
 
     async createPennies(playerDid) {
-        console.log('=== Creating Pennies Record ===');
         this.currentRkey = `pennies-${Date.now()}`;
         const record = {
-            text: `MUD Pennies: ${MAX_PENNIES}`,
-            createdAt: new Date().toISOString(),
-            tags: [MUD_TAGS.PENNIES],
-            facets: [],
+            $type: RECORD_TYPES.PENNIES,
             amount: MAX_PENNIES,
-            langs: ["en"],
-            $type: RECORD_TYPES.PENNIES
+            timestamp: Date.now()
         };
 
         try {
@@ -64,7 +57,6 @@ export class PenniesManager {
                 { headers: { Authorization: `Bearer ${this.agent.jwt}` } }
             );
             this.pennies = MAX_PENNIES;
-            console.log('Created pennies record with amount:', MAX_PENNIES);
         } catch (error) {
             console.error('Pennies creation error:', error);
             throw error;
@@ -72,43 +64,28 @@ export class PenniesManager {
     }
 
     async save(playerDid) {
-        try {
-            if (!this.currentRkey) {
-                console.error('No rkey available for pennies record');
-                return;
-            }
+        if (!this.currentRkey) return;
 
-            const record = {
-                text: `MUD Pennies: ${this.pennies}`,
-                createdAt: new Date().toISOString(),
-                tags: [MUD_TAGS.PENNIES],
-                facets: [],
-                amount: Math.min(this.pennies, MAX_PENNIES),
-                langs: ["en"],
-                $type: RECORD_TYPES.PENNIES
-            };
+        const record = {
+            $type: RECORD_TYPES.PENNIES,
+            amount: Math.min(this.pennies, MAX_PENNIES),
+            timestamp: Date.now()
+        };
 
-            await axios.post(
-                `${BSKY_SERVICE}/xrpc/com.atproto.repo.putRecord`,
-                {
-                    repo: playerDid,
-                    collection: RECORD_TYPES.PENNIES,
-                    rkey: this.currentRkey,
-                    record: record
-                },
-                { headers: { Authorization: `Bearer ${this.agent.jwt}` } }
-            );
-            console.log('Saved pennies amount:', this.pennies);
-        } catch (error) {
-            console.error('Error saving pennies:', error);
-            console.error('Error details:', error.response?.data);
-        }
+        await axios.post(
+            `${BSKY_SERVICE}/xrpc/com.atproto.repo.putRecord`,
+            {
+                repo: playerDid,
+                collection: RECORD_TYPES.PENNIES,
+                rkey: this.currentRkey,
+                record: record
+            },
+            { headers: { Authorization: `Bearer ${this.agent.jwt}` } }
+        );
     }
 
     async transfer(amount, fromDid, toDid) {
-        if (this.pennies < amount) {
-            return false;
-        }
+        if (this.pennies < amount) return false;
         
         try {
             this.pennies -= amount;

@@ -1,19 +1,37 @@
 export const BSKY_SERVICE = 'https://bsky.social';
 export const RECORD_TYPES = {
-    ROOM: 'app.bsky.feed.post',  // Using standard post type
-    INVENTORY: 'app.bsky.feed.post',
-    CHAT: 'app.bsky.feed.post',
-    PENNIES: 'app.bsky.feed.post',
-    CONNECTION_REQUEST: 'app.bsky.feed.post'
+    // Using custom types to avoid feed pollution
+    ROOM: 'app.mud.env.room',
+    INVENTORY: 'app.mud.player.inventory',
+    CHAT: 'app.mud.env.chat',
+    PENNIES: 'app.mud.player.pennies',
+    CONNECTION: 'app.mud.player.connection'
 };
 
-// Add tags to differentiate our post types
-export const MUD_TAGS = {
-    ROOM: 'mud-room',
-    INVENTORY: 'mud-inventory',
-    CHAT: 'mud-chat',
-    PENNIES: 'mud-pennies',
-    CONNECTION: 'mud-connection'
+export const RECORD_FORMAT = {
+    room: {
+        did: '',
+        title: '',
+        description: '',
+        exits: {},
+        items: [],
+        players: [],
+        coordinates: {x: 0, y: 0, z: 0},
+        timestamp: 0
+    },
+    inventory: {
+        items: [],
+        timestamp: 0
+    },
+    chat: {
+        message: '',
+        sender: '',
+        timestamp: 0
+    },
+    pennies: {
+        amount: 0,
+        timestamp: 0
+    }
 };
 
 export const DIRECTIONS = ['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'];

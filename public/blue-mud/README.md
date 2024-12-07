@@ -57,8 +57,6 @@ blue-mud/
 ## Contributing
 
 ### bugs:
-    - double stating of things said with 'say' in system chat for the user that said it
-    - chat persists forever, should be 'live' chat, any client may delete TTL expired chat records
 
 ### improvements:
     get user's name instead of DID in system chat and 'Players here' list

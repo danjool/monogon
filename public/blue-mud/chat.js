@@ -1,4 +1,4 @@
-import { BSKY_SERVICE, RECORD_TYPES, MUD_TAGS } from './config.js';
+import { BSKY_SERVICE, RECORD_TYPES } from './config.js';
 
 export class ChatManager {
     constructor(agent) {
@@ -16,12 +16,8 @@ export class ChatManager {
                 collection: RECORD_TYPES.CHAT,
                 rkey: rkey,
                 record: {
-                    text: message,
-                    createdAt: new Date().toISOString(),
-                    tags: [MUD_TAGS.CHAT],
-                    facets: [],
-                    langs: ["en"],
                     $type: RECORD_TYPES.CHAT,
+                    message: message,
                     sender: playerDid,
                     timestamp: timestamp
                 }
@@ -32,7 +28,6 @@ export class ChatManager {
             return { timestamp, sender: playerDid, message };
         } catch (error) {
             console.error('Chat send error:', error);
-            console.error('Error details:', error.response?.data);
             throw error;
         }
     }
@@ -54,12 +49,12 @@ export class ChatManager {
             const newMessages = [];
             if (response.data.records?.length > 0) {
                 response.data.records.forEach(record => {
-                    if (record.value.tags?.includes(MUD_TAGS.CHAT)) {
+                    if (record.value.$type === RECORD_TYPES.CHAT) {
                         const chat = record.value;
                         if (chat.timestamp > (this.lastMessageTime[chat.sender] || 0)) {
                             newMessages.push({
                                 sender: chat.sender,
-                                message: chat.text,
+                                message: chat.message,
                                 timestamp: chat.timestamp
                             });
                             this.lastMessageTime[chat.sender] = chat.timestamp;
