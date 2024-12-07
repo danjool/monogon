@@ -5,6 +5,7 @@ import { ChatManager } from './chat.js';
 import { CommandHandler } from './commands.js';
 import { PenniesManager } from './pennies.js';
 import { UIManager } from './ui.js';
+import { MapManager } from './map.js';
 import { BSKY_SERVICE, RECORD_TYPES } from './config.js';
 
 export class Game {
@@ -12,6 +13,7 @@ export class Game {
         this.ui = new UIManager();
         this.agent = null;
         this.playerDid = null;
+        this.mapManager = new MapManager('map');
     }
 
     async initialize() {
@@ -25,7 +27,7 @@ export class Game {
     
                             // await this.purgeOldData(); // Re-enable this to clean up old data format
             
-            this.room = new RoomManager(this.agent);
+            this.room = new RoomManager(this.agent, this.mapManager);
             this.inventory = new InventoryManager(this.agent);
             this.chat = new ChatManager(this.agent);
             this.pennies = new PenniesManager(this.agent);

@@ -1,10 +1,11 @@
 import { BSKY_SERVICE, RECORD_TYPES, DIRECTIONS, MAX_ROOMS, MUD_TAGS } from './config.js';
 
 export class RoomManager {
-    constructor(agent) {
+    constructor(agent, mapManager) {
         this.agent = agent;
         this.currentRoom = null;
         this.rooms = new Map();
+        this.mapManager = mapManager;
     }
 
     async initialize(playerDid) {
@@ -110,6 +111,13 @@ export class RoomManager {
     
             const roomCount = this.rooms.size;
             console.log(`Loaded ${roomCount} rooms:`, Object.fromEntries(this.rooms));
+
+            if (this.mapManager) {
+                this.rooms.forEach((room, rkey) => {
+                    this.mapManager.addRoom(rkey, room);
+                });
+            }
+
             return this.rooms;
         } catch (error) {
             console.error('Error loading rooms:', error);
@@ -161,6 +169,16 @@ export class RoomManager {
             });
             
             console.log('Created room:', rkey, this.rooms.get(rkey));
+
+            if (this.mapManager) {
+                this.mapManager.addRoom(rkey, {
+                    ...roomData,
+                    rkey,
+                    owner: playerDid
+                });
+            }
+        
+            
             return rkey;
         } catch (error) {
             console.error('Error creating room:', error);
@@ -274,6 +292,10 @@ export class RoomManager {
                 rkey,
                 owner: ownerDid
             };
+
+            if (this.mapManager) {
+                this.mapManager.setCurrentRoom(rkey);
+            }
 
             return this.currentRoom;
         } catch (error) {
