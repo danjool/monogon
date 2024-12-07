@@ -6,9 +6,8 @@ export class MapManager {
         this.roomSize = 20;
         this.roomSpacing = 60;
         this.currentRoomKey = null;
-        this.padding = 40; // Padding from canvas edges
+        this.padding = 40;
 
-        // Set up resize observer
         this.resizeObserver = new ResizeObserver(entries => {
             for (const entry of entries) {
                 this.handleResize(entry.contentRect);
@@ -16,13 +15,12 @@ export class MapManager {
         });
         this.resizeObserver.observe(this.canvas.parentElement);
 
-        // Initial setup
         this.handleResize(this.canvas.parentElement.getBoundingClientRect());
 
         this.colors = {
-            currentRoom: '#4CAF50',
-            ownedRoom: '#2196F3',
-            otherRoom: '#9E9E9E',
+            currentRoom: '#4CAF50',  // Bright green for current room
+            ownedRoom: '#2196F3',    // Blue for owned rooms
+            otherRoom: '#9E9E9E',    // Grey for other rooms
             connection: '#666666',
             text: '#FFFFFF',
             border: '#000000'
@@ -30,33 +28,24 @@ export class MapManager {
     }
 
     handleResize(rect) {
-        // Get container dimensions
         const containerWidth = rect.width;
         const containerHeight = rect.height;
-
-        // Update canvas size
-        this.canvas.width = containerWidth - 20; // Account for padding
-        this.canvas.height = containerHeight - 40; // Account for header and padding
-
-        // Recalculate center points
+        this.canvas.width = containerWidth - 20;
+        this.canvas.height = containerHeight - 40;
         this.centerX = this.canvas.width / 2;
         this.centerY = this.canvas.height / 2;
-
-        // Update font size based on canvas size
+        
         const minDimension = Math.min(this.canvas.width, this.canvas.height);
         this.ctx.font = `${minDimension * 0.05}px Arial`;
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
-
-        // Adjust room size and spacing based on canvas size
+        
         this.roomSize = minDimension * 0.1;
         this.roomSpacing = minDimension * 0.25;
-
-        // Redraw the map
+        
         this.draw();
     }
 
-    // Calculate bounds of all rooms
     calculateBounds() {
         let minX = Infinity, maxX = -Infinity;
         let minY = Infinity, maxY = -Infinity;
@@ -71,7 +60,6 @@ export class MapManager {
         return { minX, maxX, minY, maxY };
     }
 
-    // Calculate scale factor to fit all rooms
     calculateScale() {
         if (this.rooms.size === 0) return 1;
 
@@ -84,7 +72,7 @@ export class MapManager {
         const scaleX = (this.canvas.width - this.padding * 2) / ((width + 1) * this.roomSpacing);
         const scaleY = (this.canvas.height - this.padding * 2) / ((height + 1) * this.roomSpacing);
 
-        return Math.min(scaleX, scaleY, 1); // Never scale up beyond original size
+        return Math.min(scaleX, scaleY, 1);
     }
 
     getRoomPosition(coordinates) {
@@ -102,10 +90,8 @@ export class MapManager {
     draw() {
         this.clear();
         
-        // Draw connections first
         this.rooms.forEach((room, rkey) => {
             const roomPos = this.getRoomPosition(room.coordinates);
-            
             if (room.exits) {
                 Object.entries(room.exits).forEach(([direction, exit]) => {
                     const targetRoom = this.rooms.get(exit.rkey);
@@ -117,9 +103,9 @@ export class MapManager {
             }
         });
 
-        // Draw rooms on top
         this.rooms.forEach((room, rkey) => {
             const pos = this.getRoomPosition(room.coordinates);
+            console.log('Drawing room:', pos, room.title, rkey === this.currentRoomKey);
             this.drawRoom(pos, room.title, rkey === this.currentRoomKey);
         });
     }
@@ -128,7 +114,7 @@ export class MapManager {
         this.ctx.beginPath();
         this.ctx.moveTo(start.x, start.y);
         this.ctx.lineTo(end.x, end.y);
-        this.ctx.strokeStyle = '#666';
+        this.ctx.strokeStyle = this.colors.connection;
         this.ctx.lineWidth = Math.max(1, this.roomSize * 0.05);
         this.ctx.stroke();
     }
@@ -136,28 +122,18 @@ export class MapManager {
     drawRoom(pos, title, isCurrent) {
         const size = this.roomSize;
         
-        // Draw room box
-        this.ctx.fillStyle = isCurrent ? '#4CAF50' : '#2196F3';
-        this.ctx.strokeStyle = '#000';
+        this.ctx.fillStyle = isCurrent ? this.colors.currentRoom : this.colors.ownedRoom;
+        this.ctx.strokeStyle = this.colors.border;
         this.ctx.lineWidth = Math.max(1, size * 0.05);
         
         this.ctx.beginPath();
-        this.ctx.rect(
-            pos.x - size/2,
-            pos.y - size/2,
-            size,
-            size
-        );
+        this.ctx.rect(pos.x - size/2, pos.y - size/2, size, size);
         this.ctx.fill();
         this.ctx.stroke();
 
-        // Draw room title
-        this.ctx.fillStyle = '#fff';
-        // Truncate title based on room size
+        this.ctx.fillStyle = this.colors.text;
         const maxLength = Math.floor(size / (this.ctx.measureText('M').width * 1.2));
-        const displayTitle = title.length > maxLength ? 
-            title.substring(0, maxLength - 2) + '..' : 
-            title;
+        const displayTitle = title.substring(0, maxLength);
         this.ctx.fillText(displayTitle, pos.x, pos.y);
     }
 
