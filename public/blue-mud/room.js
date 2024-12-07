@@ -6,66 +6,47 @@ export class RoomManager {
         this.currentRoom = null;
         this.rooms = new Map();
     }
-    
+
     async initialize(playerDid) {
         console.log('Initializing RoomManager');
-        
-        // Try initialization multiple times
-        for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-                await this.loadAllRooms(playerDid);
-                
-                // Get valid rooms
-                const validRooms = Array.from(this.rooms.entries())
-                    .filter(([key, room]) => key && room);
-                
-                console.log(`Initialization attempt ${attempt} - Found ${validRooms.length} valid rooms`);
-                
-                if (validRooms.length === 0) {
-                    console.log('Creating first room');
-                    const roomData = {
-                        title: "Starting Room",
-                        description: "Your first room in the world.",
-                        exits: {},
-                        items: [],
-                        players: [],
-                        coordinates: {x: 0, y: 0, z: 0}
-                    };
-                    
-                    const rkey = await this.createRoom(playerDid, roomData);
-                    console.log('Created first room with key:', rkey);
-                    
-                    // Reload rooms after creation
-                    await this.loadAllRooms(playerDid);
-                    
-                    if (!this.rooms.has(rkey)) {
-                        if (attempt === 3) {
-                            throw new Error('Room creation verification failed after multiple attempts');
-                        }
-                        console.log('Room not found after creation, retrying...');
-                        continue;
-                    }
-                    
-                    await this.enterRoom(playerDid, rkey);
-                    return;
-                } else {
-                    const firstRoom = validRooms[0];
-                    const firstRoomKey = firstRoom[0];
-                    console.log('Entering existing room:', firstRoomKey);
-                    await this.enterRoom(playerDid, firstRoomKey);
-                    return;
-                }
-            } catch (error) {
-                if (attempt === 3) {
-                    console.error('Final initialization attempt failed:', error);
-                    throw error;
-                }
-                console.log(`Attempt ${attempt} failed, retrying...`);
-                await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+            await this.loadAllRooms(playerDid);
+            
+            // Load last known location
+            const lastLocation = await this.getLastLocation(playerDid);
+            
+            if (lastLocation) {
+                await this.enterRoom(lastLocation.owner, lastLocation.rkey);
+                return;
             }
+            
+            // If no last location, handle first room creation
+            const validRooms = Array.from(this.rooms.entries())
+                .filter(([key, room]) => key && room);
+            
+            if (validRooms.length === 0) {
+                const roomData = {
+                    title: "Starting Room",
+                    description: "Your first room in the world.",
+                    exits: {},
+                    items: [],
+                    players: [],
+                    coordinates: {x: 0, y: 0, z: 0}
+                };
+                
+                const rkey = await this.createRoom(playerDid, roomData);
+                await this.enterRoom(playerDid, rkey);
+                await this.saveLastLocation(playerDid, {owner: playerDid, rkey});
+            } else {
+                const [firstRoomKey, firstRoom] = validRooms[0];
+                await this.enterRoom(playerDid, firstRoomKey);
+                await this.saveLastLocation(playerDid, {owner: playerDid, rkey: firstRoomKey});
+            }
+        } catch (error) {
+            console.error('Initialization failed:', error);
+            throw error;
         }
     }
-    
 
     async loadAllRooms(playerDid) {
         try {
@@ -191,7 +172,7 @@ export class RoomManager {
         if (!rkey) {
             throw new Error('No rkey provided for update');
         }
-    
+
         try {
             const record = {
                 text: `MUD Room: ${roomData.title}\n\n${roomData.description}`,
@@ -207,8 +188,8 @@ export class RoomManager {
                 coordinates: roomData.coordinates || {x: 0, y: 0, z: 0},
                 $type: RECORD_TYPES.ROOM
             };
-    
-            await axios.post(
+
+            const response = await axios.post(
                 `${BSKY_SERVICE}/xrpc/com.atproto.repo.putRecord`,
                 {
                     repo: ownerDid,
@@ -218,18 +199,40 @@ export class RoomManager {
                 },
                 { headers: { Authorization: `Bearer ${this.agent.jwt}` } }
             );
-    
+
+            // Verify update was successful
+            const verification = await axios.get(
+                `${BSKY_SERVICE}/xrpc/com.atproto.repo.getRecord`,
+                {
+                    params: {
+                        repo: ownerDid,
+                        collection: RECORD_TYPES.ROOM,
+                        rkey: rkey
+                    },
+                    headers: { Authorization: `Bearer ${this.agent.jwt}` }
+                }
+            );
+
+            if (!verification.data.value) {
+                throw new Error('Room update verification failed');
+            }
+
             // Update local cache
             this.rooms.set(rkey, {
                 ...record,
                 rkey,
                 owner: ownerDid
             });
-    
-            console.log('Room updated:', rkey, record);
+
+            // If this is the current room, update it
+            if (this.currentRoom?.rkey === rkey) {
+                this.currentRoom = this.rooms.get(rkey);
+            }
+
+            console.log('Room updated and verified:', rkey);
+            return true;
         } catch (error) {
             console.error('Error updating room:', error);
-            console.error('Error details:', error.response?.data);
             throw error;
         }
     }
@@ -277,5 +280,92 @@ export class RoomManager {
             console.error('Error entering room:', error);
             throw error;
         }
+    }
+
+    async saveLastLocation(playerDid, location) {
+        const record = {
+            text: "MUD Last Location",
+            createdAt: new Date().toISOString(),
+            tags: ["mud-location"],
+            location: location,
+            $type: RECORD_TYPES.ROOM
+        };
+
+        try {
+            await axios.post(
+                `${BSKY_SERVICE}/xrpc/com.atproto.repo.putRecord`,
+                {
+                    repo: playerDid,
+                    collection: RECORD_TYPES.ROOM,
+                    rkey: 'last-location',
+                    record: record
+                },
+                { headers: { Authorization: `Bearer ${this.agent.jwt}` } }
+            );
+        } catch (error) {
+            console.error('Error saving location:', error);
+        }
+    }
+
+    async getLastLocation(playerDid) {
+        try {
+            const response = await axios.get(
+                `${BSKY_SERVICE}/xrpc/com.atproto.repo.getRecord`,
+                {
+                    params: {
+                        repo: playerDid,
+                        collection: RECORD_TYPES.ROOM,
+                        rkey: 'last-location'
+                    },
+                    headers: { Authorization: `Bearer ${this.agent.jwt}` }
+                }
+            );
+            return response.data.value?.location;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    async cleanupDuplicateRooms(playerDid) {
+        const rooms = Array.from(this.rooms.entries());
+        const seenTitles = new Map();
+        const toDelete = [];
+
+        // Find duplicates, keeping the newest version
+        rooms.forEach(([rkey, room]) => {
+            if (room.title === "Starting Room") {
+                if (!seenTitles.has(room.title)) {
+                    seenTitles.set(room.title, {rkey, timestamp: parseInt(rkey.split('-')[1])});
+                } else {
+                    const existing = seenTitles.get(room.title);
+                    if (parseInt(rkey.split('-')[1]) > existing.timestamp) {
+                        toDelete.push(existing.rkey);
+                        seenTitles.set(room.title, {rkey, timestamp: parseInt(rkey.split('-')[1])});
+                    } else {
+                        toDelete.push(rkey);
+                    }
+                }
+            }
+        });
+
+        // Delete duplicate rooms
+        for (const rkey of toDelete) {
+            try {
+                await axios.post(
+                    `${BSKY_SERVICE}/xrpc/com.atproto.repo.deleteRecord`,
+                    {
+                        repo: playerDid,
+                        collection: RECORD_TYPES.ROOM,
+                        rkey: rkey
+                    },
+                    { headers: { Authorization: `Bearer ${this.agent.jwt}` } }
+                );
+                this.rooms.delete(rkey);
+            } catch (error) {
+                console.error(`Failed to delete room ${rkey}:`, error);
+            }
+        }
+
+        return toDelete.length;
     }
 }

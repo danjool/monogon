@@ -43,11 +43,13 @@ export class Game {
                 this.pennies.initialize(this.playerDid)
             ]);
     
+            // Add cleanup after initialization
+            await this.room.cleanupDuplicateRooms(this.playerDid);
+    
             this.ui.toggleGameArea(true);
             this.startPolling();
         } catch (error) {
             console.error('Login failed:', error);
-            console.error('Error details:', error.response?.data);
         }
     }
 
