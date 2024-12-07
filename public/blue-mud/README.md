@@ -70,8 +70,6 @@ blue-mud/
     should invites and exits/links to be the same thing, an invite-limiting system?
     result would be realtively planar graph of rooms, slowly creeping out as people invite people to their rooms, no?
 
-Feel free to submit pull requests.
-
 ## License
 
 MIT

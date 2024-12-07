@@ -2,26 +2,17 @@
 <html>
 <head>
     <title>Bluesky MUD</title>
-    <script type="importmap">
-    {
-        "imports": {
-            "axios": "https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.7/axios.min.js",
-            "luxon": "https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js",
-            "marked": "https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"
-        }
-    }
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.3.4/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.3.0/luxon.min.js"></script>
     <script type="module">
-        import { Game } from './game.js';
-        
-        const game = new Game();
-        game.initialize();
-        
-        // Expose login function for the button
-        window.login = () => {
+        import { Game } from './Game.js';
+        window.game = new Game();
+        window.login = async function() {
             const identifier = document.getElementById('identifier').value;
             const password = document.getElementById('password').value;
-            game.login(identifier, password);
+            await game.initialize();
+            await game.login(identifier, password);
         };
     </script>
     <style>
@@ -56,27 +47,28 @@
 
         <input type="text" id="identifier" placeholder="handle.bsky.social">
         <input type="password" id="password" placeholder="App Password">
-        <button onclick="login()">Login</button>
+            <button onclick="login()">Login</button>
     </div>
 
-    <div id="gameArea">
-        <div class="room">
+    <div id="gameArea" style="display: none;">
+        <div id="room">
             <h3 id="roomTitle">Loading...</h3>
             <p id="roomDesc"></p>
-            <p class="players" id="playersHere"></p>
-            <p class="items" id="itemsHere"></p>
-            <p class="exits" id="exits"></p>
+            <p id="exits"></p>
+            <p id="playersHere"></p>
+            <p id="itemsHere"></p>
         </div>
-        
-        <div class="inventory" id="inventory">
+
+        <div id="inventory">
             <h4>Inventory</h4>
             <div id="inventoryItems"></div>
         </div>
-        
-        <div class="messages" id="messages"></div>
-        
-        <input type="text" id="command" placeholder="Type a command (look, go [exit], say [message], take/drop [item], edit)">
-        <button onclick="sendCommand()">Send</button>
+
+        <div id="messages"></div>
+
+        <div>
+            <input type="text" id="command" placeholder="Enter command..." />
+        </div>
     </div>
 </body>
 </html>
