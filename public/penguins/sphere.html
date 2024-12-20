@@ -12,7 +12,7 @@ body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const PENGUIN_COUNT = 32
-const SPHERE_RADIUS = 20
+const SPHERE_RADIUS = 10
 let scene, camera, renderer, penguins = []
 
 class Penguin {
@@ -28,7 +28,7 @@ class Penguin {
     constructor() {
         this.group = new THREE.Group()
         this.walkCycle = Math.random() * Math.PI * 2
-        this.speed = 0.3 + Math.random() * 0.02
+        this.speed = 0.2 + Math.random() * 0.04
         
         // Initialize position on sphere using spherical coordinates
         const phi = Math.random() * Math.PI * 2    // longitude
@@ -131,24 +131,70 @@ class Penguin {
         // Get current forward direction from orientation
         const forward = new THREE.Vector3(0, 0, 1)
         forward.applyQuaternion(this.orientation)
+        
+        // Calculate right vector for turning
+        const right = new THREE.Vector3()
+        right.crossVectors(up, forward).normalize()
 
-        // Random turning behavior
-        if (Math.random() < 0.01) {
-            // Rotate around local up axis
-            const turnAngle = (Math.random() - 0.5) * Math.PI / 4
-            const turnQuat = new THREE.Quaternion().setFromAxisAngle(up, turnAngle)
+        // Check for penguins in field of view
+        let turnInfluence = 0
+        let speedMultiplier = 1
+        const FOV_ANGLE = Math.PI / 2  // 90 degree field of view
+        const DETECTION_DISTANCE = 4 * Penguin.bodyWidth // 4 penguin body widths
+        
+        for (const other of penguins) {
+            if (other === this) continue
+            
+            // Get great circle distance on sphere surface
+            const angle = this.position.angleTo(other.position)
+            const surfaceDistance = angle * SPHERE_RADIUS
+            const distance = this.position.distanceTo(other.position)
+            
+            // Skip if too far
+            if (distance > DETECTION_DISTANCE) continue
+            
+            // Get direction to other penguin (on sphere surface)
+            const toOther = other.position.clone().sub(this.position)
+            toOther.projectOnPlane(up).normalize()  // Project onto tangent plane
+            
+            // Check if in field of view
+            const angleTo = forward.angleTo(toOther)
+            if (angleTo < FOV_ANGLE) {
+                // Closer penguins have more influence
+                const influence = 1 - (distance / DETECTION_DISTANCE)
+                
+                // Turn away from other penguin
+                const cross = new THREE.Vector3()
+                cross.crossVectors(forward, toOther)
+                const turnDirection = Math.sign(cross.dot(up))
+                turnInfluence += turnDirection * influence * 0.15
+                
+                // Slow down based on proximity
+                speedMultiplier = Math.min(speedMultiplier, 
+                    0.2 + (distance / DETECTION_DISTANCE) * 0.5)
+            }
+        }
+
+        // Random turning behavior (reduced when avoiding others)
+        if (Math.abs(turnInfluence) < 0.01 && Math.random() < 0.01) {
+            const randomTurn = (Math.random() - 0.5) * Math.PI / 4
+            turnInfluence += randomTurn * 0.3
+        }
+        
+        // Apply turn
+        if (Math.abs(turnInfluence) > 0.00001) {
+            const turnQuat = new THREE.Quaternion()
+            turnQuat.setFromAxisAngle(up, turnInfluence)
             this.orientation.multiply(turnQuat)
         }
         
-        // Calculate right vector
-        const right = new THREE.Vector3()
-        right.crossVectors(up, forward).normalize()
+        // Recalculate forward after turning
+        forward.set(0, 0, 1).applyQuaternion(this.orientation)
+        forward.projectOnPlane(up).normalize()
         
-        // Recalculate forward to ensure it's perpendicular to up
-        forward.crossVectors(right, up).normalize()
-        
-        // Move in forward direction
-        const movement = forward.multiplyScalar(this.speed)
+        // Move in forward direction with adjusted speed
+        const currentSpeed = this.speed * speedMultiplier
+        const movement = forward.multiplyScalar(currentSpeed)
         this.position.add(movement)
         this.position.normalize().multiplyScalar(SPHERE_RADIUS + Penguin.bodyHeight)
     }
@@ -233,10 +279,10 @@ function init() {
         penguins.forEach(penguin => penguin.walk())
         
         // Rotate camera slowly around sphere
-        cameraAngle += 0.001
-        camera.position.x = SPHERE_RADIUS * 3 * Math.cos(cameraAngle)
-        camera.position.z = SPHERE_RADIUS * 3 * Math.sin(cameraAngle)
-        camera.lookAt(0, 0, 0)
+        // cameraAngle += 0.001
+        // camera.position.x = SPHERE_RADIUS * 3 * Math.cos(cameraAngle)
+        // camera.position.z = SPHERE_RADIUS * 3 * Math.sin(cameraAngle)
+        // camera.lookAt(0, 0, 0)
         
         renderer.render(scene, camera)
     }
