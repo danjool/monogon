@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>🌐🐧Penguins🐧🌐</title>
+<style>
+body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden }
+#world { width: 100%; height: 100% }
+</style>
+</head>
+<body>
+    <!-- https://codepen.io/Yakudoo/pen/qXaNeN?editors=0010 -->
+<div id="world"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const PENGUIN_COUNT = 32
+const SPHERE_RADIUS = 20
+let scene, camera, renderer, penguins = []
+
+class Penguin {
+    static bodyHeight = 1.2
+    static bodyWidth = 1
+    static bodyDepth = 0.8
+    static bellyWidth = 0.8
+    static bellyHeight = 1
+    static bellyDepth = 0.7
+    static bellyOffset = (Penguin.bodyDepth - Penguin.bellyDepth)*2
+    static headOffset = Penguin.bodyHeight * 1.2
+
+    constructor() {
+        this.group = new THREE.Group()
+        this.walkCycle = Math.random() * Math.PI * 2
+        this.speed = 0.03 + Math.random() * 0.02
+        this.heading = Math.random() * Math.PI * 2
+        this.turnRate = .02
+        
+        const phi = Math.random() * Math.PI * 2
+        const theta = Math.random() * Math.PI
+        this.position = new THREE.Vector3(
+            SPHERE_RADIUS * Math.sin(theta) * Math.cos(phi),
+            SPHERE_RADIUS * Math.sin(theta) * Math.sin(phi),
+            SPHERE_RADIUS * Math.cos(theta)
+        )
+        
+        this.localUp = new THREE.Vector3(0, 1, 0)
+        this.orientation = new THREE.Quaternion()
+        this.updateOrientation()
+        
+        const body = new THREE.Mesh(
+            new THREE.SphereGeometry(1, 8, 8),
+            new THREE.MeshPhongMaterial({ color: 0x222222 })
+        )
+        body.scale.set(Penguin.bodyWidth, Penguin.bodyHeight, Penguin.bodyDepth)
+        
+        const belly = new THREE.Mesh(
+            new THREE.SphereGeometry(0.9, 8, 8),
+            new THREE.MeshPhongMaterial({ color: 0xFFFFFF })
+        )
+        belly.scale.set(Penguin.bellyWidth, Penguin.bellyHeight, Penguin.bellyDepth)
+        belly.position.z = Penguin.bellyOffset
+        
+        const head = new THREE.Mesh(
+            new THREE.SphereGeometry(0.6, 8, 8),
+            new THREE.MeshPhongMaterial({ color: 0x222222 })
+        )
+        head.position.y = Penguin.headOffset
+        
+        const beak = new THREE.Mesh(
+            new THREE.ConeGeometry(0.2, 0.5, 4),
+            new THREE.MeshPhongMaterial({ color: 0xFFA500 })
+        )
+        beak.rotation.x = 2*Math.PI/3
+        beak.position.set(0, 1.2, 0.6)
+        
+        this.leftFoot = new THREE.Mesh(
+            new THREE.BoxGeometry(0.3, 0.1, 0.7),
+            new THREE.MeshPhongMaterial({ color: 0xFFA500 })
+        )
+        this.leftFoot.position.set(0.3, -1.2, 0)
+        
+        this.rightFoot = this.leftFoot.clone()
+        this.rightFoot.position.x = -0.3
+        
+        this.group.add(body, belly, head, beak, this.leftFoot, this.rightFoot)
+        this.group.traverse(obj => {
+            if(obj.isMesh) {
+                obj.castShadow = true
+                obj.receiveShadow = true
+            }
+        })
+        
+        scene.add(this.group)
+
+    }
+    
+    updateOrientation() {
+        const up = this.position.clone().normalize()
+        
+        const forward = new THREE.Vector3(0, 0, 1)
+        forward.applyQuaternion(this.orientation)
+
+        // adjust orientation by heading, which is a rotation around the local up axis
+        // forward.applyAxisAngle(this.localUp, this.heading)
+
+        const right = new THREE.Vector3()
+        right.crossVectors(this.position.clone().normalize(), forward).normalize()
+        forward.crossVectors(right, this.position.clone().normalize()).normalize()
+
+        const matrix = new THREE.Matrix4()
+        matrix.makeBasis(right, up, forward)
+        this.orientation.setFromRotationMatrix(matrix)
+    }
+    
+    updateHeading() {
+        // Base random turn rate
+        let turnDelta = this.turnRate * (Math.random() - 0.5) *.0000002
+        
+        // Find nearby penguins
+        // for (const penguin of penguins) {
+        //     if(penguin === this) continue
+        //     const distance = this.position.distanceTo(penguin.position)
+        //     if(distance < 5) {
+        //         const targetHeading = Math.atan2(
+        //             penguin.position.x - this.position.x,
+        //             penguin.position.z - this.position.z
+        //         )
+        //         const angleDelta = targetHeading - this.heading
+        //         // turnDelta += angleDelta * 0.01
+        //     }
+        // }
+        
+        // Limit maximum turn rate
+        this.heading += Math.min(Math.max(turnDelta, -0.05), 0.05)
+        this.heading = (this.heading + Math.PI * 2) % (Math.PI * 2)
+        // adjust orientation
+        // regen up from position
+        this.localUp.copy(this.position).normalize()
+
+        this.orientation.setFromAxisAngle(this.localUp, this.heading)
+    }
+    
+    walk() {
+        const t = this.walkCycle
+        const amp = 0.5
+        const PI = Math.PI
+
+        this.walkCycle += this.speed
+        
+        this.updateHeading()
+        
+        const forward = new THREE.Vector3(0, 0, 1)
+        forward.applyQuaternion(this.orientation)
+        
+        
+        const right = new THREE.Vector3()
+        right.crossVectors(this.position.clone().normalize(), forward).normalize()
+        forward.crossVectors(right, this.position.clone().normalize()).normalize()
+        
+        const movement = forward.multiplyScalar(this.speed)
+        this.position.add(movement)
+        this.position.normalize().multiplyScalar(SPHERE_RADIUS + Penguin.bodyHeight)
+        
+        this.updateOrientation()
+        
+        this.group.position.copy(this.position)
+        this.group.quaternion.copy(this.orientation)
+        
+        this.rightFoot.position.z = Math.cos(t) * amp
+        this.leftFoot.position.z = Math.cos(t + PI) * amp
+        this.leftFoot.position.y = -1.2 + Math.max(0, -Math.sin(t + PI) * amp)
+        this.rightFoot.position.y = -1.2 + Math.max(0, -Math.sin(t) * amp)
+
+        if( (t%(PI*2)) > PI) {
+            this.rightFoot.rotation.x = Math.cos(-t * 2 + PI/2) * PI/8
+            this.leftFoot.rotation.x = 0
+        } else {
+            this.rightFoot.rotation.x = 0
+            this.leftFoot.rotation.x = Math.cos(-t * 2 + PI/2) * PI/8
+        }
+    }
+}
+
+function init() {
+    scene = new THREE.Scene()
+    scene.background = new THREE.Color(0x87CEEB)
+    
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000)
+    camera.position.set(SPHERE_RADIUS * 3, 0.0, 0.0)
+    camera.lookAt(0, 0, 0)
+    
+    renderer = new THREE.WebGLRenderer({ antialias: true })
+    renderer.setSize(window.innerWidth, window.innerHeight)
+    renderer.shadowMap.enabled = true
+    document.getElementById('world').appendChild(renderer.domElement)
+    
+    const planet = new THREE.Mesh(
+        new THREE.SphereGeometry(SPHERE_RADIUS, 32, 32),
+        new THREE.MeshPhongMaterial({ 
+            color: 0xeeeeee,
+            wireframe: false,
+        })
+    )
+    planet.castShadow = true
+    planet.receiveShadow = true
+    scene.add(planet)
+    
+    scene.add(new THREE.AmbientLight(0xFFFFFF, 0.4))
+    
+    const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.8)
+    directionalLight.position.set(50, 0, -50)
+    directionalLight.castShadow = true
+    directionalLight.shadow.camera.left = -50
+    directionalLight.shadow.camera.right = 50
+    directionalLight.shadow.camera.top = 50
+    directionalLight.shadow.camera.bottom = -50
+    directionalLight.shadow.camera.near = 0.1
+    directionalLight.shadow.camera.far = 100
+    directionalLight.shadow.mapSize.width = 2048
+    scene.add(directionalLight)
+    
+    for(let i = 0; i < PENGUIN_COUNT; i++) {
+        penguins.push(new Penguin())
+    }
+
+    function animate() {
+        requestAnimationFrame(animate)
+        penguins.forEach(penguin => penguin.walk())
+        renderer.render(scene, camera)
+    }
+    
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+    })
+    
+    animate()
+}
+
+init()
+</script>
+</body>
+</html>
