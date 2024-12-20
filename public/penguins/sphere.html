@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>🌐🐧Penguins🐧🌐</title>
+<title>🌐🐧Fixed Spherical Penguins🐧🌐</title>
 <style>
 body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden }
 #world { width: 100%; height: 100% }
 </style>
 </head>
 <body>
-    <!-- https://codepen.io/Yakudoo/pen/qXaNeN?editors=0010 -->
 <div id="world"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -29,22 +28,31 @@ class Penguin {
     constructor() {
         this.group = new THREE.Group()
         this.walkCycle = Math.random() * Math.PI * 2
-        this.speed = 0.03 + Math.random() * 0.02
-        this.heading = Math.random() * Math.PI * 2
-        this.turnRate = .02
+        this.speed = 0.3 + Math.random() * 0.02
         
-        const phi = Math.random() * Math.PI * 2
-        const theta = Math.random() * Math.PI
+        // Initialize position on sphere using spherical coordinates
+        const phi = Math.random() * Math.PI * 2    // longitude
+        const theta = Math.acos(2 * Math.random() - 1) // latitude (acos for uniform distribution)
         this.position = new THREE.Vector3(
             SPHERE_RADIUS * Math.sin(theta) * Math.cos(phi),
             SPHERE_RADIUS * Math.sin(theta) * Math.sin(phi),
             SPHERE_RADIUS * Math.cos(theta)
         )
         
-        this.localUp = new THREE.Vector3(0, 1, 0)
+        // Initialize orientation quaternion and movement direction
         this.orientation = new THREE.Quaternion()
-        this.updateOrientation()
+        // Random initial direction tangent to sphere at position
+        this.direction = new THREE.Vector3(
+            -Math.sin(phi),            // tangent to sphere at position
+            Math.cos(phi),             // perpendicular to radius
+            0
+        ).normalize()
         
+        // Turning behavior
+        this.turnRate = 0.02
+        this.targetDirection = this.direction.clone()
+
+        // Create penguin mesh
         const body = new THREE.Mesh(
             new THREE.SphereGeometry(1, 8, 8),
             new THREE.MeshPhongMaterial({ color: 0x222222 })
@@ -89,53 +97,60 @@ class Penguin {
         })
         
         scene.add(this.group)
-
     }
     
     updateOrientation() {
+        // Get up vector (from sphere center to penguin position)
         const up = this.position.clone().normalize()
         
+        // Get current forward vector from orientation
+        const forward = new THREE.Vector3(0, 0, 1)
+        forward.applyQuaternion(this.orientation)
+        
+        // Calculate right vector
+        const right = new THREE.Vector3()
+        right.crossVectors(up, forward).normalize()
+        
+        // Ensure forward is perpendicular to up
+        forward.crossVectors(right, up).normalize()
+        
+        // Create rotation matrix from orthonormal basis
+        const rotMatrix = new THREE.Matrix4()
+        rotMatrix.makeBasis(right, up, forward)
+        
+        // Update orientation quaternion
+        const newOrientation = new THREE.Quaternion()
+        newOrientation.setFromRotationMatrix(rotMatrix)
+        this.orientation.slerp(newOrientation, 0.1) // Smooth orientation changes
+    }
+    
+    updateMovement() {
+        // Get current up vector (from sphere center to penguin)
+        const up = this.position.clone().normalize()
+        
+        // Get current forward direction from orientation
         const forward = new THREE.Vector3(0, 0, 1)
         forward.applyQuaternion(this.orientation)
 
-        // adjust orientation by heading, which is a rotation around the local up axis
-        // forward.applyAxisAngle(this.localUp, this.heading)
-
+        // Random turning behavior
+        if (Math.random() < 0.01) {
+            // Rotate around local up axis
+            const turnAngle = (Math.random() - 0.5) * Math.PI / 4
+            const turnQuat = new THREE.Quaternion().setFromAxisAngle(up, turnAngle)
+            this.orientation.multiply(turnQuat)
+        }
+        
+        // Calculate right vector
         const right = new THREE.Vector3()
-        right.crossVectors(this.position.clone().normalize(), forward).normalize()
-        forward.crossVectors(right, this.position.clone().normalize()).normalize()
-
-        const matrix = new THREE.Matrix4()
-        matrix.makeBasis(right, up, forward)
-        this.orientation.setFromRotationMatrix(matrix)
-    }
-    
-    updateHeading() {
-        // Base random turn rate
-        let turnDelta = this.turnRate * (Math.random() - 0.5) *.0000002
+        right.crossVectors(up, forward).normalize()
         
-        // Find nearby penguins
-        // for (const penguin of penguins) {
-        //     if(penguin === this) continue
-        //     const distance = this.position.distanceTo(penguin.position)
-        //     if(distance < 5) {
-        //         const targetHeading = Math.atan2(
-        //             penguin.position.x - this.position.x,
-        //             penguin.position.z - this.position.z
-        //         )
-        //         const angleDelta = targetHeading - this.heading
-        //         // turnDelta += angleDelta * 0.01
-        //     }
-        // }
+        // Recalculate forward to ensure it's perpendicular to up
+        forward.crossVectors(right, up).normalize()
         
-        // Limit maximum turn rate
-        this.heading += Math.min(Math.max(turnDelta, -0.05), 0.05)
-        this.heading = (this.heading + Math.PI * 2) % (Math.PI * 2)
-        // adjust orientation
-        // regen up from position
-        this.localUp.copy(this.position).normalize()
-
-        this.orientation.setFromAxisAngle(this.localUp, this.heading)
+        // Move in forward direction
+        const movement = forward.multiplyScalar(this.speed)
+        this.position.add(movement)
+        this.position.normalize().multiplyScalar(SPHERE_RADIUS + Penguin.bodyHeight)
     }
     
     walk() {
@@ -145,31 +160,21 @@ class Penguin {
 
         this.walkCycle += this.speed
         
-        this.updateHeading()
-        
-        const forward = new THREE.Vector3(0, 0, 1)
-        forward.applyQuaternion(this.orientation)
-        
-        
-        const right = new THREE.Vector3()
-        right.crossVectors(this.position.clone().normalize(), forward).normalize()
-        forward.crossVectors(right, this.position.clone().normalize()).normalize()
-        
-        const movement = forward.multiplyScalar(this.speed)
-        this.position.add(movement)
-        this.position.normalize().multiplyScalar(SPHERE_RADIUS + Penguin.bodyHeight)
-        
+        // Update position and orientation
+        this.updateMovement()
         this.updateOrientation()
         
+        // Apply position and orientation to group
         this.group.position.copy(this.position)
         this.group.quaternion.copy(this.orientation)
         
+        // Animate feet
         this.rightFoot.position.z = Math.cos(t) * amp
         this.leftFoot.position.z = Math.cos(t + PI) * amp
         this.leftFoot.position.y = -1.2 + Math.max(0, -Math.sin(t + PI) * amp)
         this.rightFoot.position.y = -1.2 + Math.max(0, -Math.sin(t) * amp)
 
-        if( (t%(PI*2)) > PI) {
+        if ((t%(PI*2)) > PI) {
             this.rightFoot.rotation.x = Math.cos(-t * 2 + PI/2) * PI/8
             this.leftFoot.rotation.x = 0
         } else {
@@ -184,7 +189,7 @@ function init() {
     scene.background = new THREE.Color(0x87CEEB)
     
     camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000)
-    camera.position.set(SPHERE_RADIUS * 3, 0.0, 0.0)
+    camera.position.set(SPHERE_RADIUS * 3, 0, 0)
     camera.lookAt(0, 0, 0)
     
     renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -221,9 +226,18 @@ function init() {
         penguins.push(new Penguin())
     }
 
+    // Add simple orbit camera animation
+    let cameraAngle = 0
     function animate() {
         requestAnimationFrame(animate)
         penguins.forEach(penguin => penguin.walk())
+        
+        // Rotate camera slowly around sphere
+        cameraAngle += 0.001
+        camera.position.x = SPHERE_RADIUS * 3 * Math.cos(cameraAngle)
+        camera.position.z = SPHERE_RADIUS * 3 * Math.sin(cameraAngle)
+        camera.lookAt(0, 0, 0)
+        
         renderer.render(scene, camera)
     }
     
