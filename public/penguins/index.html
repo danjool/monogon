@@ -14,11 +14,101 @@
 <body>
 <div id="world"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fix-webm-duration@1.0.5/fix-webm-duration.js"></script>
 <script>
 
 const PENGUIN_COUNT = 64
 const SPHERE_RADIUS = 16
-let scene, camera, renderer, penguins = []
+let scene, camera, renderer, penguins = [], recorder
+
+// Usage: 
+// 1. Create recorder: const recorder = new ThreeRecorder(renderer.domElement);
+// 2. Start/stop with: recorder.start() and recorder.stop()
+// Or bind to keys: document.addEventListener('keydown', e => {
+//   if(e.key === 'r') recorder.start();
+//   if(e.key === 's') recorder.stop();
+// });
+
+class ThreeRecorder {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.recordedChunks = [];
+    this.recorder = null;
+    this.isRecording = false;
+    this.startTime = null;
+    
+    // Create an offscreen canvas to maintain pixelation
+    this.recordCanvas = document.createElement('canvas');
+    this.recordCanvas.style.imageRendering = 'pixelated';
+    this.recordCtx = this.recordCanvas.getContext('2d', {
+      willReadFrequently: true,
+      alpha: false
+    });
+  }
+
+  start() {
+    this.recordedChunks = [];
+    this.startTime = Date.now();
+    
+    // Match dimensions of source canvas // or get a square canvas by taking the min of width and height
+    const min = Math.min(this.canvas.width, this.canvas.height);
+    this.recordCanvas.width = this.canvas.width > this.canvas.height ? this.canvas.width : min;
+    this.recordCanvas.height = this.canvas.height;
+    
+    // Create stream from our recording canvas instead of source
+    const stream = this.recordCanvas.captureStream(60);
+    this.recorder = new MediaRecorder(stream, {
+      mimeType: 'video/webm',
+      videoBitsPerSecond: 16000000
+    });
+    
+    this.recorder.ondataavailable = e => this.recordedChunks.push(e.data);
+    this.recorder.onstop = () => this.save();
+    
+    // Start recording
+    this.recorder.start();
+    this.isRecording = true;
+    this.captureFrame();
+
+    setTimeout(() => {
+      if (this.isRecording) this.stop();
+    }, 5000);
+  }
+
+  captureFrame() {
+    if (!this.isRecording) return;
+    
+    // Copy frame with pixelated rendering
+    this.recordCtx.imageSmoothingEnabled = false;
+    this.recordCtx.drawImage(this.canvas, 0, 0, this.recordCanvas.width, this.recordCanvas.height);
+    
+    // Schedule next frame
+    requestAnimationFrame(() => this.captureFrame());
+  }
+
+  stop() {
+    if (this.recorder?.state === 'recording') {
+      this.recorder.stop();
+      this.isRecording = false;
+    }
+  }
+
+  async save() {
+    const buggyBlob = new Blob(this.recordedChunks, { type: 'video/webm' });
+    const duration = Date.now() - this.startTime;
+    
+    // Fix the duration using fix-webm-duration
+    const fixedBlob = await ysFixWebmDuration(buggyBlob, duration);
+    
+    const url = URL.createObjectURL(fixedBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `threejs-recording-${Date.now()}.webm`;
+    link.click();
+    URL.revokeObjectURL(url);
+    this.recordedChunks = [];
+  }
+}
 
 class Penguin {
     static bodyHeight = 1.2
@@ -296,6 +386,12 @@ function init() {
     planet.castShadow = true
     planet.receiveShadow = true
     scene.add(planet)
+
+    recorder = new ThreeRecorder(renderer.domElement)
+    document.addEventListener('keydown', e => {
+        if(e.key === 'r') recorder.start();
+        if(e.key === 's') recorder.stop();
+    });
 
 const vertexShader = `
     varying vec3 vWorldPosition;
