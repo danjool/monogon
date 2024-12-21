@@ -286,17 +286,6 @@ function init() {
     
     renderer.setSize(window.innerWidth, window.innerHeight)
     document.getElementById('world').appendChild(renderer.domElement)
-    
-    const planet = new THREE.Mesh(
-        new THREE.SphereGeometry(SPHERE_RADIUS, 32, 32),
-        new THREE.MeshPhongMaterial({ 
-            color: 0xeeeeee,
-            wireframe: false,
-        })
-    )
-    planet.castShadow = true
-    planet.receiveShadow = true
-    scene.add(planet)
 
     recorder = new CanvasWebmRecorder(renderer.domElement, {
         frameRate: 60,
@@ -398,18 +387,75 @@ const fragmentShader = `
         vec3 lightBlue = vec3(0.53, 0.81, 0.92);
         vec3 darkerBlue = vec3(0.39, 0.58, 0.93);
         vec3 purpleBlue = vec3(0.45, 0.52, 0.85);
+        vec3 black = vec3(0.0);
         
         vec3 pos = normalize(vWorldPosition);
         float n = snoise(vec3(pos.xy * 13.0 - time, time * 0.5)) * 0.5 
                 + snoise(vec3(pos.xy * 6.0 + time, time * 0.2)) * 0.25;
         
         vec3 color1 = mix(darkerBlue, purpleBlue, snoise(vec3(pos.xz * 2.0, time * 0.15)));
-        vec3 color2 = mix(lightBlue, purpleBlue, snoise(vec3(pos.yz * 2.0, time * 0.15)));
+        vec3 mixlightToBlackBasedOnSinTime = mix(lightBlue, black, sin(time));
+        vec3 color2 = mix(mixlightToBlackBasedOnSinTime, purpleBlue, snoise(vec3(pos.yz * 2.0, time * 0.15)));
         vec3 color = mix(color1, color2, pos.y * 0.5 + 0.5 + n * 0.2);
         
         gl_FragColor = vec4(color, 1.0);
     }
 `;
+
+const planetVertexShader = `
+varying vec3 vNormal;
+varying vec3 vPosition;
+varying vec2 vUv;
+
+void main() {
+    vNormal = normalize(normalMatrix * normal);
+    vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+
+const planetFragmentShader = `
+uniform vec3 lightPos;
+uniform float time;
+
+varying vec3 vNormal;
+varying vec3 vPosition;
+varying vec2 vUv;
+
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
+float noise(vec2 st) {
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+    float a = random(i);
+    float b = random(i + vec2(1.0, 0.0));
+    float c = random(i + vec2(0.0, 1.0));
+    float d = random(i + vec2(1.0, 1.0));
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(a, b, u.x) + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+
+void main() {
+    vec3 lightDir = normalize(lightPos - vPosition);
+    float diff = max(dot(vNormal, lightDir), 0.0);
+    
+    vec2 snowUv = vUv * 20.0;
+    float snowNoise = noise(snowUv*64. + time * 1.1);
+    float sparkle = pow(snowNoise, 16.0);
+    
+    vec3 snowColor = vec3(0.95, 0.97, 1.0);
+    vec3 baseColor = mix(snowColor * 0.8, snowColor, sparkle);
+    
+    float fresnel = pow(1.0 - max(dot(normalize(-lightPos), vNormal), 0.0), 2.0);
+    vec3 finalColor = mix(baseColor, snowColor, fresnel * 0.3);
+    
+    finalColor *= (diff * 0.8 + 0.2);
+    // finalColor = baseColor * 1.0;
+    
+    gl_FragColor = vec4(finalColor, 1.0);
+}`;
 
 const skyGeometry = new THREE.SphereGeometry(100, 32, 32);
 const skyMaterial = new THREE.ShaderMaterial({
@@ -441,15 +487,43 @@ scene.add(sky);
         penguins.push(new Penguin())
     }
 
+    const planet = new THREE.Mesh(
+    new THREE.SphereGeometry(SPHERE_RADIUS, 32, 32),
+        new THREE.ShaderMaterial({ 
+            uniforms: {
+                lightPos: { value: directionalLight.position },
+                time: { value: 0 }
+            },
+            vertexShader: planetVertexShader,
+            fragmentShader: planetFragmentShader
+        })
+    )
+    planet.castShadow = true
+    planet.receiveShadow = true
+    scene.add(planet)
+
     
     let cameraAngle = 0
     function animate() {
+        const t = performance.now() * 0.0002
         requestAnimationFrame(animate)
         penguins.forEach(penguin => penguin.walk())
         snow.update(); 
         // update time uniform in shader
-        skyMaterial.uniforms.time.value = performance.now() * 0.001
+        skyMaterial.uniforms.time.value = t
         skyMaterial.needsUpdate = true
+
+        // rotate the directional light around the planet
+        cameraAngle += 0.01
+        directionalLight.position.set(
+            Math.sin(t - Math.PI/2) * 40,
+            0,
+            Math.cos(t - Math.PI/2) * 40,
+        )
+
+        planet.material.uniforms.time.value = t;
+        planet.material.uniforms.lightPos.value.copy(directionalLight.position);
+
         renderer.render(scene, camera)
     }
     
