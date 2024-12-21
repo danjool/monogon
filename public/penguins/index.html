@@ -132,7 +132,7 @@ class Penguin {
 
         let turnInfluence = 0
         let speedMultiplier = 1
-        const FOV_ANGLE = Math.PI / 2  
+        const FOV_ANGLE = Math.PI / 3  
         const DETECTION_DISTANCE = 4 * Penguin.bodyWidth         
         for (const other of penguins) {
             if (other === this) continue
@@ -150,7 +150,7 @@ class Penguin {
                 const turnDirection = Math.sign(cross.dot(up))
                 turnInfluence += turnDirection * influence * 0.15
                         speedMultiplier = Math.min(speedMultiplier, 
-                    0.2 + (distance / DETECTION_DISTANCE) * 0.5)
+                    0.12 + (distance / DETECTION_DISTANCE) * 0.5)
             }
         }
         if (Math.abs(turnInfluence) < 0.1 && Math.random() < 0.01) {
@@ -196,13 +196,9 @@ class Penguin {
             this.leftFoot.rotation.x = Math.cos(-t * 2 + PI/2) * PI/8
         }
 
-        // head bobbing
         this.head.position.y = Penguin.headOffset + Math.sin(-t * 2 + PI/2) * 0.1
         this.head.position.z = Math.cos(t * 2 + PI/2) * 0.05
         this.head.rotation.x = Math.sin(-t * 2 + PI/2) * 0.5
-
-
-
     }
 }
 
@@ -393,8 +389,8 @@ const fragmentShader = `
         vec3 purpleBlue = vec3(0.45, 0.52, 0.85);
         
         vec3 pos = normalize(vWorldPosition);
-        float n = snoise(vec3(pos.xy * 3.0, time * 0.5)) * 0.5 
-                + snoise(vec3(pos.xy * 6.0, time * 0.2)) * 0.25;
+        float n = snoise(vec3(pos.xy * 13.0 - time, time * 0.5)) * 0.5 
+                + snoise(vec3(pos.xy * 6.0 + time, time * 0.2)) * 0.25;
         
         vec3 color1 = mix(darkerBlue, purpleBlue, snoise(vec3(pos.xz * 2.0, time * 0.15)));
         vec3 color2 = mix(lightBlue, purpleBlue, snoise(vec3(pos.yz * 2.0, time * 0.15)));
@@ -419,7 +415,7 @@ scene.add(sky);
     scene.add(new THREE.AmbientLight(0xFFFFFF, 0.4))
     
     const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.8)
-    directionalLight.position.set(0, 50, 0)
+    directionalLight.position.set(40, 0, 20)
     directionalLight.castShadow = true
     directionalLight.shadow.camera.left = -50
     directionalLight.shadow.camera.right = 50
