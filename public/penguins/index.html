@@ -14,224 +14,12 @@
 <body>
 <div id="world"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<!-- <script src="https://cdn.jsdelivr.net/npm/fix-webm-duration@1.0.5/fix-webm-duration.js"></script> -->
-<script>
+<script type="module">
+import { CanvasWebmRecorder } from '../js/canvas-webm-recorder.js'
 
 const PENGUIN_COUNT = 64
 const SPHERE_RADIUS = 16
 let scene, camera, renderer, penguins = [], recorder
-
-// Usage: 
-// 1. Create recorder: const recorder = new ThreeRecorder(renderer.domElement);
-// 2. Start/stop with: recorder.start() and recorder.stop()
-// Or bind to keys: document.addEventListener('keydown', e => {
-//   if(e.key === 'r') recorder.start();
-//   if(e.key === 's') recorder.stop();
-// });
-
-class WebmBase {
-    constructor(name, type) {
-        this.name = name || 'Unknown';
-        this.type = type || 'Unknown';
-        this.offset = 0;
-    }
-    
-    setSource(source) {
-        this.source = source;
-        this.offset = 0;  // Reset offset when setting new source
-        this.updateBySource();
-    }
-}
-
-class WebmFloat extends WebmBase {
-    constructor(name) {
-        super(name, 'Float');
-    }
-
-    updateBySource() {
-        const byteArray = this.source.reverse();
-        const FloatArray = this.source.length === 4 ? Float32Array : Float64Array;
-        const floatArray = new FloatArray(byteArray.buffer);
-        this.data = floatArray[0];
-    }
-
-    setValue(value) {
-        const FloatArray = Float64Array;
-        const floatArray = new FloatArray([value]);
-        const byteArray = new Uint8Array(floatArray.buffer);
-        this.source = byteArray.reverse();
-    }
-}
-
-class WebmContainer extends WebmBase {
-    constructor(name) {
-        super(name, 'Container');
-        this.data = [];
-    }
-
-    readByte() {
-        if (this.offset >= this.source.length) return null;
-        return this.source[this.offset++];
-    }
-
-    readUint() {
-        const byte = this.readByte();
-        if (byte === null) return null;
-        
-        let value = byte;
-        let length = 1;
-        
-        for (let i = 1; i <= 8; i++) {
-            if (value & (1 << (8 - i))) {
-                length = i;
-                value &= (1 << (8 - i)) - 1;
-                break;
-            }
-        }
-        
-        for (let i = 1; i < length; i++) {
-            const nextByte = this.readByte();
-            if (nextByte === null) return null;
-            value = (value << 8) | nextByte;
-        }
-        
-        return value;
-    }
-
-    updateBySource() {
-        this.data = [];
-        while (this.offset < this.source.length) {
-            const id = this.readUint();
-            if (id === null) break;
-            
-            const size = this.readUint();
-            if (size === null) break;
-            
-            const start = this.offset;
-            const end = start + size;
-            
-            if (end > this.source.length) break;
-            
-            const data = this.source.slice(start, end);
-            this.offset = end;
-
-            const section = id === 0x489 ? new WebmFloat('Duration') : new WebmContainer('Section');
-            section.setSource(data);
-            this.data.push({ id, data: section });
-        }
-    }
-
-    getSectionById(id) {
-        return this.data.find(section => section.id === id)?.data;
-    }
-}
-
-async function fixWebmDuration(blob, duration) {
-    try {
-        const buffer = await blob.arrayBuffer();
-        const file = new WebmContainer('File');
-        file.setSource(new Uint8Array(buffer));
-
-        const segment = file.getSectionById(0x8538067); // Segment ID
-        if (!segment) return blob;
-
-        const info = segment.getSectionById(0x549a966); // Info ID
-        if (!info) return blob;
-
-        let durationSection = info.getSectionById(0x489); // Duration ID
-        if (!durationSection) {
-            durationSection = new WebmFloat('Duration');
-            durationSection.setValue(duration);
-            info.data.push({
-                id: 0x489,
-                data: durationSection
-            });
-        }
-
-        return new Blob([file.source.buffer], { type: blob.type });
-    } catch (err) {
-        console.error('Error fixing duration:', err);
-        return blob; // Return original blob if fixing fails
-    }
-}
-class ThreeRecorder {
-  constructor(canvas) {
-    this.canvas = canvas;
-    this.recordedChunks = [];
-    this.recorder = null;
-    this.isRecording = false;
-    this.startTime = null;
-    
-    // Create an offscreen canvas to maintain pixelation
-    this.recordCanvas = document.createElement('canvas');
-    this.recordCanvas.style.imageRendering = 'pixelated';
-    this.recordCtx = this.recordCanvas.getContext('2d', {
-      willReadFrequently: true,
-      alpha: false
-    });
-  }
-
-  start() {
-    this.recordedChunks = [];
-    this.startTime = Date.now();
-    
-    // Match dimensions of source canvas // or get a square canvas by taking the min of width and height
-    const min = Math.min(this.canvas.width, this.canvas.height);
-    this.recordCanvas.width = this.canvas.width > this.canvas.height ? this.canvas.width : min;
-    this.recordCanvas.height = this.canvas.height;
-    
-    // Create stream from our recording canvas instead of source
-    const stream = this.recordCanvas.captureStream(60);
-    this.recorder = new MediaRecorder(stream, {
-      mimeType: 'video/webm',
-      videoBitsPerSecond: 16000000
-    });
-    
-    this.recorder.ondataavailable = e => this.recordedChunks.push(e.data);
-    this.recorder.onstop = () => this.save();
-    
-    // Start recording
-    this.recorder.start();
-    this.isRecording = true;
-    this.captureFrame();
-
-    setTimeout(() => {
-      if (this.isRecording) this.stop();
-    }, 8000);
-  }
-
-  captureFrame() {
-    if (!this.isRecording) return;
-    
-    // Copy frame with pixelated rendering
-    this.recordCtx.imageSmoothingEnabled = false;
-    this.recordCtx.drawImage(this.canvas, 0, 0, this.recordCanvas.width, this.recordCanvas.height);
-    
-    // Schedule next frame
-    requestAnimationFrame(() => this.captureFrame());
-  }
-
-  stop() {
-    if (this.recorder?.state === 'recording') {
-      this.recorder.stop();
-      this.isRecording = false;
-    }
-  }
-
-  async save() {
-    const buggyBlob = new Blob(this.recordedChunks, { type: 'video/webm' });
-    const duration = Date.now() - this.startTime;
-    const fixedBlob = await fixWebmDuration(buggyBlob, duration);
-    
-    const url = URL.createObjectURL(fixedBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `threejs-recording-${Date.now()}.webm`;
-    link.click();
-    URL.revokeObjectURL(url);
-    this.recordedChunks = [];
-}
-}
 
 class Penguin {
     static bodyHeight = 1.2
@@ -510,7 +298,11 @@ function init() {
     planet.receiveShadow = true
     scene.add(planet)
 
-    recorder = new ThreeRecorder(renderer.domElement)
+    recorder = new CanvasWebmRecorder(renderer.domElement, {
+        frameRate: 60,
+        quality: 16000000,
+        filename: 'penguins.webm',
+    })
     document.addEventListener('keydown', e => {
         if(e.key === 'r') recorder.start();
         if(e.key === 's') recorder.stop();
