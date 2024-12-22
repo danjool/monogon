@@ -48,12 +48,10 @@ function init()
 	scene = new THREE.Scene();
 	// CAMERA
 	var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerHeight;
-	var VIEW_ANGLE = 45, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 200000;
+	var VIEW_ANGLE = 60, ASPECT = SCREEN_WIDTH / SCREEN_HEIGHT, NEAR = 0.1, FAR = 200000;
 	camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR );
 	scene.add(camera);
-	camera.position.set(100,100,200);
-	// camera.lookAt(scene.position);	
-	// camera.lookAt( new THREE.Vector3( 100,35,95 ) ) 
+	camera.position.set(40,40,140);
 	// RENDERER
 	if ( Detector.webgl )
 		renderer = new THREE.WebGLRenderer( {antialias:true} );
@@ -67,7 +65,8 @@ function init()
 	THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
 	// CONTROLS
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
-	controls.target = new THREE.Vector3(10,33,95);
+	controls.target = new THREE.Vector3(0,43,123);
+
 	// LIGHT
 	/*
 	var light = new THREE.PointLight(0xffffff);
@@ -122,7 +121,7 @@ function init()
 	material.skinning = true;
 	tycho = new THREE.SkinnedMesh( geometry, material);
 	tycho.scale.set(1, 1, 1);
-	tycho.position.set(0,33,95);
+	tycho.position.set(-20,33,95);
 	scene.add(tycho);
 	})
 
@@ -135,7 +134,7 @@ function init()
 	material.skinning = true;
 	newton = new THREE.SkinnedMesh( geometry, material);
 	newton.scale.set(1.2, 1.2, 1.2);
-	newton.position.set(-20,32,95);
+	newton.position.set(0,32,105);
 	scene.add(newton);
 	})	
 
@@ -148,7 +147,7 @@ function init()
 	material.skinning = true;
 	kepler = new THREE.SkinnedMesh( geometry, material);
 	kepler.scale.set(.7, .7, .7);
-	kepler.position.set(20,33,95);
+	kepler.position.set(20,33,115);
 	scene.add(kepler);
 	})	
 
@@ -184,7 +183,6 @@ function animate()
 
 function update()
 {
-	if ( keyboard.pressed("z") ) 
 	controls.update();
 }
 

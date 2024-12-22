@@ -4,8 +4,7 @@
 		<title>Time Visualized with Parametric Geometry</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-	</head>
-	<style>
+		<style>
 		body {
 	margin: 0;
 	background-color: #000;
@@ -97,178 +96,148 @@ a, button, input, select {
 	margin-top: 20px;
 	padding: 10px;
 }
-	</style>
+		</style>
+	</head>
 	<body>
-
 		<div id="container"></div>
-		<script src="https://unpkg.com/three"></script>
-		<script src="./js/CurveExtras.js"></script>
-		<script src="./js/ParametricGeometry.js"></script>
-		<script src="./js/ParametricGeometries.js"></script>
+		<script async src="https://unpkg.com/es-module-shims/dist/es-module-shims.js"></script>
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+					"three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+				}
+			}
+		</script>
 
 		<script type="module">
+			import * as THREE from 'three';
+			import { ParametricGeometry } from 'three/addons/geometries/ParametricGeometry.js';
 
-			let camera, scene, renderer, stats, lights;
-			const ParametricGeometries = THREE.ParametricGeometries
-			const ParametricGeometry = THREE.ParametricGeometry
-			const CurveExtras = THREE.CurveExtras
-			const Curves = THREE.Curves
-
-			const count = 500
-			let mesh
+			let camera, scene, renderer, lights;
+			const count = 100;
+			let mesh;
 			const dummy = new THREE.Object3D();
 
 			init();
 			animate();
 
 			function init() {
-
-				const container = document.getElementById( 'container' );
-
-				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 4000 );
+				const container = document.getElementById('container');
+				camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 4000);
 				camera.position.y = 400;
 
 				scene = new THREE.Scene();
+				const ambientLight = new THREE.AmbientLight(0xffffff, .0001);
+				scene.add(ambientLight);
 
-				const ambientLight = new THREE.AmbientLight( 0xffffff, .0 );
-				scene.add( ambientLight );
-
-				lights = []
-				const sphere = new THREE.SphereGeometry( 1.0, 4, 4 );
-				for(let i = 0; i < 4; i++){
-					const pointLight = new THREE.PointLight( 0xffffff, 0.8 );
-					// pointLight.add( new THREE.Mesh( sphere, new THREE.MeshBasicMaterial( { color: 0xffffff } ) ) )
-					lights.push( pointLight )
-					scene.add( pointLight );
+				lights = [];
+				const sphere = new THREE.SphereGeometry(1.0, 4, 4);
+				for (let i = 0; i < 8; i++) {
+					const pointLight = new THREE.PointLight(0xffffff, 10.8);
+					pointLight.distance = 225
+					lights.push(pointLight);
+					scene.add(pointLight);
 				}
 
-				scene.add( camera );
+				scene.add(camera);
 
-				const material = new THREE.MeshStandardMaterial( {
+				const material = new THREE.MeshStandardMaterial({
 					color: 0xffefaa,
-      				side: THREE.DoubleSide,
-					metalness: .99,
-					roughness: 0.1 
-				} )
+					side: THREE.DoubleSide,
+					metalness: .4,
+					roughness: 0.1
+				});
 
-				let parametricTypeShape = function ( u, t, target ) {
+				let parametricTypeShape = function(u, t, target) {
 					u *= 2 * Math.PI;
 					t *= 2 * Math.PI;
 					const phi = u / 2.0;
-					const major = 2.25 + 0.1 * Math.sin(u*2.),
+					const major = 2.25 + 0.1 * Math.sin(u * 2.),
 						a = 0.25 + 0.2 * Math.sin(u),
-						b = 0.1 * (1.2 + Math.cos(u)  );
+						b = 0.1 * (1.2 + Math.cos(u));
 
-					let x = a * Math.cos( t )
-					let z = b * Math.sin( t )*(1.2 + Math.cos(u + Math.PI*.5)  )*2. + ( .2*Math.cos(u)  )
+					let x = a * Math.cos(t);
+					let z = b * Math.sin(t) * (1.2 + Math.cos(u + Math.PI * .5)) * 2. + (.2 * Math.cos(u));
 
-					const y = ( major + x ) * Math.sin( u );
-					x =       ( major + x ) * Math.cos( u );
+					const y = (major + x) * Math.sin(u);
+					x = (major + x) * Math.cos(u);
 
-					let xb = major, yb = 0
-					let hump = 1 /(1+0.25*Math.sqrt( (x-xb)*(x-xb) + (y-yb)*(y-yb) ))
-					hump = (Math.cos(u*1) + 1.0)*0.2
+					let xb = major, yb = 0;
+					let hump = 1 / (1 + 0.25 * Math.sqrt((x - xb) * (x - xb) + (y - yb) * (y - yb)));
+					hump = (Math.cos(u * 1) + 1.0) * 0.2;
 
-					target.set( x, y, z + hump );
-				}
+					target.set(x, y, z + hump);
+				};
 
-				let geometry, object;
+				const geometry = new ParametricGeometry(parametricTypeShape, 64, 16); // 128, 32 are the number of segments and slices
+				const object = new THREE.Mesh(geometry, material);
+				object.position.set(0, 0, 0);
+				object.rotation.x = Math.PI * .5;
+				object.scale.multiplyScalar(64);
 
-				geometry = new ParametricGeometry( parametricTypeShape, 128, 32 );
-				object = new THREE.Mesh( geometry, material );
-				object.position.set( 0, 0, 0 );
-				object.rotation.x = Math.PI * .5
-				object.scale.multiplyScalar( 64 );
+				mesh = new THREE.InstancedMesh(geometry, material, count);
+				mesh.position.set(0, 0, 0);
+				mesh.rotation.x = Math.PI * .5;
+				mesh.scale.multiplyScalar(64);
+				mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+				scene.add(mesh);
 
-
-				mesh = new THREE.InstancedMesh( geometry, material, count );
-				mesh.position.set( 0, 0, 0 );
-				mesh.rotation.x = Math.PI * .5
-				mesh.scale.multiplyScalar( 64 );
-				mesh.instanceMatrix.setUsage( THREE.DynamicDrawUsage ); // will be updated every frame
-				scene.add( mesh );
-
-				if(mesh){
+				if (mesh) {
 					let i = 0;
-					let offset = 2.8
-				
-					for ( let z = -count/2; z < count/2; z ++ ) {
-
-						dummy.position.set( 0, 0, offset*z )
-						// (Math.sin(timer) > -.2 ) ? dummy.position.set( 0, 0, offset*z ) : dummy.position.set( 0, 0, 0 );
-						// dummy.rotation.y = ( Math.sin( x / 4 + time ) + Math.sin( y / 4 + time ) + Math.sin( z / 4 + time ) );
-						// dummy.rotation.z = dummy.rotation.y * 2;
-
+					let offset = 2.8;
+					for (let z = -count / 2; z < count / 2; z++) {
+						dummy.position.set(0, 0, offset * z);
 						dummy.updateMatrix();
-						mesh.setMatrixAt( i ++, dummy.matrix );
+						mesh.setMatrixAt(i++, dummy.matrix);
 					}
 					mesh.instanceMatrix.needsUpdate = true;
-				}				
+				}
 
-				renderer = new THREE.WebGLRenderer( { antialias: true } );
-				// renderer.physicallyCorrectLights = true;
-				// renderer.toneMapping = THREE.ACESFilmicToneMapping;
-				renderer.setPixelRatio( window.devicePixelRatio*2.0 );
-				renderer.setSize( window.innerWidth, window.innerHeight );
-				container.appendChild( renderer.domElement );
+				renderer = new THREE.WebGLRenderer({ antialias: true });
+				renderer.setPixelRatio(window.devicePixelRatio * 1.0);
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				renderer.setClearColor(0x000000, 1);
+				container.appendChild(renderer.domElement);
 
-				window.addEventListener( 'resize', onWindowResize );
-
+				window.addEventListener('resize', onWindowResize);
 			}
 
 			function onWindowResize() {
-
 				camera.aspect = window.innerWidth / window.innerHeight;
 				camera.updateProjectionMatrix();
-
-				renderer.setSize( window.innerWidth, window.innerHeight );
-
+				renderer.setSize(window.innerWidth, window.innerHeight);
 			}
 
 			function animate() {
-
-				requestAnimationFrame( animate );
-
+				requestAnimationFrame(animate);
 				render();
-
 			}
 
 			function render() {
-
 				const timer = Date.now() * 0.0001;
 
 				camera.position.x = Math.cos( timer ) * 200;
 				camera.position.z = 800  + Math.sin( timer ) * 2000;
 				camera.position.y = 125
 
-				camera.lookAt( scene.position );
-
-				let tt = Math.sin(timer*9.77)
-				let r = 1350 //+10 * tt
-				let t = 4*timer
+				camera.lookAt(scene.position);
 				
-				let theta = t*4
-				
-				for(let i = 0; i<lights.length; i++){
-					let j = i+1
-					let phi = j
-					// lights[i].position.x = r*Math.cos(theta+j)
-					// lights[i].position.y = Math.tan(timer*.01 )
-					// lights[i].position.z = r*Math.sin(1*(theta+j))
 
-					lights[i].position.x = r*Math.cos(theta+j)*Math.sin(phi)
-					lights[i].position.y = r*Math.sin(theta+j)*Math.cos(phi)
-					lights[i].position.z = r*Math.cos(phi)
+				let r = 150;
+				let t = 4 * timer;
+				let theta = t * 4;
+
+				for (let i = 0; i < lights.length; i++) {
+					let j = i + 1;
+					let phi = j;
+					lights[i].position.x = r * Math.cos(theta + j) * Math.sin(phi);
+					lights[i].position.y = (((t*j/20)*4000.) % 800)-400; // r * Math.sin(theta + j) * Math.cos(phi);
+					lights[i].position.z = r * Math.cos(phi);
 				}
 
-				let maxOffset = 100
-				let minOffset = 1.8
-				
-				renderer.render( scene, camera );
-
+				renderer.render(scene, camera);
 			}
-
 		</script>
-
 	</body>
 </html>
