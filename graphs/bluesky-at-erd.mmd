@@ -1,0 +1,136 @@
+erDiagram 
+    %% Infrastructure Layer
+    PDS }o--o{ APPVIEW : "syncs with"
+    APPVIEW ||--o{ REPO : "reads from"
+    PDS ||--o{ REPO : hosts
+    PDS ||--o{ RELAY : "syncs to"
+    RELAY ||--o{ REPO : aggregates
+
+    %% Identity Layer
+    REPO ||--|| DID : "identified by"
+    REPO ||--|| HANDLE : "identified by"
+    REPO }|--|| ACTOR : "owned by"
+    REPO ||--o{ COLLECTION : contains
+        REPO }o--o{ LABEL : "tagged with"
+
+    %% Data Structure Layer
+    COLLECTION ||--o{ RECORD : contains
+    POST ||--|| RECORD : "is a"
+    COLLECTION ||--|| NSID : "typed by"
+    RECORD ||--|| CID : "versioned by"
+    RECORD ||--|| TID : "keyed by"
+    RECORD ||--|| LEXICON : "conforms to"
+    RECORD }o--o{ LABEL : "tagged with"
+
+    %% Lists and Social
+    LIST ||--|| RECORD : "is a"
+    ACTOR ||--o{ LIST : creates
+    LIST ||--o{ LIST-ITEM : contains
+    LIST-ITEM ||--o{ ACTOR : "references"
+    
+    %% Content Layer
+    ACTOR ||--o{ POST : creates
+    ACTOR ||--o{ PROFILE-BLOB : "has profile in"
+    ACTOR ||--o{ BANNER-BLOB : "has banner in"
+    ACTOR }o--o{ ACTOR : follows
+
+    
+    NOTIFICATION ||--|| ACTOR : "sent to"
+    NOTIFICATION ||--o{ POST : "references"
+    %% NOTIFICATION ||--o{ LIKE : "triggered by"
+    %% NOTIFICATION ||--o{ REPOST : "triggered by"
+    
+    POST ||--|{ FACET : contains
+    POST ||--|{ EXTERNAL-EMBED : "embeds websites"
+    POST ||--|{ RECORD-EMBED : "quotes records"
+    POST ||--|{ LIKE : receives
+    POST ||--|{ REPOST : gets
+    POST }o--|| THREAD : "belongs to"
+    POST ||--|| LANGUAGE : "written in"
+    POST ||--o{ POST : "replies to"
+
+    %% Rich Text Features
+    FACET ||--|{ FEATURE : contains
+    FEATURE ||--|| MENTION : "references actor"
+    FEATURE ||--|| LINK : "references url"
+    
+    %% Media & Embeds
+    BLOB ||--|| BLOB-REF : "referenced by"
+    EXTERNAL-EMBED ||--o{ THUMBNAIL-BLOB : "has"
+    THUMBNAIL-BLOB ||--|| BLOB : "is a"
+    POST ||--o{ POST-IMAGE : "attaches"
+    POST-IMAGE ||--|| BLOB : "is a"
+
+    PROFILE-BLOB ||--|| BLOB : "is a"
+    BANNER-BLOB ||--|| BLOB : "is a"
+    VIDEO-BLOB ||--|| BLOB : "is a"
+    RECORD-EMBED ||--|| URI-CID : "references"
+    POST ||--|| URI-CID : "identified by"
+
+
+    %% Entity Definitions
+    DID {
+        string method
+        string value
+        string pds_address
+        string[] handles
+        string signing_keys
+    }
+    
+    RECORD {
+        string type
+        json value
+        datetime createdAt
+    }
+    
+    POST {
+        string type
+        string text
+        datetime createdAt
+        string[] langs
+    }
+    
+    FACET {
+        int byteStart
+        int byteEnd
+    }
+    
+    EXTERNAL-EMBED {
+        string uri
+        string title
+        string description
+    }
+    
+    REPO {
+        string did
+        merkle_tree signature
+        json records
+        blob[] blobs
+    }
+    
+    URI-CID {
+        string uri
+        string cid
+    }
+    
+    COLLECTION {
+        string name
+        string schema
+    }
+    
+    LABEL {
+        string value
+        string source
+        datetime createdAt
+    }
+
+    NOTIFICATION {
+        string reason
+        boolean isRead
+        datetime indexedAt
+    }
+
+    LIST-ITEM {
+        string subject
+        datetime createdAt
+    }
