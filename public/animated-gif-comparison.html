@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>❄️ Three.js Recorder Comparator ❄️</title>
+    <style>
+        body { 
+            margin: 0; 
+            background: #040202;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        canvas { display: block; }
+        #loading { position: fixed; top: 10px; left: 10px; color: white; }
+        #snowflake { display: none; }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading libraries...</div>
+    <canvas id="snowflake" width="32" height="32"></canvas>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.162.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GUI } from 'https://unpkg.com/dat.gui@0.7.9/build/dat.gui.module.js';
+        import { FFmpeg } from 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js';
+        
+        const snowCanvas = document.getElementById('snowflake');
+        const ctx = snowCanvas.getContext('2d');
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for(let i = 0; i < 6; i++) {
+            ctx.save();
+            ctx.translate(16, 16);
+            ctx.rotate(i * Math.PI / 3);
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, 12);
+            ctx.moveTo(0, 4);
+            ctx.lineTo(4, 8);
+            ctx.moveTo(0, 4);
+            ctx.lineTo(-4, 8);
+            ctx.restore();
+        }
+        ctx.stroke();
+        
+        const snowflakeTexture = new THREE.CanvasTexture(snowCanvas);
+
+        const libs = {
+            three: typeof THREE !== 'undefined',
+            datGUI: typeof GUI !== 'undefined',
+            ffmpeg: typeof FFmpeg !== 'undefined'
+        };
+        
+        document.getElementById('loading').textContent = 
+            Object.entries(libs).map(([name, loaded]) => 
+                `${name}: ${loaded ? '✓' : '✗'}`
+            ).join(' | ');
+
+            const params = {
+        width: 600,
+        height: 800,
+        particleCount: 800,
+        particleSize: 1.2,
+        recordMethod: 'canvas',
+        recordDuration: 3,
+        isRecording: false
+    };
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, params.width/params.height, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setClearColor(0x040816);
+        renderer.setSize(params.width, params.height);
+        document.body.appendChild(renderer.domElement);
+
+        const particles = new THREE.Points(
+        new THREE.BufferGeometry(),
+        new THREE.PointsMaterial({ 
+            size: params.particleSize,
+            map: snowflakeTexture,
+            transparent: true,
+            alphaTest: 0.5
+        })
+    );
+        
+        const positions = new Float32Array(params.particleCount * 3);
+        for(let i = 0; i < params.particleCount; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 10;
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 10;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+        }
+        particles.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        scene.add(particles);
+
+        camera.position.z = 15;
+
+        let recorder, recordedChunks = [];
+    let recordingStartTime;
+    let gif;
+    const ffmpeg = new FFmpeg();
+    let ffmpegLoaded = false;
+
+    async function initFFmpeg() {
+        if (!ffmpegLoaded) {
+            await ffmpeg.load();
+            ffmpegLoaded = true;
+        }
+    }
+    
+    async function startRecording() {
+        recordingStartTime = Date.now();
+        recordedChunks = [];
+        
+        if (params.recordMethod === 'canvas') {
+            const stream = renderer.domElement.captureStream(30);
+            recorder = new MediaRecorder(stream, {
+                mimeType: 'video/webm',
+                videoBitsPerSecond: 8000000
+            });
+            recorder.ondataavailable = e => recordedChunks.push(e.data);
+            recorder.onstop = saveRecording;
+            recorder.start();
+        } 
+        else if (params.recordMethod === 'gif') {
+            gif = new GIF({
+                workers: 4,
+                quality: 10,
+                width: params.width,
+                height: params.height,
+                workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'
+            });
+        }
+        else if (params.recordMethod === 'ffmpeg') {
+            await initFFmpeg();
+        }
+        
+        setTimeout(() => {
+            if (params.isRecording) stopRecording();
+        }, params.recordDuration * 1000);
+        
+        params.isRecording = true;
+    }
+
+    async function captureFrame() {
+        if (params.recordMethod === 'gif') {
+            gif.addFrame(renderer.domElement, {delay: 33});
+        } 
+        else if (params.recordMethod === 'ffmpeg') {
+            const canvas = renderer.domElement;
+            const imageData = canvas.toDataURL('image/png').split(',')[1];
+            const fileName = `frame_${recordedChunks.length}.png`;
+            recordedChunks.push(fileName);
+            await ffmpeg.writeFile(fileName, await fetch(
+                `data:image/png;base64,${imageData}`
+            ).then(r => r.arrayBuffer()));
+        }
+    }
+
+    async function stopRecording() {
+        if (params.recordMethod === 'canvas' && recorder?.state === 'recording') {
+            recorder.stop();
+        } 
+        else if (params.recordMethod === 'gif') {
+            gif.render();
+            gif.on('finished', blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'snowflake-recording.gif';
+                a.click();
+            });
+        }
+        else if (params.recordMethod === 'ffmpeg') {
+            const inputFile = 'input.txt';
+            await ffmpeg.writeFile(inputFile, 
+                recordedChunks.map(f => `file ${f}`).join('\n')
+            );
+            await ffmpeg.exec([
+                '-f', 'concat', '-i', inputFile, 
+                '-framerate', '30',
+                '-c:v', 'libx264', '-crf', '23',
+                'output.mp4'
+            ]);
+            const data = await ffmpeg.readFile('output.mp4');
+            const url = URL.createObjectURL(
+                new Blob([data.buffer], {type: 'video/mp4'})
+            );
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'snowflake-recording.mp4';
+            a.click();
+
+            // Cleanup
+            for (const file of recordedChunks) {
+                await ffmpeg.deleteFile(file);
+            }
+            await ffmpeg.deleteFile(inputFile);
+            await ffmpeg.deleteFile('output.mp4');
+        }
+        
+        params.isRecording = false;
+        recordedChunks = [];
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        const positions = particles.geometry.attributes.position.array;
+        for(let i = 0; i < positions.length; i += 3) {
+            positions[i] += Math.sin(Date.now() * 0.001 + i) * 0.01;
+            positions[i + 1] += Math.cos(Date.now() * 0.001 + i) * 0.02;
+            positions[i + 2] += Math.sin(Date.now() * 0.001 + i) * 0.04;
+        }
+        particles.geometry.attributes.position.needsUpdate = true;
+        
+        renderer.render(scene, camera);
+        
+        if (params.isRecording && 
+            (params.recordMethod === 'gif' || params.recordMethod === 'ffmpeg')) {
+            captureFrame();
+        }
+    }
+
+        function saveRecording() {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'snowflake-recording.webm';
+            a.click();
+            recordedChunks = [];
+        }
+
+        const gui = new GUI();
+        gui.add(params, 'width', 400, 1920).onChange(v => {
+            renderer.setSize(v, params.height);
+            camera.aspect = v / params.height;
+            camera.updateProjectionMatrix();
+        });
+        gui.add(params, 'height', 300, 1080).onChange(v => {
+            renderer.setSize(params.width, v);
+            camera.aspect = params.width / v;
+            camera.updateProjectionMatrix();
+        });
+    gui.add(params, 'particleCount', 10, 1000).step(10).onChange(v => {
+        const positions = new Float32Array(v * 3);
+        for(let i = 0; i < v; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 10;
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 10;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+        }
+        particles.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    });
+    gui.add(params, 'particleSize', 1, 10).step(0.5).onChange(v => {
+        particles.material.size = v;
+    });
+    gui.add(params, 'recordDuration', 1, 10).step(0.5);
+    gui.add(params, 'recordMethod', ['canvas', 'gif', 'ffmpeg']);
+    gui.add(params, 'isRecording').onChange(v => v ? startRecording() : stopRecording());
+
+
+        animate();
+    </script>
+</body>
+</html>
