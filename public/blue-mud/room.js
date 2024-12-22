@@ -74,20 +74,26 @@ export class RoomManager {
             this.rooms.clear();
             
             response.data.records?.forEach(record => {
-                const rkey = record.rkey;
+                // Only skip last-location record
+                if (record.rkey === 'last-location') return;
+                
                 if (record.value.$type === RECORD_TYPES.ROOM) {
                     const roomData = {
                         ...record.value,
-                        rkey,
+                        rkey: record.rkey,
                         owner: playerDid,
                         title: record.value.title || "Unnamed Room",
+                        description: record.value.description || "",
+                        exits: record.value.exits || {},
+                        items: record.value.items || [],
+                        players: record.value.players || [],
                         coordinates: record.value.coordinates || {x: 0, y: 0, z: 0}
                     };
                     
-                    this.rooms.set(rkey, roomData);
+                    this.rooms.set(record.rkey, roomData);
                     
                     if (this.mapManager) {
-                        this.mapManager.addRoom(rkey, roomData);
+                        this.mapManager.addRoom(record.rkey, roomData);
                     }
                 }
             });
@@ -149,8 +155,8 @@ export class RoomManager {
             await this.loadAllRooms(playerDid);
             const lastLocation = await this.getLastLocation(playerDid);
             
-            // If no last location or room not found, create starting room
-            if (!lastLocation || !this.rooms.has(lastLocation.rkey)) {
+            if (this.rooms.size === 0) {
+                // Create starting room if user has no existing rooms
                 const roomData = {
                     title: "Starting Room",
                     description: "Your first room in the world.",
@@ -163,10 +169,20 @@ export class RoomManager {
                 const rkey = await this.createRoom(playerDid, roomData);
                 await this.enterRoom(playerDid, rkey);
                 await this.saveLastLocation(playerDid, {owner: playerDid, rkey});
-                return;
+            } else if (lastLocation?.rkey && this.rooms.has(lastLocation.rkey)) {
+                // Enter last known location if available
+                console.log('Entering last location:', lastLocation.rkey, this.rooms.has(lastLocation.rkey));
+                await this.enterRoom(lastLocation.owner, lastLocation.rkey);
+            } else {
+                // Fallback to the first available room
+                const firstRoom = Array.from(this.rooms.keys())[0];
+                if (firstRoom) {
+                    console.log('Entering first room:', firstRoom);
+                    await this.enterRoom(playerDid, firstRoom);
+                } else {
+                    throw new Error('No available rooms found');
+                }
             }
-            
-            await this.enterRoom(lastLocation.owner, lastLocation.rkey);
         } catch (error) {
             console.error('Initialization failed:', error);
             throw error;
@@ -174,6 +190,7 @@ export class RoomManager {
     }
     
     async enterRoom(ownerDid, rkey, updatePlayers = true) {
+        console.log('Entering room:', rkey);
         if (!rkey || !this.rooms.has(rkey)) {
             throw new Error(`Room ${rkey} not found`);
         }
@@ -236,6 +253,7 @@ export class RoomManager {
                 },
                 { headers: { Authorization: `Bearer ${this.agent.jwt}` } }
             );
+            console.log('Saved last location:', location);
         } catch (error) {
             console.error('Error saving location:', error);
         }
@@ -254,6 +272,7 @@ export class RoomManager {
                     headers: { Authorization: `Bearer ${this.agent.jwt}` }
                 }
             );
+            console.log('Got Last location:', response.data.value?.location);
             return response.data.value?.location;
         } catch (error) {
             return null;
@@ -262,27 +281,21 @@ export class RoomManager {
 
     async cleanupDuplicateRooms(playerDid) {
         const rooms = Array.from(this.rooms.entries());
-        const seenTitles = new Map();
+        const duplicates = new Map();
         const toDelete = [];
-
-        // Find duplicates, keeping the newest version
+    
         rooms.forEach(([rkey, room]) => {
             if (room.title === "Starting Room") {
-                if (!seenTitles.has(room.title)) {
-                    seenTitles.set(room.title, {rkey, timestamp: parseInt(rkey.split('-')[1])});
+                const timestamp = parseInt(rkey.split('-')[1]);
+                if (!duplicates.has(timestamp)) {
+                    duplicates.set(timestamp, rkey);
                 } else {
-                    const existing = seenTitles.get(room.title);
-                    if (parseInt(rkey.split('-')[1]) > existing.timestamp) {
-                        toDelete.push(existing.rkey);
-                        seenTitles.set(room.title, {rkey, timestamp: parseInt(rkey.split('-')[1])});
-                    } else {
-                        toDelete.push(rkey);
-                    }
+                    // Only consider it a duplicate if created in the exact same millisecond
+                    toDelete.push(rkey);
                 }
             }
         });
-
-        // Delete duplicate rooms
+    
         for (const rkey of toDelete) {
             try {
                 await axios.post(
@@ -299,7 +312,7 @@ export class RoomManager {
                 console.error(`Failed to delete room ${rkey}:`, error);
             }
         }
-
+    
         return toDelete.length;
     }
 }

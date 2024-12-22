@@ -81,12 +81,26 @@ export class Game {
             'app.mud.chat',
             'app.mud.pennies',
         ];
+        const currentTypes = [RECORD_TYPES.ROOM, RECORD_TYPES.INVENTORY, RECORD_TYPES.CHAT, RECORD_TYPES.PENNIES];
         
         for (const type of oldTypes) {
             try {
                 const records = await this.fetchAllRecords(type);
                 for (const record of records) {
                     if (this.isMUDRecord(record)) {
+                        await this.deleteRecord(type, record);
+                    }
+                }
+            } catch (error) {
+                console.error(`Failed to purge ${type}:`, error.message);
+            }
+        }
+
+        for (const type of currentTypes) {
+            try {
+                const records = await this.fetchAllRecords(type);
+                for (const record of records) {
+                    if (!this.isMUDRecord(record)) {
                         await this.deleteRecord(type, record);
                     }
                 }
