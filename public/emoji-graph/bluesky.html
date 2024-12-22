@@ -132,7 +132,63 @@
     { source: 'RECORD-EMBED', target: 'URI-CID', type: 'references' },
     { source: 'POST', target: 'URI-CID', type: 'identified by' }
 ]
-        };
+};
+
+const labelGraphData = {
+  nodes: [
+    // Label Infrastructure
+    { id: 'LABELER-SERVICE', emoji: '🏢', kind: 'infrastructure', quantity: 2 },
+    { id: 'LABEL-AUTHORITY', emoji: '👮', kind: 'infrastructure', quantity: 3 },
+    
+    // Label Types
+    { id: 'MODERATION-LABEL', emoji: '🚫', kind: 'label', quantity: 4 },
+    { id: 'CONTENT-LABEL', emoji: '📑', kind: 'label', quantity: 5 },
+    { id: 'SELF-LABEL', emoji: '🏷️', kind: 'label', quantity: 3 },
+    { id: 'COMMUNITY-LABEL', emoji: '👥', kind: 'label', quantity: 4 },
+    
+    // Label States
+    { id: 'LABEL-SIG', emoji: '✍️', kind: 'label-state', quantity: 2 },
+    { id: 'LABEL-NEG', emoji: '❌', kind: 'label-state', quantity: 1 }
+  ],
+  links: [
+    // Service Relations
+    { source: 'LABELER-SERVICE', target: 'LABEL', type: 'creates' },
+    { source: 'LABELER-SERVICE', target: 'LABEL-AUTHORITY', type: 'authorized by' },
+    { source: 'LABEL-AUTHORITY', target: 'DID', type: 'identified by' },
+    
+    // Label Type Relations
+    { source: 'LABEL', target: 'MODERATION-LABEL', type: 'type of' },
+    { source: 'LABEL', target: 'CONTENT-LABEL', type: 'type of' },
+    { source: 'LABEL', target: 'SELF-LABEL', type: 'type of' },
+    { source: 'LABEL', target: 'COMMUNITY-LABEL', type: 'type of' },
+    
+    // Target Relations
+    { source: 'LABEL', target: 'ACTOR', type: 'applies to' },
+    { source: 'LABEL', target: 'POST', type: 'applies to' },
+    { source: 'LABEL', target: 'REPO', type: 'applies to' },
+    
+    // Label States
+    { source: 'LABEL', target: 'LABEL-SIG', type: 'verified by' },
+    { source: 'LABEL', target: 'LABEL-NEG', type: 'can be' },
+    
+    // Infrastructure Integration
+    { source: 'APPVIEW', target: 'LABEL', type: 'hydrates' },
+    { source: 'PDS', target: 'LABEL', type: 'passes through' }
+  ]
+};
+
+const messagingGraphData = {
+  nodes: [
+    { id: 'NATS', emoji: '📨', kind: 'infrastructure', quantity: 1 },
+    { id: 'JETSTREAM', emoji: '🌊', kind: 'infrastructure', quantity: 1 }
+  ],
+  links: [
+    { source: 'NATS', target: 'JETSTREAM', type: 'provides' },
+    { source: 'RELAY', target: 'RELAY', type: 'connects via', via: 'NATS' },
+    { source: 'JETSTREAM', target: 'REPO', type: 'streams' },
+    { source: 'JETSTREAM', target: 'LABEL', type: 'distributes' }
+  ]
+};
 
         const oneToOneLinkTypes = [
             'identified by',      // Like DID->REPO, HANDLE->REPO 
@@ -195,6 +251,7 @@
             return new THREE.Sprite(material);
         }
         let isExpandedView = false;
+        let isLabelDataExpanded = false;
         let linkSprites = [];
         let Graph;
 
@@ -275,10 +332,28 @@ for(let i = 0; i < sourceQty; i++) {
             Graph.graphData(newData);
         }
 
+        function addLabelData() {
+            if(!isLabelDataExpanded) {
+
+                isLabelDataExpanded = true;
+                Graph.graphData(baseGraphData);
+            } else {
+                isLabelDataExpanded = false;
+            
+                const mergedData = {
+                    nodes: [...baseGraphData.nodes, ...labelGraphData.nodes, ...messagingGraphData.nodes],
+                    links: [...baseGraphData.links, ...labelGraphData.links, ...messagingGraphData.links],
+                };
+                const newData = isLabelDataExpanded ? expandNodes(mergedData) : mergedData;
+                Graph.graphData(newData);
+        }
+        }
+
         document.addEventListener('keydown', (event) => {
             if (event.code === 'Space') {
                 event.preventDefault();
-                toggleView();
+                // toggleView();
+                addLabelData();
             }
         });
 
