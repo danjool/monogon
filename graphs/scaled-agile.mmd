@@ -1,0 +1,132 @@
+%%{init: {
+  "theme": "default",
+  "themeCSS": [
+    ".er.relationshipLabel { fill: black; }",
+    ".er.relationshipLabelBox { fill: white; }",
+    "[id^=entity-Portfolio] .er.entityBox { fill: #98FB98; }",
+    "[id^=entity-Epic] .er.entityBox { fill: #98FB98; }",
+    "[id^=entity-Initiative] .er.entityBox { fill: #98FB98; }",
+    
+    "[id^=entity-SolutionIntent] .er.entityBox { fill: #87CEEB; }",
+    "[id^=entity-Solution] .er.entityBox { fill: #87CEEB; }",
+    "[id^=entity-Capability] .er.entityBox { fill: #87CEEB; }",
+    "[id^=entity-Feature] .er.entityBox { fill: #87CEEB; }",
+    "[id^=entity-Story] .er.entityBox { fill: #87CEEB; }",
+    "[id^=entity-Task] .er.entityBox { fill: #87CEEB; }",
+
+    "[id^=entity-ValueStream] .er.entityBox { fill: #DDA0DD; }",
+    "[id^=entity-SolutionTrain] .er.entityBox { fill: #DDA0DD; }",
+    "[id^=entity-Program] .er.entityBox { fill: #DDA0DD; }",
+    "[id^=entity-ART] .er.entityBox { fill: #DDA0DD; }",
+
+    "[id^=entity-Team] .er.entityBox { fill: #F08080; }",
+    "[id^=entity-TeamMember] .er.entityBox { fill: #F08080; }",
+    "[id^=entity-Sprint] .er.entityBox { fill: #FFA07A; }"
+  ]
+}}%%
+erDiagram
+    Portfolio ||--|{ Initiative : "contains"
+    Portfolio ||--o{ Program : "has many"
+    Portfolio ||--|{ Solution : "delivers"
+    Portfolio ||--|{ ValueStream : "organizes into"
+
+    Initiative ||--|{ Epic : "contains"
+    Solution ||--|{ Capability : "provides"
+    Capability ||--|{ Feature : "realized by"
+    Feature ||--|{ Story : "contains"
+    ValueStream ||--|{ SolutionTrain : "organized as"
+    SolutionTrain ||--|{ ART : "coordinates"
+    Program ||--|{ ART : "manages"
+    TeamMember }|..|{ Story : "assigned to"
+    ART ||--|{ Team : "composed of"
+    Team ||--|{ TeamMember : "consists of"
+    Epic ||--o{ Feature : "implements"
+    Team }|..|{ Feature : "develops"
+    Story ||--|{ Task : "contains"
+    Sprint ||--|{ Story : "contains"
+    Sprint ||--|{ Task : "contains"
+    Team ||--|{ Sprint : "plans"
+
+    SolutionIntent ||--|| Solution : "defines"
+
+    Portfolio {
+        string objectives
+        string budget
+    }
+
+    Solution {
+        string solution_context
+        string NFRs
+    }
+
+    SolutionTrain {
+        string objectives
+        date PI_timeline
+    }
+
+    SolutionIntent {
+        string requirements
+        string architecture
+        string design_constraints
+        string NFRs
+    }
+
+    Capability {
+        string business_outcomes
+        string acceptance_criteria
+    }
+
+    Initiative {
+        string strategic_theme
+        date target_date
+    }
+
+    Program {
+        string objectives
+        string PI_schedule
+    }
+
+    ValueStream {
+        string budget
+        string metrics
+    }
+
+    ART {
+        string PI_objectives
+        date start_date
+        date end_date
+    }
+
+    Sprint {
+        date start_date
+        date end_date
+        number capacity
+        string goals
+    }
+
+    Team {
+        string type
+        number velocity
+    }
+
+    TeamMember {
+        string role
+        string skills
+    }
+
+    Epic {
+        string business_outcome
+    }
+
+    Feature {
+        string acceptance_criteria
+        string business_value
+    }
+
+    Story {
+        string acceptance_criteria
+    }
+
+    Task {
+        number hours_estimate
+    }
