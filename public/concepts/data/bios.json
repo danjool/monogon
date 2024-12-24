@@ -307,6 +307,7 @@
 	{"id":"Plotinus","type":"person","time":204},
 	{"id":"Adorno","type":"person","time":1903},
 	{"id":"Kafka","type":"person","time":1883},
+	{"id":"Josephine the Singer, or the Mouse Folk","type":"book","time":1924},
 	{"id":"Hannah Arendt","type":"person","time":1906},
 	{"id":"The Need for Roots", "type":"book","time":1949},
 	{"id":"George Orwell","type":"person","time":1903},
@@ -959,10 +960,27 @@
 	{"id": "Babel", "type": "book", "time": 2015},
 	{"id": "David Bellos", "type": "person", "time": 1945},
 	{"id": "Is That a Fish in Your Ear", "type": "book", "time": 2011},
-	{"id": "George Perec: A Life in Words", "type": "book", "time": 1993}
+	{"id": "George Perec: A Life in Words", "type": "book", "time": 1993},
 
+	{"id": "Mary Franklin-Brown", "type": "person", "time": null},
+	{"id": "Reading the World", "type": "book", "time": null},
+	{"id": "Anna Sigridur Arnar", "type": "person", "time": 1990},
+	{"id": "Encyclopedism from Pliny to Borges", "type": "book", "time": 1990},
+	{"id": "Gershom Scholem", "type": "person", "time": null},
+	{"id": "Martin Buber", "type": "person", "time": null}
 	
 ],"links":[
+	{"source": "Mary Franklin-Brown", "target": "Reading the World", "relation": "wrote"},
+	{"source": "Reading the World", "target": "The Analytical Language of John Wilkins", "relation": "quotes"},
+	{"source": "Reading the World", "target": "The Order of Things", "relation": "quotes"},
+	{"source": "Reading the World", "target": "Tlon, Uqbar, Orbis Tertius", "relation": "quotes"},
+	{"source": "Reading the World", "target": "Encyclopedism from Pliny to Borges", "relation": "references"},
+	{"source": "Anna Sigridur Arnar", "target": "Encyclopedism from Pliny to Borges", "relation": "wrote"},
+	{"source": "Martin Buber", "target": "Walter Benjamin", "relation": "patroned"},
+	{"source": "Martin Buber", "target": "Gershom Scholem", "relation": "patroned"},
+	{"source": "Gershom Scholem", "target": "Walter Benjamin", "relation": "best friend"},
+	{"source": "This Craft of Verse", "target": "Martin Buber", "relation": "references"},
+	{"source": "The Book of Fantasy", "target": "Martin Buber", "relation": "quotes"},
 	{"source": "David Bellos", "target": "Is That a Fish in Your Ear", "relation": "wrote"},
 	{"source": "Is That a Fish in Your Ear", "target": "George Perec: A Life in Words", "relation": "references"},
 	{"source": "David Bellos", "target": "Is That a Fish in Your Ear", "relation": "wrote"},
@@ -1255,22 +1273,9 @@
 	{"source": "The Ambidextrous Universe", "relation": "Influenced", "target": "Look at the Harlequin!"},
 	{"source": "Vladimir Nabokov", "relation": "Taught", "target": "Kurt Vonnegut"},
 	{"source": "Vladimir Nabokov", "relation": "Taught", "target": "Thomas Pynchon"},
-	{
-		"source": "Vladimir Nabokov",
-		"target": "Wisconsin Studies in Contemporary Literature, vol. VIII, no. 2, spring 1967",
-		"relation": "wrote"
-	},
-	{
-		"source": "Wisconsin Studies in Contemporary Literature, vol. VIII, no. 2, spring 1967",
-		"target": "Borges",
-		"relation": "references"
-	},
-	{
-		"source": "Vladimir Nabokov",
-		"target": "Borges",
-		"relation": "read",
-		"time": 1963
-	},
+	{"source": "Vladimir Nabokov","target": "Wisconsin Studies in Contemporary Literature, vol. VIII, no. 2, spring 1967","relation": "wrote"},
+	{"source": "Wisconsin Studies in Contemporary Literature, vol. VIII, no. 2, spring 1967","target": "Borges","relation": "references"},
+	{"source": "Vladimir Nabokov","target": "Borges","relation": "read","time": 1963},
 	{"source": "John Updike", "relation": "Wrote", "target": "The Witches of Eastwick"},
 	{"source": "John Updike", "relation": "Translated", "target": "The Labyrinth"},
 	{"source": "Michael Chabon", "relation": "Wrote", "target": "Wonder Boys"},
@@ -1575,6 +1580,7 @@
 	{"source": "Robert Burton", "relation": "Wrote", "target": "The Anatomy of Melancholy"},
 	{"source": "The Anatomy of Melancholy", "relation": "Influenced", "target": "The Library of Babel"},
 	{"source": "Rabelais", "relation": "Wrote", "target": "Gargantua and Pantagruel"},
+	{"source": "The Book of Fantasy", "relation": "Quotes", "target": "Gargantua and Pantagruel"},
 	{"source": "Gargantua and Pantagruel", "relation": "Influenced", "target": "Laurence Sterne"},
 	{"source": "Jonathan Swift", "relation": "Wrote", "target": "A Tale of a Tub"},
 	{"source": "Jonathan Swift", "relation": "Wrote", "target": "Gulliver's Travels"},
@@ -1594,6 +1600,7 @@
 	{"source": "Nikolai Gogol", "relation": "Influenced", "target": "Kafka"},
 	{"source": "The Brothers Karamazov", "relation": "Influenced", "target": "Kurt Vonnegut"},
 	{"source": "Notes from Underground", "relation": "Influenced", "target": "Kurt Vonnegut"},
+	{"source": "Robert Louis Stevenson", "relation": "Influenced", "target": "Kurt Vonnegut"},
 	{"source": "Aristotle", "relation": "Influenced", "target": "Ramon Llull"},
 	{"source": "Ramon Llull", "relation": "Influenced", "target": "Athanasius Kircher"},
 	{"source": "Ramon Llull", "relation": "Influenced", "target": "Descartes"},
@@ -1819,6 +1826,7 @@
 	{"relation":"Influenced","source":"The Republic","target":"H.G. Wells"},
 	{"relation":"Influenced","source":"Kafka","target":"Borges"},
 	{"relation":"Wrote","source":"Kafka","target":"The Castle"},
+	{"relation":"Wrote","source":"Kafka","target":"Josephine the Singer, or the Mouse Folk"},
 	{"relation":"Influenced","source":"Descartes","target":"Simone Weil"},
 	{"relation":"Influenced","source":"Immanuel Kant","target":"Simone Weil"},
 	{"relation":"Wrote","source":"Simone Weil","target":"The Need for Roots"},

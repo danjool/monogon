@@ -1,0 +1,38 @@
+erDiagram
+    Script ||--o{ Automation : executes
+    Script ||--o{ Entity : "modifies-states"
+    Device ||--o{ Entity : "represented-as"
+    Scene ||--o{ Entity : "sets-states"
+    Entity ||--|{ State : has
+    Sensor }|--|| Entity : "is-a"
+    PhysicalDevice ||--o{ Device : "discovered-as"
+    Area ||--o{ Device : contains
+    Area ||--o{ PhysicalDevice : "located-in"
+    
+    Addons ||--o{ Device : "interacts-with"
+    
+    Event }o--|| Entity : generates
+
+    LovelaceUI ||--o{ Dashboard : contains
+    LovelaceUI ||--o{ Card : displays
+    Dashboard ||--o{ Card : "made-of"
+    Card ||--o{ Entity : "shows-data-of"
+    
+    Event ||--o| Automation : triggers
+
+    HAAdmin ||--o{ Scene : configures
+    HAAdmin ||--o{ Automation : configures
+    HAAdmin ||--o{ Script : configures
+    HAAdmin ||--o{ User : "grants-access-to"
+    HAAdmin ||--o{ Area : manages
+    Automation ||--o{ Scene : activates
+    
+    User ||--o{ LovelaceUI : uses
+    User ||--o{ Device : "interacts-with"
+    User ||--o{ Area : "has-access-to"
+    
+    Entity ||--o{ Integrations : provides
+
+    HistoryLogbook }o--|| Event : stores
+    State }o--|| HistoryLogbook : stores
+    
