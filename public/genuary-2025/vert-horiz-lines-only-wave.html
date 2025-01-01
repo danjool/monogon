@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Lines Make Waves (Three.js)</title>
+        <style>
+            body { margin: 0; overflow: hidden; }
+            .centering-container { 
+                display: flex; 
+                justify-content: center; 
+                align-items: center; 
+                height: 100vh; 
+                background-color: #212; 
+            }
+            canvas { 
+                display: block; 
+                width: 800px !important; 
+                height: 400px !important; 
+                margin: auto; 
+            }
+        </style>
+    </head>
+<body>
+    <div class="centering-container">    
+        <canvas id="c"></canvas>
+    </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script type="module">
+
+
+const canvas = document.querySelector('#c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias: true});
+const scene = new THREE.Scene();
+
+const speed = 1;
+const scale = 25;
+const STRIPE_WIDTH = 4;
+const FPS = 60;
+const FRAME_DURATION = 1000 / FPS;
+
+const light = new THREE.Color('#c9b');
+const dark = new THREE.Color('#212');
+
+
+const camera = new THREE.OrthographicCamera(1, 1, 1, 1, -10, 1000);
+
+const waveFunction = (x, t) => {
+    const amp = 0.3 * scale;
+    const width = window.innerWidth/scale;
+    const tt = (t - 0.5);
+    const right = (x-width*tt);
+    const left = (x+width*tt)
+    const rightOffset = (x-width*tt - width);
+    const leftOffset = (x+width*tt + width);
+    const rightOffset2 = (x-width*tt + width);
+    const leftOffset2 = (x+width*tt - width);
+    return ( 
+          amp/(1+right*right)
+        + amp/(1+rightOffset*rightOffset) 
+        + amp/(1+rightOffset2*rightOffset2)
+        - amp/(1+left*left) 
+        - amp/(1+leftOffset*leftOffset) 
+        - amp/(1+leftOffset2*leftOffset2)
+    );
+};
+
+const darkMaterial = new THREE.MeshBasicMaterial({ color: dark, side: THREE.DoubleSide });
+const lightMaterial = new THREE.MeshBasicMaterial({ color: light, side: THREE.DoubleSide });
+
+const backgroundLines = new THREE.Group();
+scene.add(backgroundLines);
+
+const verticalLines = new THREE.Group();
+scene.add(verticalLines);
+
+let lastFrameTime = 0;
+let t = 0;
+
+function createBackgroundLines(height) {
+    backgroundLines.clear();    
+    for(let y = -height/2; y < height/2; y += STRIPE_WIDTH * 4) {
+        const geometry = new THREE.PlaneGeometry(window.innerWidth, STRIPE_WIDTH*2);
+        const quad = new THREE.Mesh(geometry, darkMaterial);
+        quad.position.set(0, y, 0);
+        backgroundLines.add(quad);
+    }
+}
+
+function createVerticalLines() {
+    verticalLines.clear();
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    
+    for(let px = -width/2; px < width/2; px += STRIPE_WIDTH * 2) {
+        const x = px;
+        const y = waveFunction(x, t);
+        
+        // Dark stripe, use a quad to make it look like a line
+        const quadGeometry = new THREE.PlaneGeometry(STRIPE_WIDTH, height);
+        const quad = new THREE.Mesh(quadGeometry, darkMaterial);
+        const quadLight = new THREE.Mesh(quadGeometry, lightMaterial);
+        quad.scale.set(1, 1, 1);
+        quad.x = x;
+        quadLight.x = x + STRIPE_WIDTH;
+        verticalLines.add(quad);
+        verticalLines.add(quadLight);
+    }
+}
+
+function updateVerticalLines() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    for(let line of verticalLines.children) {
+        const x = line.x
+        const y = waveFunction(x/scale, t);
+        const discreteY = Math.round(y*4)
+        line.position.set(x, discreteY * scale/2 - height/2, 0);
+    }
+}
+
+function resize() {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const aspect = width / height;
+
+    camera.left = -width/2;
+    camera.right = width/2;
+    camera.top = height/2;
+    camera.bottom = -height/2;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(width, height, false);
+    
+    createBackgroundLines(height);
+}
+
+function render(timestamp = 0) {
+    const elapsed = timestamp - lastFrameTime;
+    
+    if (elapsed >= FRAME_DURATION) {
+        t = (timestamp % (10000/speed)) / (10000/speed);
+        updateVerticalLines();
+        renderer.render(scene, camera);
+        lastFrameTime = timestamp - (elapsed % FRAME_DURATION);
+    }
+    
+    setTimeout(() => {
+        requestAnimationFrame(render);
+    }, FRAME_DURATION - elapsed);
+}
+createVerticalLines();
+window.addEventListener('resize', resize);
+resize();
+requestAnimationFrame(render);
+
+scene.background = light;
+</script>
+</body>
+</html>
