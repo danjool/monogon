@@ -14,7 +14,7 @@
             canvas { 
                 display: block; 
                 width: 800px !important; 
-                height: 400px !important; 
+                height: 800px !important; 
                 margin: auto; 
             }
         </style>
@@ -28,14 +28,15 @@
 
 
 const canvas = document.querySelector('#c');
-const renderer = new THREE.WebGLRenderer({canvas, antialias: true});
+const renderer = new THREE.WebGLRenderer({canvas, antialias: false});
 const scene = new THREE.Scene();
 
 const speed = 1;
-const scale = 25;
-const STRIPE_WIDTH = 4;
+const scale = 40;
 const FPS = 60;
 const FRAME_DURATION = 1000 / FPS;
+
+let STRIPE_WIDTH = 16;
 
 const light = new THREE.Color('#c9b');
 const dark = new THREE.Color('#212');
@@ -44,7 +45,7 @@ const dark = new THREE.Color('#212');
 const camera = new THREE.OrthographicCamera(1, 1, 1, 1, -10, 1000);
 
 const waveFunction = (x, t) => {
-    const amp = 0.3 * scale;
+    const amp = 4;
     const width = window.innerWidth/scale;
     const tt = (t - 0.5);
     const right = (x-width*tt);
@@ -77,10 +78,10 @@ let t = 0;
 
 function createBackgroundLines(height) {
     backgroundLines.clear();    
-    for(let y = -height/2; y < height/2; y += STRIPE_WIDTH * 4) {
-        const geometry = new THREE.PlaneGeometry(window.innerWidth, STRIPE_WIDTH*2);
+    for(let y = 0; y < height; y += STRIPE_WIDTH * 2) {
+        const geometry = new THREE.PlaneGeometry(window.innerWidth, STRIPE_WIDTH*1);
         const quad = new THREE.Mesh(geometry, darkMaterial);
-        quad.position.set(0, y, 0);
+        quad.position.set(0, y-Math.floor(height/2), 0);
         backgroundLines.add(quad);
     }
 }
@@ -90,17 +91,18 @@ function createVerticalLines() {
     const width = window.innerWidth;
     const height = window.innerHeight;
     
-    for(let px = -width/2; px < width/2; px += STRIPE_WIDTH * 2) {
+    for(let px = -width/2; px <= width/2; px += STRIPE_WIDTH * 4) {
         const x = px;
         const y = waveFunction(x, t);
         
         // Dark stripe, use a quad to make it look like a line
-        const quadGeometry = new THREE.PlaneGeometry(STRIPE_WIDTH, height);
+        const quadGeometry = new THREE.PlaneGeometry(STRIPE_WIDTH*2, height);
         const quad = new THREE.Mesh(quadGeometry, darkMaterial);
         const quadLight = new THREE.Mesh(quadGeometry, lightMaterial);
         quad.scale.set(1, 1, 1);
+        quadLight.scale.set(1, 1, 1);
         quad.x = x;
-        quadLight.x = x + STRIPE_WIDTH;
+        quadLight.x = x + STRIPE_WIDTH*2;
         verticalLines.add(quad);
         verticalLines.add(quadLight);
     }
@@ -112,8 +114,8 @@ function updateVerticalLines() {
     for(let line of verticalLines.children) {
         const x = line.x
         const y = waveFunction(x/scale, t);
-        const discreteY = Math.round(y*4)
-        line.position.set(x, discreteY * scale/2 - height/2, 0);
+        const discreteY = Math.round((y*4 * scale/2 - height/2)/STRIPE_WIDTH)*STRIPE_WIDTH;
+        line.position.set(x, discreteY , 0);
     }
 }
 
@@ -135,6 +137,14 @@ function resize() {
 
 function render(timestamp = 0) {
     const elapsed = timestamp - lastFrameTime;
+    const percentDone = (timestamp % (10000/speed)) / (10000/speed);
+    const cycleCount = Math.floor(timestamp / (10000/speed)+.5);
+    const stripWidth = 2**(1+cycleCount%4);
+    if(stripWidth != STRIPE_WIDTH) {
+        STRIPE_WIDTH = stripWidth;
+        createVerticalLines();
+        createBackgroundLines(window.innerHeight);
+    }
     
     if (elapsed >= FRAME_DURATION) {
         t = (timestamp % (10000/speed)) / (10000/speed);
