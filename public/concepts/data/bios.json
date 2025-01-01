@@ -949,15 +949,26 @@
 	{"id": "David Bellos", "type": "person", "time": 1945},
 	{"id": "Is That a Fish in Your Ear", "type": "book", "time": 2011},
 	{"id": "George Perec: A Life in Words", "type": "book", "time": 1993},
-
 	{"id": "Mary Franklin-Brown", "type": "person", "time": null},
 	{"id": "Reading the World", "type": "book", "time": null},
 	{"id": "Anna Sigridur Arnar", "type": "person", "time": 1990},
 	{"id": "Encyclopedism from Pliny to Borges", "type": "book", "time": 1990},
 	{"id": "Gershom Scholem", "type": "person", "time": null},
-	{"id": "Martin Buber", "type": "person", "time": null}
+	{"id": "Martin Buber", "type": "person", "time": null},
+	{"id": "B. F. Skinner", "type": "person", "time": 1904},
+	{"id": "Intellectual Self-Management in Old Age", "type": "book", "time": 1983},
+	{"id": "Elana Gamel", "type": "person", "time": 1965},
+	{"id": "Postmodern Science Fiction and Temporal Imagination", "type": "book", "time": 2010},
+	{"id": "Narrative Space and Time", "type": "book", "time": 2018}
 	
 ],"links":[
+	{"source": "Elana Gamel", "target": "Postmodern Science Fiction and Temporal Imagination", "relation": "wrote"},
+	{"source": "Postmodern Science Fiction and Temporal Imagination", "target": "The Aleph", "relation": "references"},
+	{"source": "Elana Gamel", "target": "Narrative Space and Time", "relation": "wrote"},
+	{"source": "Narrative Space and Time", "target": "The Aleph", "relation": "references"},
+
+	{"source": "B. F. Skinner", "target": "Intellectual Self-Management in Old Age", "relation": "wrote"},
+	{"source": "Intellectual Self-Management in Old Age", "target": "Borges", "relation": "references"},
 	{"source": "Mary Franklin-Brown", "target": "Reading the World", "relation": "wrote"},
 	{"source": "Reading the World", "target": "The Analytical Language of John Wilkins", "relation": "quotes"},
 	{"source": "Reading the World", "target": "The Order of Things", "relation": "quotes"},
