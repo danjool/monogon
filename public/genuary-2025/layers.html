@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Abstract System Layers</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+        .node-label {
+            color: white;
+            background: rgba(0,0,0,0.8);
+            padding: 4px;
+            border-radius: 3px;
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/3d-force-graph"></script>
+    <script>
+        const graph = ForceGraph3D({ controlType: 'trackball' })
+            .width(window.innerWidth)
+            .height(window.innerHeight)
+            .backgroundColor('#101020')
+            .nodeThreeObject(node => {
+                const width = Math.sqrt(node.size) * ( Math.random() + .5 )
+                const height = node.size / width 
+                const geometry = new THREE.PlaneGeometry(width * 5, height*5);
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: node.color,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.rotation.x = Math.PI / 2;
+                return mesh;
+            })
+            .nodeLabel(node => `${node.id}\nSize: ${node.size}`)
+            .linkWidth(1)
+            .linkOpacity(0.0)
+
+        const generateNodes = (count) => {
+            const nodes = [];
+            for (let i = 0; i < count; i++) {
+                const level = Math.floor(i / 5);
+                const hueBase = (level * 12);
+                nodes.push({
+                    id: `Node${i}`,
+                    fy: level * 40,
+                    size: 10 + Math.random() * 90,
+                    color: `hsl(${(hueBase + Math.random() * 10)%360}, 70%, 50%)`
+                });
+            }
+            return nodes;
+        };
+
+        const generateLinks = (nodes) => {
+            const links = [];
+            nodes.forEach((node, i) => {
+                const level = Math.floor(i / 5);
+                if (level > 0) {
+                    const targetsInPrevLevel = nodes.filter((n, idx) => 
+                        Math.floor(idx / 5) === level - 1
+                    );
+                    const numLinks = 1 + Math.floor(Math.random() * 2);
+                    for (let j = 0; j < numLinks; j++) {
+                        const target = targetsInPrevLevel[Math.floor(Math.random() * targetsInPrevLevel.length)];
+                        links.push({ source: node.id, target: target.id });
+                    }
+                }
+            });
+            return links;
+        };
+
+        const nodes = generateNodes(250);
+        const links = generateLinks(nodes);
+        const graphData = { nodes, links };
+        
+        graph(document.body).graphData(graphData);
+
+        window.addEventListener('resize', () => {
+            graph.width(window.innerWidth).height(window.innerHeight);
+        });
+
+        let t = 0;
+        // setInterval(() => {
+        //     t += 0.01;
+        //     graph.d3Force('charge').strength(-100  - 50*Math.sin(t));
+        //     // graph.d3ReheatSimulation()
+        //     graph.graphData().nodes[0].fx = 0
+        //     graph.graphData().nodes[0].fz = 0
+        // }, 100);
+
+        graph.scene().background = new THREE.Color('#102018')
+        graph.scene().fog = new THREE.Fog(graph.scene().background, 10, 4000)
+        graph.d3AlphaDecay(.2)
+        graph.d3VelocityDecay(0.1)
+        graph.d3Force('link').distance(20)
+
+    </script>
+</body>
+</html>
