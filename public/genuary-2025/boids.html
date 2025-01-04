@@ -1,0 +1,17 @@
+<!DOCTYPE html><html><body style="margin:0; overflow:hidden"><canvas id=c></canvas><script>
+w=window.innerWidth;c.width=w; h=window.innerHeight;c.height=h; x=c.getContext`2d`;
+a=[...Array(1e3)].map(_=>({p:{x:Math.random()*c.width,y:Math.random()*c.height},v:{x:Math.random()*4-2,y:Math.random()*4-2}}));
+(f=_=>{requestAnimationFrame(f);
+    // x.clearRect(0,0,c.width,c.height); // lolnomakeartmeboids
+    a.map((b,bi)=>{
+    let v={x:0,y:0},c={x:0,y:0},s={x:0,y:0},n=0;
+    a.map(o=>{if(b!==o){
+        let d=((b.p.x-o.p.x)**2+(b.p.y-o.p.y)**2)**.5;
+        d<50&&(v.x+=o.v.x,v.y+=o.v.y,c.x+=o.p.x,c.y+=o.p.y,d<25&&(s.x+=(b.p.x-o.p.x)/d,s.y+=(b.p.y-o.p.y)/d),n++)
+    }});
+    n&&([v.x,v.y,c.x,c.y]=[v.x/n,v.y/n,c.x/n,c.y/n],b.v.x+=.05*(v.x-b.v.x)+.0005*(c.x-b.p.x)+.05*s.x,b.v.y+=.05*(v.y-b.v.y)+.0005*(c.y-b.p.y)+.05*s.y);
+    let s2=(b.v.x**2+b.v.y**2)**.5;s2>5&&(b.v.x=b.v.x/s2*5,b.v.y=b.v.y/s2*5);
+    b.p.x+=b.v.x;b.p.y+=b.v.y;
+    (b.p.x>w||b.p.x<0)&&(b.v.x*=-1); (b.p.y>h||b.p.y<0)&&(b.v.y*=-1);
+    x.fillStyle=`hsl(${bi/1e3*360},${Math.atan2(b.v.y, b.v.x)/Math.PI*50+50}%, 50%)`; x.fillRect(b.p.x,b.p.y,6,6)
+})})()</script></body></html>
