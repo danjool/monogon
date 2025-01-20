@@ -1,0 +1,79 @@
+<!DOCTYPE html><html><body style="margin:0;overflow:hidden"><script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script>
+const vsh=`
+varying vec4 vColor;
+varying float zDist;
+void main(){
+    zDist=(modelViewMatrix*vec4(position,1.)).z;    
+    vColor=color;vec4 mvPos=modelViewMatrix*vec4(position,1.);gl_PointSize=4200./(-zDist);gl_Position=projectionMatrix*mvPos; }`;
+const fsh=`
+varying vec4 vColor;
+varying float zDist;
+void main(){float r=length(gl_PointCoord*2.-1.);if(r>1.)discard;gl_FragColor=vec4(vColor.xyz,(.5-r)*.3 + zDist/10000.);}`;
+
+[w,h]=[innerWidth,innerHeight];t=0;
+[scene,camera,renderer]=[new THREE.Scene(),new THREE.PerspectiveCamera(75,w/h,.1,1e4),new THREE.WebGLRenderer({preserveDrawingBuffer: true, alpha: true})];
+renderer.setSize(w,h);document.body.appendChild(renderer.domElement);camera.position.z=1200;
+renderer.autoClearColor = false; 
+renderer.clearColor(0,0,0,0);
+
+boids=[...Array(1e3)].map(_=>({
+    p:new THREE.Vector3((Math.random()-.5)*10,(Math.random()-.5)*10,(Math.random()-.5)*10),
+    v:new THREE.Vector3((Math.random()-.5)*4,(Math.random()-.5)*4,(Math.random()-.5)*4)
+}));
+
+geo=new THREE.BufferGeometry();
+geo.setAttribute('position',new THREE.Float32BufferAttribute([],3));
+geo.setAttribute('color',new THREE.Float32BufferAttribute([],3));
+points=new THREE.Points(geo,new THREE.ShaderMaterial({
+    vertexShader:vsh,fragmentShader:fsh,vertexColors:true,transparent:true,depthTest:true,depthWrite:true,
+}));
+scene.add(points);
+
+(f=_=>{requestAnimationFrame(f);t+=.01;const timePulse = Math.sin(t/9); const timePulse2 = Math.cos(t/9);
+pos=[];col=[];
+boids.map((b,i)=>{
+
+    d2c=b.p.distanceTo(new THREE.Vector3())/100;
+    sight=100 -b.n;
+    [v,c,s,n]=[new THREE.Vector3(),new THREE.Vector3(),new THREE.Vector3(),0];
+    
+    boids.map(o=>{if(b!==o){
+        d=b.p.distanceTo(o.p)+20;
+        if(d<sight&&d>20){
+            v.add(o.v);c.add(o.p);
+            if(d<sight/2)s.add(b.p.clone().sub(o.p).divideScalar(d));
+            n++;
+        }
+    }});
+    
+    if(n){[v,c]=[v.divideScalar(n),c.divideScalar(n)];
+        b.v.add(v.sub(b.v).multiplyScalar(.05))
+         .add(c.sub(b.p).multiplyScalar(5e-4))
+         .add(s.multiplyScalar(.05));
+    }
+    
+    spd=b.v.length();if(spd>7)b.v.multiplyScalar(1/spd);
+    b.p.add(b.v.multiplyScalar(b.n ? Math.sqrt(b.n/10.) : 1.5));
+    ['x','y','z'].map(ax=>Math.abs(b.p[ax])>400&&(b.v[ax]*=-1));
+    
+    pos.push(b.p.x,b.p.y,b.p.z);
+    // col.push(Math.sin(i%360/60+t)**.5,Math.cos(i%360/60+t*2)**.5,Math.sin(i%360/30+t*3)**.5);
+    const nn = n/5.
+        col.push(
+        Math.max(nn*nn/2.2-.005*t, 0),
+        Math.max(3-d2c*t*.01, 0),
+        Math.max(1-nn/10., .6),
+        Math.max(1, 0),)
+    
+    b.n=n;
+});
+geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+geo.setAttribute('color',new THREE.Float32BufferAttribute(col,4));
+// roate cam
+const r = 1000;
+camera.position.x = Math.sin(t/9)*r;
+camera.position.z = Math.cos(t/9)*r;
+camera.lookAt(0,0,0);
+renderer.render(scene,camera)})()
+
+</script></body></html>
