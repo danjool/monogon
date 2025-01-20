@@ -1548,7 +1548,8 @@ async function init() {
 init();
 
 async function initDatGUI() {
-  gui = new dat.GUI({ name: "My GUI" });
+  console.log("initDatGUI");
+  gui = new 11({ name: "My GUI" });
   gui.width = 400
 
   let fileFolder = gui.addFolder("File")
@@ -1715,11 +1716,11 @@ conceptFolder.open()
 settingsFolder.open()
 visualsFolder.open()
 
-//   saveFolder.open()
+  saveFolder.open()
 simulateFolder.open()
 loadFolder.open()
 visualsFolder.open()
-//   nodeSetsFolder.open()
+  nodeSetsFolder.open()
 
 }
 
