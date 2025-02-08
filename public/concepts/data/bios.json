@@ -1174,7 +1174,9 @@
 	{"id": "George Steiner", "type": "person", "time": null},
     {"id": "After Babel", "type": "book", "time": null},
     {"id": "Compass", "type": "poem", "time": null},
-	{"id": "Labyrinths", "type": "book", "time": 1962}
+	{"id": "Labyrinths", "type": "book", "time": 1962},
+	{"id": "George Heard", "type": "person", "time": null},
+	{"id": "Review of Pain, Sex and Time", "type": "review", "time": 1939}
 
 ],"links":[
 	{"source": "Borges", "target": "Labyrinths", "relation": "wrote"},
