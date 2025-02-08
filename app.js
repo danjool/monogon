@@ -118,7 +118,9 @@ app.use(express.urlencoded({extended:true}))
 const httpServer = http.createServer(app)
 const httpsServer = https.createServer(credentials, app);
 
-const io = socketio(httpServer)
+const io = socketio()
+io.attach(httpServer)
+io.attach(httpsServer)
 const cardsNsp = io.of('/cards')
 
 let gameState = {
