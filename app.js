@@ -5,7 +5,7 @@ const https = require('https')
 const fs = require('fs')
 // const directory = require('serve-index')
 const path = require('path');
-// const socketio = require('socket.io')
+const socketio = require('socket.io')
 // const vhost = require('vhost')
 const router = express.Router()
 // let sqlite3 = require('sqlite3').verbose()
@@ -117,6 +117,30 @@ app.use(express.urlencoded({extended:true}))
 
 const httpServer = http.createServer(app)
 const httpsServer = https.createServer(credentials, app);
+
+const io = socketio(httpServer)
+const cardNsp = io.of('/cards')
+
+let gameState = {
+	selected: [],
+	shuffle: [],
+	whichAreFaceUp: [],
+}
+
+cardsNsp.on('connection', (socket) => {
+	console.log('Client connected to cards namespace')
+	
+	// Send current state to new connections
+	socket.emit('take note', { state: gameState })
+  
+	socket.on('take note', (data) => {
+	  if (data && data.state) {
+		gameState = data.state
+		// Broadcast to all other clients
+		socket.broadcast.emit('take note', { state: gameState })
+	  }
+	})
+})
 
 httpServer.listen(PORT, () => console.log(`Listening on port ${PORT}`))
 
