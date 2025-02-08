@@ -49,6 +49,18 @@ var target = new THREE.Vector3( 0, 0, 0 );
 var height = window.innerHeight;
 var socket;
 
+function CardFactory(){} //skeleton card factory
+//define prototypes and utilities for the factory
+CardFactory.prototype.cardClass = Card;
+
+// factory method for creating a new card instance
+CardFactory.prototype.createCard = function ( options ){
+	if (options.cardType === null || options.cardType == "Card"){
+		this.cardType = Card;
+	}
+	return new this.cardType( options );
+}
+
 init();
 animate();
 
@@ -101,32 +113,47 @@ function init()
 	document.addEventListener( 'mousedown', onDocumentMouseDown, false );
 	
 	var folder = "images/rws/";
+var imageFiles = [
+    "Cups01.jpg", "Cups02.jpg", "Cups03.jpg", "Cups04.jpg", "Cups05.jpg",
+    "Cups06.jpg", "Cups07.jpg", "Cups08.jpg", "Cups09.jpg", "Cups10.jpg",
+    "Cups11.jpg", "Cups12.jpg", "Cups13.jpg", "Cups14.jpg", "Pents01.jpg",
+    "Pents02.jpg", "Pents03.jpg", "Pents04.jpg", "Pents05.jpg", "Pents06.jpg",
+    "Pents07.jpg", "Pents08.jpg", "Pents09.jpg", "Pents10.jpg", "Pents11.jpg",
+    "Pents12.jpg", "Pents13.jpg", "Pents14.jpg", "RWS_Tarot_00_Fool.jpg",
+    "RWS_Tarot_01_Magician.jpg", "RWS_Tarot_02_High_Priestess.jpg",
+    "RWS_Tarot_03_Empress.jpg", "RWS_Tarot_04_Emperor.jpg",
+    "RWS_Tarot_05_Hierophant.jpg", "RWS_Tarot_06_Lovers.jpg",
+    "RWS_Tarot_07_Chariot.jpg", "RWS_Tarot_08_Strength.jpg",
+    "RWS_Tarot_09_Hermit.jpg", "RWS_Tarot_10_Wheel_of_Fortune.jpg",
+    "RWS_Tarot_11_Justice.jpg", "RWS_Tarot_12_Hanged_Man.jpg",
+    "RWS_Tarot_13_Death.jpg", "RWS_Tarot_14_Temperance.jpg",
+    "RWS_Tarot_15_Devil.jpg", "RWS_Tarot_16_Tower.jpg", "RWS_Tarot_17_Star.jpg",
+    "RWS_Tarot_18_Moon.jpg", "RWS_Tarot_19_Sun.jpg", "RWS_Tarot_20_Judgement.jpg",
+    "RWS_Tarot_21_World.jpg", "Swords01.jpg", "Swords02.jpg", "Swords03.jpg",
+    "Swords04.jpg", "Swords05.jpg", "Swords06.jpg", "Swords07.jpg",
+    "Swords08.jpg", "Swords09.jpg", "Swords10.jpg", "Swords11.jpg",
+    "Swords12.jpg", "Swords13.jpg", "Swords14.jpg", "Wands01.jpg",
+    "Wands02.jpg", "Wands03.jpg", "Wands04.jpg", "Wands05.jpg", "Wands06.jpg",
+    "Wands07.jpg", "Wands08.jpg", "Wands09.jpg", "Wands10.jpg", "Wands11.jpg",
+    "Wands12.jpg", "Wands13.jpg", "Wands14.jpg"
+];
 
-	$.ajax({
-	    url : folder,
-	    success: function (data) {
-        $(data).find("a").attr("href", function (i, val) {
-            if( val.match(/\.jpg|\.png|\.gif/) ) { 
-            	var pos = seq2pos(i-3);
-            	var mycard = cardFactory.createCard({
-								cardType: "Card", filepath: val, num:i-4,
-								chosen: false, width : 10, height : 20,
-								x : pos.x, // 11* ( ((i-1)%13)-6), 
-								y : pos.y, // 0,
-								z : pos.z // 21* (Math.floor((i-1)/13) - 3)
-								
-							});
-							selectedCards.push(mycard); allCards.push(mycard);
-            }
-            else{
-            	console.log("non image in rws:", val)
-            }
-        });
-	    }//success
-	}).then( function(){ 
-		console.log("found", selectedCards.length, " images.");
-		setTimeout( setupSockets, 5000);
-	} );	
+// after three secs call setupSocket
+setTimeout(setupSockets, 3000);
+
+
+imageFiles.forEach(function (val, i) {
+    var pos = seq2pos(i);
+    var mycard = cardFactory.createCard({
+        cardType: "Card", filepath: folder + val, num: i,
+        chosen: false, width: 10, height: 20,
+        x: pos.x,
+        y: pos.y,
+        z: pos.z
+    });
+    selectedCards.push(mycard);
+    allCards.push(mycard);
+});
 	//skybox
 	var texture = THREE.ImageUtils.loadTexture( 'images/shackblurry.jpg', THREE.UVMapping, function () {
 		var mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: texture } ) );
@@ -219,7 +246,7 @@ function onDocumentMouseDown( event ) {
 	} else {
 		//clicked nowhere
 		console.log("mode: " + mode);
-		if ( INTERSECTED ) console.log("pass");
+		if ( INTERSECTED ) console.log("pass, INTERSECTED: ", INTERSECTED);
 		INTERSECTED = null;
 	}
 }
@@ -649,18 +676,6 @@ function Card( options ){
 		cards.push(that); //.obj?
 		scene.add(that.obj);
 	});
-}
-
-function CardFactory(){} //skeleton card factory
-//define prototypes and utilities for the factory
-CardFactory.prototype.cardClass = Card;
-
-// factory method for creating a new card instance
-CardFactory.prototype.createCard = function ( options ){
-	if (options.cardType === null || options.cardType == "Card"){
-		this.cardType = Card;
-	}
-	return new this.cardType( options );
 }
 
 function render() {
