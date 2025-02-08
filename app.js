@@ -29,26 +29,6 @@ try {
 	console.error(err)
 }
 
-if( process.env.DATABASE_URL && process.env.DATABASE_URL !== undefined ){
-	console.log('connecting to heroku postgres db with url', process.env.DATABASE_URL)
-	pool = new Pool({
-		connectionString: process.env.DATABASE_URL,
-
-		ssl: {
-			rejectUnauthorized: false
-		}
-	})
-} else {
-	console.log("connecting to local pg database at", process.env.DATABASE_LOCAL)
-	pool = new Pool({
-		user: process.env.DATABASE_LOCAL_USER,
-		password: process.env.DATABASE_LOCAL_PASS, 
-		host: process.env.DATABASE_LOCAL_HOST,
-		port: process.env.DATABASE_LOCAL_PORT,
-		database: process.env.DATABASE_LOCAL 
-	})	
-}
-
 app.get('/annotate/works', (req, res) => {
     fs.readdir('public/annotate/works', (err, files) => {
         if (err) console.log('err', err)
@@ -121,6 +101,9 @@ const httpsServer = https.createServer(credentials, app);
 const io = socketio()
 io.attach(httpServer)
 io.attach(httpsServer)
+
+require('./public/wat/subapp')(io)
+
 const cardsNsp = io.of('/cards')
 
 let gameState = {
