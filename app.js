@@ -3,13 +3,8 @@ const app = express()
 const http = require('http')
 const https = require('https')
 const fs = require('fs')
-// const directory = require('serve-index')
 const path = require('path');
 const socketio = require('socket.io')
-// const vhost = require('vhost')
-const router = express.Router()
-// let sqlite3 = require('sqlite3').verbose()
-const { Pool } = require('pg');
 
 let pool, credentials
 
@@ -75,23 +70,6 @@ app.get('/db', async (req, res) => {
 
 const PORT = process.env.PORT || 80
 
-// var io = socketio.listen(server)
-
-// https://stackoverflow.com/questions/15135358/whats-the-best-way-to-implement-socket-io-as-a-submodule-within-expressjs
-// https://stackoverflow.com/questions/35620811/running-two-socket-servers-on-same-port
-// also the two apps that require socket.io use different namespaces: https://socket.io/docs/rooms-and-namespaces/
-// var watio = require('./public/wat/subapp')(io)
-
-// var cardio= require('./public/cards/cards-subapp')(io)
-// app.use('/cards/images/rws', directory(path.resolve(__dirname, './public/cards/images/rws/')));
-
-// app.use('/old', express.static(path.join(__dirname, 'old')))
-
-
-// app.use(vhost('kowl', (req, res, next)=>{
-// 	res.send('woot')
-// }))
-
 
 app.use(express.urlencoded({extended:true}))
 
@@ -115,13 +93,11 @@ let gameState = {
 cardsNsp.on('connection', (socket) => {
 	console.log('Client connected to cards namespace')
 	
-	// Send current state to new connections
 	socket.emit('take note', { state: gameState })
   
 	socket.on('take note', (data) => {
 	  if (data && data.state) {
 		gameState = data.state
-		// Broadcast to all other clients
 		socket.broadcast.emit('take note', { state: gameState })
 	  }
 	})
