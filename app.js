@@ -119,7 +119,7 @@ const httpServer = http.createServer(app)
 const httpsServer = https.createServer(credentials, app);
 
 const io = socketio(httpServer)
-const cardNsp = io.of('/cards')
+const cardsNsp = io.of('/cards')
 
 let gameState = {
 	selected: [],
