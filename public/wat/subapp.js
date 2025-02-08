@@ -1,162 +1,145 @@
-var mongo = require('mongodb').MongoClient;
-var allPlayers = {};
+const Database = require('better-sqlite3')
+const db = new Database('wat.db')
 
-module.exports = function(io){
+// Create tables if they don't exist
+db.exec(require('fs').readFileSync('./schema.sql', 'utf8'))
 
-  var watio = io.of('/wat')
+// Prepare statements
+const stmts = {
+  getUser: db.prepare('SELECT * FROM users WHERE name = ?'),
+  createUser: db.prepare('INSERT INTO users (name, password) VALUES (?, ?)'),
+  updateUser: db.prepare(`
+    UPDATE users 
+    SET position_x = ?, position_y = ?, position_z = ?,
+        rotation_x = ?, rotation_y = ?, rotation_z = ?,
+        color = ?
+    WHERE name = ?
+  `),
+  addMessage: db.prepare(`
+    INSERT INTO messages (text, poster, position_x, position_y, position_z, color)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `),
+  getMessages: db.prepare('SELECT * FROM messages ORDER BY created_at DESC LIMIT 100')
+}
 
-  watio.on('connection', function( socket ){
-     console.log('a user connected, not logged in'); 
-     
-      socket.on('try to login', function( maybe ){
-       console.log(maybe.name, "tried to login with", maybe.password);
-       mongo.connect('mongodb://localhost:27017/mydb', function(err, db){
-       if(err) console.log("err", err);
-       else{
-         var coll = db.collection('users');
-         coll.find( { name:maybe.name } ).toArray( function(err, doc){
-             if (err) console.log("err", err);
-             else {
-                 console.log('found', doc.length, 'users with name', maybe.name );
-                 if (doc.length > 0){
-                     if ( maybe.password === doc[0].password ){
-                         console.log('password checked out, logging in');
-                         db.close();
-                         socket.emit('successful login', allPlayers, doc[0] );
-                          allPlayers[maybe.name] = doc[0];
-                          socket.name = maybe.name;
-                          console.log("nice to meet you, ", socket.name );
-                          socket.broadcast.emit('new player', doc[0] );  //socket.broadcast better than io.emit
-                     } else {
-                         console.log('not a valid password');
-                         db.close();
-                         socket.emit('not a valid password');
-                     }
-                     
-                 } else {
-                      console.log('that name had not been used, making new user');
-                      var newguy = { 
-                          name: maybe.name, 
-                          password: maybe.password ,
-                          position:{x:0,y:2000,z:0},
-                          rotation:{x:0,y:0,z:0},
-                          color:"0xffffff",
-                      }
-                      coll.insert( newguy, function(err){if(err) console.log(err)} );
-                      db.close();
-                      allPlayers[maybe.name] = doc[0];
-                      socket.name = maybe.name;
-                      console.log("nice to meet you, ", socket.name );
-                      socket.broadcast.emit('new player', newguy );  //socket.broadcast better than io.emit
-                      socket.emit( 'successful login', allPlayers, newguy );
-                     //make a new user with give name and password
-                 }
-             }
-         });
-       }
-       });
-     });
-     
-     //socket.emit('tell me about yourself', allPlayers);
-     
-     socket.on('disconnect', function( client ){
-         console.log("disconnection");
-      if (socket.hasOwnProperty('playerData')){
-          console.log('user disconnected', socket.playerData.name);
-          delete allPlayers[socket.name];
-          //update for persistent position
-          mongo.connect('mongodb://localhost:27017/mydb', function(err, db){
-           if(err) console.log(err);
-           else{
-             var coll = db.collection('users');
-              coll.update({
-                  name: socket.playerData.name},
-                      { $set: {
-                          position: socket.playerData.position,
-                          rotation: socket.playerData.rotation,
-                          color: socket.playerData.color
-                          }
-                  });
-           }
-              db.close();
-          });
-           
-           
-          socket.broadcast.emit('kill player', socket.name );
-      }
-     });
-     
-     socket.on('look at me', function( client ){
-       allPlayers[client.name] = client;
-       socket.playerData = client;
-       watio.emit('a player changed', client );
-     });
-     
-     //db stuff
-     socket.on('gimme all the images', function(){
-       mongo.connect('mongodb://localhost:27017/mydb', function(err, db){
-       if(err) console.log(err);
-       else{
-         var coll = db.collection('images');
-         coll.find().toArray( function(err, doc){
-           if (err) console.log(err);
-           else{
-              //console.log(doc);
-              socket.emit('here are all the images', doc);   
-              db.close();
-           }
-         });
-       }
-      });
-       
-     });
-     
-     socket.on('a new image', function( image ){
-      mongo.connect('mongodb://localhost:27017/mydb', function(err,db){
-        if(err)console.log(err);
-        else{
-          var coll = db.collection('images');
-          coll.insert( image );
-          watio.emit('a new image', image );
-          db.close();
-        }
-      });  
-     });
-     
-     socket.on('gimme all the posts', function(){
-       mongo.connect('mongodb://localhost:27017/mydb', function(err, db){
-       if(err) console.log(err);
-       else{
-         var coll = db.collection('messages');
-         coll.find().toArray( function(err, doc){
-           if (err) console.log(err);
-           else{
-              //console.log(doc);
-              socket.emit('here are all the posts', doc);   
-              db.close();
-           }
-         });
-       }
-      });
-     });
-     
-      socket.on('a new yell', function( msg ){
-          watio.emit('a new yell', msg );
-      });
-        
-     
-      socket.on('a new post', function( msg ){
-          mongo.connect('mongodb://localhost:27017/mydb', function(err,db){
-            if(err)console.log(err);
-            else{
-              var coll = db.collection('messages');
-              coll.insert( msg );
-              watio.emit('a new post', msg );
-              db.close();
-            }
-          });  
+const allPlayers = {}
+
+module.exports = function(io) {
+  const watio = io.of('/wat')
+
+  watio.on('connection', socket => {
+    console.log('User connected')
+
+    socket.on('try to login', maybe => {
+      const user = stmts.getUser.get(maybe.name)
+      
+      if (user) {
+        if (maybe.password === user.password) {
+          const userObj = {
+            name: user.name,
+            position: {
+              x: user.position_x,
+              y: user.position_y,
+              z: user.position_z
+            },
+            rotation: {
+              x: user.rotation_x,
+              y: user.rotation_y,
+              z: user.rotation_z
+            },
+            color: user.color
+          }
           
-      });
-     
-  });
+          socket.emit('successful login', allPlayers, userObj)
+          allPlayers[maybe.name] = userObj
+          socket.name = maybe.name
+          socket.broadcast.emit('new player', userObj)
+        } else {
+          socket.emit('not a valid password')
+        }
+      } else {
+        try {
+          stmts.createUser.run(maybe.name, maybe.password)
+          const newUser = {
+            name: maybe.name,
+            position: {x: 0, y: 2000, z: 0},
+            rotation: {x: 0, y: 0, z: 0},
+            color: '0xffffff'
+          }
+          socket.emit('successful login', allPlayers, newUser)
+          allPlayers[maybe.name] = newUser
+          socket.name = maybe.name
+          socket.broadcast.emit('new player', newUser)
+        } catch (err) {
+          console.error('Error creating user:', err)
+          socket.emit('not a valid password')
+        }
+      }
+    })
+
+    socket.on('disconnect', () => {
+      if (socket.playerData) {
+        try {
+          stmts.updateUser.run(
+            socket.playerData.position.x,
+            socket.playerData.position.y,
+            socket.playerData.position.z,
+            socket.playerData.rotation.x,
+            socket.playerData.rotation.y,
+            socket.playerData.rotation.z,
+            socket.playerData.color,
+            socket.playerData.name
+          )
+          delete allPlayers[socket.name]
+          socket.broadcast.emit('kill player', socket.name)
+        } catch (err) {
+          console.error('Error updating user:', err)
+        }
+      }
+    })
+
+    socket.on('look at me', client => {
+      allPlayers[client.name] = client
+      socket.playerData = client
+      watio.emit('a player changed', client)
+    })
+
+    socket.on('a new yell', msg => {
+      watio.emit('a new yell', msg)
+    })
+
+    socket.on('a new post', msg => {
+      try {
+        stmts.addMessage.run(
+          msg.text,
+          msg.poster,
+          msg.position.x,
+          msg.position.y,
+          msg.position.z,
+          msg.color
+        )
+        watio.emit('a new post', msg)
+      } catch (err) {
+        console.error('Error saving message:', err)
+      }
+    })
+
+    socket.on('gimme all the posts', () => {
+      try {
+        const messages = stmts.getMessages.all().map(row => ({
+          text: row.text,
+          poster: row.poster,
+          position: {
+            x: row.position_x,
+            y: row.position_y,
+            z: row.position_z
+          },
+          color: row.color
+        }))
+        socket.emit('here are all the posts', messages)
+      } catch (err) {
+        console.error('Error fetching messages:', err)
+      }
+    })
+  })
 }
