@@ -1173,9 +1173,11 @@
 	{"id": "The Search for the Perfect Language", "type": "book", "time": 1994},
 	{"id": "George Steiner", "type": "person", "time": null},
     {"id": "After Babel", "type": "book", "time": null},
-    {"id": "Compass", "type": "poem", "time": null}
+    {"id": "Compass", "type": "poem", "time": null},
+	{"id": "Labyrinths", "type": "book", "time": 1962}
 
 ],"links":[
+	{"source": "Borges", "target": "Labyrinths", "relation": "wrote"},
 	{"source": "George Steiner", "target": "After Babel", "relation": "wrote"},
     {"source": "After Babel", "target": "Compass", "relation": "quotes"},
     {"source": "The Search for the Perfect Language", "target": "After Babel", "relation": "references"},
