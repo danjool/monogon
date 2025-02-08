@@ -2,7 +2,12 @@ const Database = require('better-sqlite3')
 const db = new Database('wat.db')
 
 // Create tables if they don't exist
-db.exec(require('fs').readFileSync('./schema.sql', 'utf8'))
+try {
+  db.exec(require('fs').readFileSync('./schema.sql', 'utf8'))
+}
+catch (err) {
+  console.error('Error creating tables:', err)
+}
 
 // Prepare statements
 const stmts = {
