@@ -9,6 +9,16 @@ const socketio = require('socket.io')
 let pool, credentials
 
 app.use('/', express.static(path.join(__dirname, 'public')))
+
+app.use((req, res, next) => { // expanded cert with  sudo certbot certonly --standalone -d monogon.net -d wat.monogon.net, added to wat. cname to Route 53, value is monogon.net
+	const host = req.get('host');
+	if (host.startsWith('wat.')) {
+	  express.static(path.join(__dirname, 'public/wat'))(req, res, next);
+	} else {
+	  next();
+	}
+});
+
 app.use(express.json())
 
 try {
