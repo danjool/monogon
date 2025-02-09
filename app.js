@@ -11,7 +11,9 @@ let pool, credentials
 app.use((req, res, next) => { // expanded cert with  sudo certbot certonly --standalone -d monogon.net -d wat.monogon.net, added to wat. cname to Route 53, value is monogon.net
 	const host = req.get('host');
 	if (host.startsWith('wat.')) {
-	  express.static(path.join(__dirname, 'public/wat'))(req, res, next);
+	  	express.static(path.join(__dirname, 'public/wat'))(req, res, next);
+	} else if (host.startsWith('noir.')){
+		res.sendFile(path.join(__dirname, 'public/noir.html'));
 	} else {
 	  next();
 	}

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Monogon Noir</title>
+    <link href='https://fonts.googleapis.com/css?family=Special+Elite' rel='stylesheet'>
+    <style>
+        body { 
+            margin: 0; 
+            font-family: 'Special Elite', cursive;
+            color: #d4d4d4;
+            background: #000;
+        }
+        canvas { 
+            position: fixed;
+            z-index: -1;
+            opacity: 0.8;
+        }
+        .container {
+            padding: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .header {
+            height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .header h1 {
+            font-size: 4rem;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .projects-container {
+            background: rgba(0,0,0,0.85);
+            padding: 4rem 2rem;
+            backdrop-filter: blur(5px);
+        }
+        .project {
+            display: flex;
+            gap: 3rem;
+            margin-bottom: 8rem;
+            align-items: center;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .project:nth-child(even) {
+            flex-direction: row-reverse;
+        }
+        .project-image {
+            flex: 1;
+            filter: grayscale(100%) contrast(120%);
+            transition: filter 0.3s;
+        }
+        .project-image:hover {
+            filter: grayscale(0%) contrast(100%);
+        }
+        .project-content {
+            flex: 1;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        h1, h3 {
+            font-family: 'Special Elite', cursive;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid #d4d4d4;
+            color: #d4d4d4;
+            text-decoration: none;
+            margin-right: 1rem;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #d4d4d4;
+            color: #000;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #333;
+            margin: 2rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Monogon</h1>
+        </div>
+        
+        <div class="projects-container">
+            <div class="project">
+            <div class="project-image">
+                <img src="images/tiles/raytracing.png" alt="raytracing">
+            </div>
+            <div class="project-content">
+                <h3>Raytracing</h3>
+                <p>Where light meets silicon, pixel by pixel. A journey into the dark art of GPU shader-based raytracing.</p>
+                <a href="raytracing/" class="btn">Illuminate</a>
+            </div>
+        </div>
+
+        <div class="project">
+            <div class="project-image">
+                <img src="images/tiles/concepts-graph.png" alt="influence graph">
+            </div>
+            <div class="project-content">
+                <h3>A Graph of Influence</h3>
+                <p>Time flows upward in this web of connections, each node a whisper of inspiration or burden. A DAG of intellectual debts, paid forward.</p>
+                <a href="concepts/" class="btn">Connect</a>
+            </div>
+        </div>
+
+        <div class="project">
+            <div class="project-image">
+                <img src="images/tiles/wattilebig.png" alt="wat">
+            </div>
+            <div class="project-content">
+                <h3>Wat</h3>
+                <p>The digital streets are alive tonight. A neon-soaked multiplayer playground where Neuromancer meets Snow Crash, running on SQLite3's steady pulse.</p>
+                <p>WASD to walk these streets, SHIFT to run from your demons, SPACE to transcend, and quotation marks to leave your mark.</p>
+                <a href="wat/" class="btn">Jack In</a>
+            </div>
+        </div>
+
+        <div class="project">
+            <div class="project-image">
+                <img src="images/tiles/riemann.png" alt="riemann">
+            </div>
+            <div class="project-content">
+                <h3>Riemann Sum Visualizer</h3>
+                <p>Watch as infinity gets sliced into manageable pieces. Mathematics made tangible, one rectangle at a time.</p>
+                <a href="riemann/" class="btn">Calculate</a>
+            </div>
+        </div>
+
+        <div class="project">
+            <div class="project-image">
+                <img src="images/tiles/cards.png" alt="cards">
+            </div>
+            <div class="project-content">
+                <h3>Cards</h3>
+                <p>The Unmarked's digital fortune-telling machine. Real-time synchronicity powered by Node and socket.io, where every flip of a card shapes a story.</p>
+                <a href="cards/" class="btn">Deal</a>
+            </div>
+        </div>
+
+        <div class="project">
+            <div class="project-image">
+                <img src="images/tiles/asteroidstilebig.png" alt="asteroids">
+            </div>
+            <div class="project-content">
+                <h3>Asteroids</h3>
+                <p>688,004 celestial dancers, their orbits approximated in parallel on your GPU. NASA's data transformed into a ballet of rocks.</p>
+                <div class="btn-group">
+                    <a href="asteroids/index.html#50000" class="btn">50k</a>
+                    <a href="asteroids/index.html#200000" class="btn">200k</a>
+                    <a href="asteroids/index.html#688000" class="btn">All In</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="project">
+            <div class="project-image">
+                <img src="images/tiles/eightqueentilebig.png" alt="eight queens">
+            </div>
+            <div class="project-content">
+                <h3>Eight Queens</h3>
+                <p>A puzzle where age inversely correlates with solution time. My first JavaScript dance, still stepping strong.</p>
+                <a href="eightqueens/" class="btn">Challenge</a>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="about">
+            <h3>The Shadow Behind the Code</h3>
+            <p>Monogon.net: where Daniel Martin turns caffeine into vertices. A place where enough triangles, properly coordinated, can bend reality.</p>
+            
+            <p>The arsenal includes:<br>
+            [TypeScript whispers, JavaScript shouts<br>
+            SQL queries that sing in the dark<br>
+            C# precision tools<br>
+            Python's coiled efficiency<br>
+            React's components dancing in the shadows<br>
+            WebGL's raw power<br>
+            Shaders: making silicon dream in parallel]</p>
+
+            <p>If you need specific triangles arranged in profitable configurations, find me in the digital noir:</p>
+            <h3>danny.craig.martin@gmail.com</h3>
+        </div>
+    </div>
+
+
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js",
+                    "three/examples/jsm/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js",
+                    "three/examples/jsm/postprocessing/EffectComposer.js": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/EffectComposer.js",
+                    "three/examples/jsm/postprocessing/RenderPass.js": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/RenderPass.js",
+                    "three/examples/jsm/postprocessing/ShaderPass.js": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/ShaderPass.js"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+        import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+        camera.position.x = 9;
+        camera.position.z = 4;
+        camera.position.y = -5;
+        camera.lookAt(0, 0, 0);
+
+        const platonicSolids = [
+            new THREE.BoxGeometry(1, 1, 1),
+            new THREE.TetrahedronGeometry(1),
+            new THREE.DodecahedronGeometry(1),
+            new THREE.OctahedronGeometry(1),
+            new THREE.TetrahedronGeometry(1),
+            new THREE.IcosahedronGeometry(1),
+        ];
+        const platonicParents = new THREE.Object3D();
+        const numPlatonicSolids = platonicSolids.length * 2;
+        const angle = Math.PI * 2 / numPlatonicSolids;
+        const platonicObjects = Array.from({ length: numPlatonicSolids }, (_, i) => {
+            const geometry = platonicSolids[i % platonicSolids.length];
+            const material = new THREE.MeshPhongMaterial();
+            const object = new THREE.Mesh(geometry, material);
+            object.position.x = 8 * Math.cos(angle * i);
+            object.position.z = 8 * Math.sin(angle * i);
+            platonicParents.add(object);
+            return object;
+        });
+        platonicParents.rotation.x = Math.PI / 2;
+        scene.add(platonicParents);
+
+        const light = new THREE.PointLight(0xffffff, .429);
+        light.position.set(0, 0, 0);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x0f0f0f));
+
+        const sketchShader = {
+            uniforms: {
+                tDiffuse: { value: null },
+                resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D tDiffuse;
+                uniform vec2 resolution;
+                varying vec2 vUv;
+
+                float random(vec2 p) {
+                    return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453);
+                }
+
+                void main() {
+                    vec2 pixel = 1.0 / resolution;
+                    vec4 color = texture2D(tDiffuse, vUv);
+                    
+                    float noise = random(vUv) * 0.15;
+                    vec4 sketch = vec4(vec3(0.0), 1.0);
+                    
+                    float intensity = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+                    float line = mod(gl_FragCoord.y, 4.0) < 2.0 ? 0.0 : 1.0;
+                    
+                    if (intensity + noise > 0.7) {
+                        sketch.rgb = vec3(1.0);
+                    } else if (intensity + noise > 0.5) {
+                        sketch.rgb = vec3(line);
+                    } else if (intensity + noise > 0.3) {
+                        sketch.rgb = vec3(line * 0.5);
+                    }
+                    
+                    gl_FragColor = sketch * .4;
+                }
+            `
+        };
+
+        const composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+        composer.addPass(new ShaderPass(sketchShader));
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+            sketchShader.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+        });
+
+        const mouse = new THREE.Vector2();
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            platonicParents.rotation.y += 0.0005;
+            // light.position.lerp(new THREE.Vector3(-mouse.x * 5 - 2.5, mouse.y * 5 - 2.5, 0), 0.1);
+            platonicObjects.forEach((object, i) => {
+                object.rotation.x = Math.PI * 2 / numPlatonicSolids * i + performance.now() * 0.00001 * i;
+            });
+            // camera.position.x = Math.sin(performance.now() * 0.0001) * 5 + 8;
+            composer.render();
+        }
+
+        animate();
+    </script>
+</body>
+</html>
