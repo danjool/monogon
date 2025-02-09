@@ -13,7 +13,7 @@ app.use((req, res, next) => { // expanded cert with  sudo certbot certonly --sta
 	if (host.startsWith('wat.')) {
 	  	express.static(path.join(__dirname, 'public/wat'))(req, res, next);
 	} else if (host.startsWith('noir.')){
-		res.sendFile(path.join(__dirname, 'public/noir.html'));
+		if (req.url === '/index.html' || req.url === '/') res.sendFile(path.join(__dirname, 'public/noir.html'));
 	} else {
 	  next();
 	}
