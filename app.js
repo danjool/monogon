@@ -16,7 +16,9 @@ app.use((req, res, next) => { // expanded cert with  sudo certbot certonly --sta
 		// noir.monogon.net/images/
 		if(req.url.startsWith('/images/')) {
 			express.static(path.join(__dirname, 'public/noir/images'))(req, res, next);
-		} else (req.url === '/index.html' || req.url === '/') res.sendFile(path.join(__dirname, 'public/noir.html'));
+		} else (req.url === '/index.html' || req.url === '/') {
+			res.sendFile(path.join(__dirname, 'public/noir.html'));
+		}
 	} else {
 	  next();
 	}
