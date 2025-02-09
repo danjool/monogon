@@ -32,6 +32,22 @@
             margin: 0;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
+        .title-letter {
+            display: inline-block;
+            opacity: 0;
+            animation: typeIn 0.2s forwards;
+        }
+        @keyframes typeIn {
+            from {
+                transform: translateY(-7px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
         .projects-container {
             background: rgba(0,0,0,0.85);
             padding: 4rem 2rem;
@@ -93,7 +109,15 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Monogon</h1>
+            <h1>
+                <span class="title-letter" style="animation-delay: 0.1s">m</span>
+                <span class="title-letter" style="animation-delay: 0.2s">o</span>
+                <span class="title-letter" style="animation-delay: 0.3s">n</span>
+                <span class="title-letter" style="animation-delay: 0.4s">o</span>
+                <span class="title-letter" style="animation-delay: 0.5s">g</span>
+                <span class="title-letter" style="animation-delay: 0.6s">o</span>
+                <span class="title-letter" style="animation-delay: 0.7s">n</span>
+            </h1>
         </div>
         
         <div class="projects-container">

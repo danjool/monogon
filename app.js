@@ -13,7 +13,10 @@ app.use((req, res, next) => { // expanded cert with  sudo certbot certonly --sta
 	if (host.startsWith('wat.')) {
 	  	express.static(path.join(__dirname, 'public/wat'))(req, res, next);
 	} else if (host.startsWith('noir.')){
-		if (req.url === '/index.html' || req.url === '/') res.sendFile(path.join(__dirname, 'public/noir.html'));
+		// noir.monogon.net/images/
+		if(req.url.startsWith('/images/')) {
+			express.static(path.join(__dirname, 'public/noir/images'))(req, res, next);
+		} else (req.url === '/index.html' || req.url === '/') res.sendFile(path.join(__dirname, 'public/noir.html'));
 	} else {
 	  next();
 	}
