@@ -29,9 +29,9 @@ app.use('/', express.static(path.join(__dirname, 'public')))
 app.use(express.json())
 
 try {
-	const privateKey = fs.readFileSync('/etc/letsencrypt/live/monogon.net/privkey.pem', 'utf8')
-	const certificate = fs.readFileSync('/etc/letsencrypt/live/monogon.net/cert.pem', 'utf8')
-	const ca = fs.readFileSync('/etc/letsencrypt/live/monogon.net/chain.pem', 'utf8')
+	const privateKey = fs.readFileSync('/etc/letsencrypt/live/monogon.net-0001/privkey.pem', 'utf8')
+	const certificate = fs.readFileSync('/etc/letsencrypt/live/monogon.net-0001/cert.pem', 'utf8')
+	const ca = fs.readFileSync('/etc/letsencrypt/live/monogon.net-0001/chain.pem', 'utf8')
 	credentials = {
 		key: privateKey,
 		cert: certificate,
