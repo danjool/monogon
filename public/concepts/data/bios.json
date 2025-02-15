@@ -1141,7 +1141,6 @@
 
 	{"id": "Errol Morris", "type": "person", "time": null},
     {"id": "The Ashtray", "type": "book", "time": null},
-    {"id": "Pierre Menard", "type": "story", "time": null},
     {"id": "An Overwhelming Film", "type": "review", "time": null},
 	{"id": "Cornel West", "type": "person", "time": null},
     {"id": "Prophesy Deliverance! An Afro-American Revolutionary Christianity", "type": "book", "time": 2002},
@@ -1176,9 +1175,14 @@
     {"id": "Compass", "type": "poem", "time": null},
 	{"id": "Labyrinths", "type": "book", "time": 1962},
 	{"id": "George Heard", "type": "person", "time": null},
-	{"id": "Review of Pain, Sex and Time", "type": "review", "time": 1939}
+	{"id": "Review of Pain, Sex and Time", "type": "review", "time": 1939},
+	{"id": "Jon Barwise", "type": "person", "time": null},
+	{"id": "The Situation in Logic", "type": "book", "time": null}
 
 ],"links":[
+	{"source": "Jon Barwise", "target": "The Situation in Logic", "relation": "wrote"},
+	{"source": "The Situation in Logic", "target": "Pierre Menard, Author of the Quixote", "relation": "references"},
+	
 	{"source": "Borges", "target": "Labyrinths", "relation": "wrote"},
 	{"source": "George Steiner", "target": "After Babel", "relation": "wrote"},
     {"source": "After Babel", "target": "Compass", "relation": "quotes"},
@@ -1219,7 +1223,7 @@
     {"source": "Prophesy Deliverance! An Afro-American Revolutionary Christianity", "target": "Labyrinths", "relation": "references"},
 
 	{"source": "Errol Morris", "target": "The Ashtray", "relation": "wrote"},
-    {"source": "The Ashtray", "target": "Pierre Menard", "relation": "references"},
+    {"source": "The Ashtray", "target": "Pierre Menard, Author of the Quixote", "relation": "references"},
     {"source": "The Ashtray", "target": "An Overwhelming Film", "relation": "references"},
 
 	{"source": "Luciolio Vanini", "target": "De admirandis naturae arcanis", "relation": "wrote"},

@@ -107,9 +107,9 @@ void main(){
 
 <script>
 $(window).keydown(function (event) { /*global $*/
-    if (event.which === 13) {
-      if ( player.hasOwnProperty('name')) {
-      	var msg = $('.textInput').val();
+    if (event.which === 13) { // enter
+      if ( player.hasOwnProperty('name')) { // logged in, lol "auth"
+      	var msg = $('.textInput').val();  
 				$('.textInput').css("visibility", "hidden");
 				if (player.mode === "typing"){
 					console.log('yelled!', msg);
@@ -246,7 +246,7 @@ function init()
 					if ( canJump === true ) player.velocity.y += 0.9;
 					canJump = false;
 					break;
-				case 84:
+				case 84: // t
 					if (player.loggedin) $("#chatlog").toggle();
 					break;
 			}
@@ -440,6 +440,8 @@ function updateTerrain( playerx, playerz ){
 		var h = terrainFunc(x,z);
 		block.position.set( x, h-10, z );
 	}
+
+	// the two sizes of terrain are offset by 5 units, so that the smaller terrain is centered on the larger
 }
 
 function addSprite( s ){
