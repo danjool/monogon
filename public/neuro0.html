@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Neurographic Scene</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js",
+                "three/examples/jsm/controls/OrbitControls": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+
+        const bgColor = 0x404040;         // black
+        const bounds = 2400;
+        const padding = 6
+        const sphereCount = 64;
+        const tendrilsPerStrand = 4;
+
+        const strandBounds = bounds * 1;
+        let spheres = []; let strands = [];
+
+        const clock = new THREE.Clock();
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(bgColor);
+        scene.fog = new THREE.Fog(bgColor, 1000., 2400);
+
+        const camera = new THREE.PerspectiveCamera(85, window.innerWidth / window.innerHeight, 0.1, 6000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio * 2);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        
+        camera.position.set(bounds/2, bounds/2, bounds/2);
+        controls.target.set(0, 0, 0);
+        controls.update();
+
+
+        const sphereVert = `
+            uniform float time;
+            uniform vec3 fogColor;
+            uniform float fogNear;
+            uniform float fogFar;
+            uniform vec3 tendrilPoints[8];
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            varying float vFogDepth;
+            varying vec4 globalPosition;
+            // built ins:
+            // position: the position of the vertex in model space
+            // normal: the normal of the vertex in model space
+            // modelViewMatrix: the model matrix multiplied by the view matrix, used to transform the vertex to camera space
+            // projectionMatrix: the projection matrix
+            void main() {
+                vNormal = normalize(normalMatrix * normal);
+                vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                globalPosition = modelMatrix * vec4(position, 1.0); // represents the position of the vertex in world space, to get the pixel in world space
+                vFogDepth = -mvPosition.z;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const sphereFrag = `
+            uniform float timeOffset;
+            uniform float time;
+            uniform vec3 fogColor;
+            uniform float fogNear;
+            uniform float fogFar;
+            uniform vec3 tendrilPoints[8];
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            varying float vFogDepth;
+            varying vec4 globalPosition;
+            void main() {
+                vec3 baseColor = vec3(0.533, 0.8, 1.0);
+                float rim = 1.0 - max(0.0, dot(normalize(-vPosition), vNormal));
+                rim = pow(rim, 2.0);
+                float t = time + timeOffset;
+                float pulse = 1124.4*cos(t + 3.14159*.25 ) - 1122.4;
+                // distance between sphere surface and tendril points
+                float tendrilEffect = 0.0;
+
+                for (int i = 0; i < 8; i++) {
+                    vec3 tendrilPoint = tendrilPoints[i];
+                    
+                    float dist = distance(globalPosition.xyz, tendrilPoint);
+                    tendrilEffect += clamp(pulse + 10.-dist, 0., 1.0);
+                }
+                pulse = clamp(pulse, 0.0, 1.0);
+                vec4 color = vec4(baseColor + rim * 0.5 + 1.*pulse, 0.5);
+                vec4 tendrilColor = vec4(1.0, 1.0, 1.0, 0.0);
+                color -= tendrilColor * tendrilEffect;
+                float fogFactor = smoothstep(fogNear, fogFar, vFogDepth);
+                // gl_FragColor = vec4(tendrilEffect, 0.0, 0.0, 1.0);
+                gl_FragColor = mix(color, vec4(fogColor, 0.8), fogFactor);
+            }
+        `;
+
+        const strandVert = `
+            uniform float time;
+            uniform vec3 fogColor;
+            uniform float fogNear;
+            uniform float fogFar;
+            uniform vec3 color;
+            varying vec3 vNormal;
+            varying vec3 vViewPosition;
+            varying float vFogDepth;
+            varying vec2 vUv;
+            void main() {
+                vNormal = normal;
+                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                vViewPosition = mvPosition.xyz;
+                vFogDepth = -mvPosition.z;
+                vUv = uv;
+                
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const strandFrag = `
+            uniform float timeOffset;
+            uniform float scale;
+            uniform float direction;
+            uniform float time;
+            uniform vec3 fogColor;
+            uniform float fogNear;
+            uniform float fogFar;
+            uniform vec3 color;
+            varying vec3 vViewPosition;
+            varying vec3 vNormal;
+            varying float vFogDepth;
+            varying vec2 vUv;
+            void main() {
+                float normalVsCamera = dot(normalize(vNormal), normalize(cameraPosition));
+                vec3 baseColor = color;
+                vec3 sphereBaseColor = vec3(0.533, 0.8, 1.0) * normalVsCamera*normalVsCamera;
+                float t = time + timeOffset;
+                float pulse = 1124.4*sin(t + scale*vUv.x * direction * 100. ) - 1122.4;
+
+                vec2 coord = gl_FragCoord.xy;
+
+                
+                vec3 pulseColor = sphereBaseColor * clamp(pulse, 0.0, 1.0);
+                vec4 color = vec4(baseColor + pulseColor, 1.);
+                float fogFactor = smoothstep(fogNear, fogFar, vFogDepth) ;
+                // gl_FragColor = vec4(normalVsCamera);
+                gl_FragColor = mix(color, vec4(fogColor, 1.0), fogFactor);
+            }
+        `;
+
+        const sphereMaterials = new Map(); // sphere -> material
+
+        const createMaterialSet = () => {
+    const timeOffset = Math.random() * 1000.0;
+    return {
+        sphere: new THREE.ShaderMaterial({
+            uniforms: {
+                timeOffset: { value: timeOffset },
+                time: { value: 0 },
+                fogColor: { value: scene.fog.color },
+                fogNear: { value: scene.fog.near },
+                fogFar: { value: scene.fog.far },
+                tendrilPoints: { value: [] },
+            },
+            vertexShader: sphereVert,
+            fragmentShader: sphereFrag,
+            transparent: true,
+        }),
+        strand: new THREE.ShaderMaterial({
+            uniforms: {
+                timeOffset: { value: timeOffset },
+                scale: { value: 1 },
+                direction: { value: 1 },
+                time: { value: 0 },
+                color: { value: new THREE.Color(0x000000) },
+                fogColor: { value: scene.fog.color },
+                fogNear: { value: scene.fog.near },
+                fogFar: { value: scene.fog.far }
+            },
+            vertexShader: strandVert,
+            fragmentShader: strandFrag,
+            transparent: true
+        }),
+        tendril: new THREE.ShaderMaterial({
+            uniforms: {
+                timeOffset: { value: timeOffset },
+                scale: { value: .1 },
+                direction: { value: -1.0 },
+                time: { value: 0 },
+                color: { value: new THREE.Color(0x000000) },
+                fogColor: { value: scene.fog.color },
+                fogNear: { value: scene.fog.near },
+                fogFar: { value: scene.fog.far }
+            },
+            vertexShader: strandVert,
+            fragmentShader: strandFrag,
+            transparent: true
+        }),
+        connect: new THREE.ShaderMaterial({
+            uniforms: {
+                timeOffset: { value: timeOffset },
+                scale: { value: 0.1 },
+                direction: { value: -1.0 },
+                time: { value: 0 },
+                color: { value: new THREE.Color(0xccddee) },
+                fogColor: { value: scene.fog.color },
+                fogNear: { value: scene.fog.near },
+                fogFar: { value: scene.fog.far }
+            },
+            vertexShader: strandVert,
+            fragmentShader: strandFrag,
+            transparent: true
+        })
+    };
+};
+
+
+        const sphereGeometry = new THREE.SphereGeometry(2, 32, 32);
+
+        for (let i = 0; i < sphereCount; i++) {
+            const materials = createMaterialSet();
+            const sphere = new THREE.Mesh(sphereGeometry, materials.sphere);
+            sphere.scale.setScalar(Math.random() * 32 + 6);
+            sphere.position.set(
+                (Math.random() * bounds - bounds / 2)*.6,
+                (Math.random() * bounds - bounds / 2)*.6,
+                (Math.random() * bounds - bounds / 2)*2.0
+            );
+            scene.add(sphere);
+            sphereMaterials.set(sphere, materials);
+            spheres.push(sphere);
+        }
+
+        const createTendrils = (strand, sphere) => {
+            const spherePos = sphere.position.clone();
+            const sphereRad = sphere.scale.x * 2;
+
+            const standPoint = strand.geometry.parameters.path.getPoint(0);
+            const offset = new THREE.Vector3().subVectors(standPoint, spherePos).normalize().multiplyScalar(sphereRad)
+            const pureOffset = offset.clone();
+            const reach = 1.2
+            offset.add(new THREE.Vector3(
+                (Math.random() - 0.5) * sphereRad * reach,
+                (Math.random() - 0.5) * sphereRad * reach,
+                (Math.random() - 0.5) * sphereRad * reach
+            )).normalize().multiplyScalar(sphereRad);
+            const endPointOnSphere = new THREE.Vector3().copy(spherePos).add(offset);
+            const pureEndPointOnSphere = new THREE.Vector3().copy(spherePos).add(pureOffset);
+
+            // two control points between the start and end points
+            const control1 = new THREE.Vector3().lerpVectors(standPoint, pureEndPointOnSphere, 0.2);
+            const control2 = new THREE.Vector3().lerpVectors(standPoint, pureEndPointOnSphere, 0.8);
+
+            const points = [standPoint, control1, control2, endPointOnSphere];
+            const curve = new THREE.CubicBezierCurve3(...points);
+            const geometry = new THREE.TubeGeometry(curve, 16, 0.5, 4, false); // params are curve, segments, radius, radialSegments, closed
+            return new THREE.Mesh(geometry, sphereMaterials.get(sphere).tendril);
+
+        }
+
+        const createBiDirectionalStrands = (sphere) => {
+            const randomDir = new THREE.Vector3(
+                Math.random() - 0.5,
+                (Math.random() - 0.5)*.3,
+                Math.random() - 0.5
+            ).normalize();
+            
+            const dir = randomDir.clone().multiplyScalar(sphere.scale.x * padding);
+            const oppDir = randomDir.clone().multiplyScalar(-sphere.scale.x * padding);
+            const startPoint1 = new THREE.Vector3()
+                .copy(sphere.position)
+                .add(dir);
+            const startPoint2 = new THREE.Vector3()
+                .copy(sphere.position)
+                .add(oppDir);
+        
+            const createSingleStrand = (start, direction) => {
+                const points = [];
+                points.push(start);
+                points.push(new THREE.Vector3().addVectors(
+                    start,
+                    direction.clone().multiplyScalar(strandBounds * 0.5)
+                ));
+                
+                const randomEnd = new THREE.Vector3(
+                    Math.random() * bounds - bounds/2,
+                    Math.random() * bounds - bounds/2,
+                    Math.random() * bounds - bounds/2
+                );
+                
+                points.push(new THREE.Vector3().addVectors(
+                    randomEnd,
+                    direction.clone().multiplyScalar(-strandBounds * 0.3)
+                ));
+                points.push(randomEnd);
+                
+                const curve = new THREE.CubicBezierCurve3(...points);
+                const geometry = new THREE.TubeGeometry(curve, 240, 0.5, 8, false);
+                return new THREE.Mesh(geometry, sphereMaterials.get(sphere).strand);
+            };
+    
+            return [
+                createSingleStrand(startPoint1, randomDir.clone()),
+                createSingleStrand(startPoint2, randomDir.clone().multiplyScalar(-1))
+            ];
+};
+
+        const connectTendrilsDrapedAroundSphere = (tendril1, tendril2, sphere) => {
+            const tendril1End = tendril1.geometry.parameters.path.getPoint(1);
+            const tendril1Penultimate = tendril1.geometry.parameters.path.getPoint(0.99);
+            const tendril2End = tendril2.geometry.parameters.path.getPoint(1);
+            const tendril2Penultimate = tendril2.geometry.parameters.path.getPoint(0.99);
+            const spherePos = sphere.position.clone();
+            const sphereRad = sphere.scale.x * 2;
+            
+            const control1 = new THREE.Vector3().subVectors(tendril1End, tendril1Penultimate).normalize().multiplyScalar(sphereRad * 0.5).add(tendril1End);
+            const control2 = new THREE.Vector3().subVectors(tendril2End, tendril2Penultimate).normalize().multiplyScalar(sphereRad * 0.5).add(tendril2End);
+
+            const points = [tendril1End, control1, control2, tendril2End];
+            const curve = new THREE.CubicBezierCurve3(...points);
+            const geometry = new THREE.TubeGeometry(curve, 32, 0.3, 4, false);
+            return new THREE.Mesh(geometry, sphereMaterials.get(sphere).connect);
+        };
+
+        const extendStrand = (strand) => {
+            // a normal straight line going in same direction as strand's end
+            const end = strand.geometry.parameters.path.getPoint(1);
+            const start = strand.geometry.parameters.path.getPoint(.99);
+            const direction = new THREE.Vector3().subVectors(end, start).normalize();
+            const newEnd = new THREE.Vector3().addVectors(end, direction.multiplyScalar(strandBounds * 10.5));
+            const newControl1 = new THREE.Vector3().lerpVectors(start, newEnd, 0.2);
+
+            const curve = new THREE.CubicBezierCurve3(start, newControl1, newEnd, newEnd);
+            const geometry = new THREE.TubeGeometry(curve, 100, 0.2, 8, false);
+            return new THREE.Mesh(geometry, strand.material);
+        };
+
+        for (let i = 0; i < spheres.length; i++) {
+            const sphere = spheres[i];
+            const [strand1, strand2] = createBiDirectionalStrands(sphere);
+            const endPointsToPassToSphere = []
+            for (let j = 0; j < tendrilsPerStrand; j++) {
+                const tendril1 = createTendrils(strand1, sphere);
+                const tendril2 = createTendrils(strand2, sphere);
+                
+                strands.push(tendril1, tendril2);
+                scene.add(tendril1, tendril2);
+
+                endPointsToPassToSphere.push(tendril1.geometry.parameters.path.getPoint(1))
+                endPointsToPassToSphere.push(tendril2.geometry.parameters.path.getPoint(1))
+
+                // drape
+                const connectingStrand = connectTendrilsDrapedAroundSphere(tendril1, tendril2, sphere);
+                strands.push(connectingStrand);
+                scene.add(connectingStrand);
+            }
+            strands.push(strand1, strand2);
+            scene.add(strand1, strand2);
+
+            console.log('endPointsToPassToSphere', endPointsToPassToSphere);
+            sphereMaterials.get(sphere).sphere.uniforms.tendrilPoints.value = endPointsToPassToSphere;
+
+            const extendedStrand1 = extendStrand(strand1);
+            const extendedStrand2 = extendStrand(strand2);
+            strands.push(extendedStrand1, extendedStrand2);
+            scene.add(extendedStrand1, extendedStrand2);
+
+            
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+
+        function animate() {
+            const t = clock.getElapsedTime();
+            sphereMaterials.forEach(materials => {
+                Object.values(materials).forEach(mat => {
+                    mat.uniforms.time.value = t;
+                });
+            });
+            
+            camera.position.x = Math.sin(t * 0.01) * bounds * .5;
+            // camera.position.y = Math.cos(t * 0.01) * bounds * .5;
+            // camera.position.z = Math.sin(t * 0.04) * bounds * 1.;
+            camera.lookAt(0, 0, 0);
+            controls.update();
+
+            renderer.render(scene, camera);
+
+
+    requestAnimationFrame(animate);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>

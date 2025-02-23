@@ -21,10 +21,11 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
-        const bgColor = 0x404040;         // black
+        // oh no globals
+        const bgColor = 0x101010
+        const sphereCount = 32;
         const bounds = 2400;
-        const padding = 6
-        const sphereCount = 64;
+        const padding = 3
         const tendrilsPerStrand = 4;
 
         const strandBounds = bounds * 1;
@@ -33,19 +34,236 @@
         const clock = new THREE.Clock();
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(bgColor);
-        scene.fog = new THREE.Fog(bgColor, 1000., 2400);
+        scene.fog = new THREE.Fog(bgColor, 100., 94400);
 
-        const camera = new THREE.PerspectiveCamera(85, window.innerWidth / window.innerHeight, 0.1, 6000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setPixelRatio(window.devicePixelRatio * 2);
+        const camera = new THREE.PerspectiveCamera(85, window.innerWidth / window.innerHeight, 0.1, 16000);
+        const renderer = new THREE.WebGLRenderer({  preserveDrawingBuffer: true });
+        renderer.setPixelRatio(window.devicePixelRatio*2.);
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         
-        camera.position.set(bounds/2, bounds/2, bounds/2);
+        camera.position.set(bounds/8, bounds/8, bounds/8);
         controls.target.set(0, 0, 0);
         controls.update();
+
+        const particleGeometry = new THREE.BufferGeometry();
+        const particleCount = 50;
+        const positions = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
+        const sizes = new Float32Array(particleCount);
+
+        const tanAutumnPaletteGenerator = (t) => {
+            const r = Math.sin(t) * 0.5 + 0.5;
+            const g = Math.sin(t + 2.094) * 0.5 + 0.5;
+            const b = Math.sin(t + 4.188) * 0.5 + 0.5;
+            return new THREE.Color(r, g, b);
+        };
+
+        for (let i = 0; i < particleCount; i++) {
+            const radius = bounds * Math.random() * .4 + bounds*.3;
+            const theta = Math.random() * Math.PI * 2.;
+            const phi = Math.random() * Math.PI/2.  + .3;
+            positions[i * 3] = radius * Math.sin(theta)
+            positions[i * 3 + 1] = 5000. * ( Math.random()*Math.random() - Math.random()*Math.random() ) - 1600. //radius*2 - radius
+            positions[i * 3 + 2] = radius * Math.cos(theta);
+
+            const c = tanAutumnPaletteGenerator(Math.random() * Math.PI * 1.2 + .4);
+
+            colors[i * 3] = c.r;
+            colors[i * 3 + 1] = c.g;
+            colors[i * 3 + 2] = c.b;
+
+        }
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        
+        // generate a texture/map for the particles, round, fades at edges
+        const singleParticleTexture = new THREE.TextureLoader().load('https://threejs.org/examples/textures/sprites/spark1.png');
+        // const singleParticleTexture = new THREE.TextureLoader().load('https://threejs.org/examples/textures/opengameart/smoke1.png');
+
+        const particleMaterial = new THREE.PointsMaterial({ 
+            size: 400, 
+            sizeAttenuation: true,
+            vertexColors: true, 
+            transparent: true, 
+            opacity: .4, 
+            blending: THREE.AdditiveBlending, 
+            map: singleParticleTexture,
+            depthWrite: false
+        });
+        const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+        scene.add(particleSystem);
+
+        const sphereGeometry = new THREE.SphereGeometry(1, 64, 64);
+
+
+        // first make a giant inverted sphere to be the skybox
+        // generate the sky box cubemapping just the colorful particles, spinning the particles around a special cubecamera just for this
+        // then apply the cubemap to the skybox
+
+
+const skyboxRenderTarget = new THREE.WebGLCubeRenderTarget(1024, {
+    format: THREE.RGBAFormat,
+    mapping: THREE.CubeReflectionMapping, // or CubeRefractionMapping, or 
+    type: THREE.UnsignedByteType,
+    generateMipmaps: true,
+});
+// const skyboxMaterial = new THREE.MeshBasicMaterial({
+//     side: THREE.DoubleSide,
+//     color: 0xffffff,
+//     // blending: THREE.MultiplyBlending,
+//     envMap: { value: null },
+// });
+// 
+
+const skyboxMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        envMap: { value: skyboxRenderTarget.texture },
+        envMapIntensity: { value: 1. },
+        cameraPos: { value: camera.position },
+        time: { value: 0. }
+    },
+    vertexShader: ` 
+        varying vec3 vPosition;
+        varying float vFogDepth;
+        varying vec4 globalPosition;
+        varying vec3 vWorldPosition;
+
+        void main() {
+            vWorldPosition = position;
+            vPosition = position;
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            globalPosition = modelMatrix * vec4(position, 1.0);
+            vFogDepth = -mvPosition.z;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform samplerCube envMap;
+        uniform float envMapIntensity;
+        uniform vec3 cameraPos;
+        uniform float time;
+        varying vec3 vPosition;
+        varying float vFogDepth;
+        varying vec4 globalPosition;
+        varying vec3 vWorldPosition;
+
+        // vec2 random2( vec2 p ) {
+        //     return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))))*43758.5453);
+        // }
+
+        vec3 colorPalette(float t) {
+            return vec3(
+                .5 + .5*sin(t + 2.094),
+                .5 + .5*sin(t + 0.0),
+                .5 + .5*sin(t + 4.188)
+            )*.5;
+        }
+
+        float waveletNoise(vec2 p, float z, float k){
+            float d=0.,s=1.,m=0., a;
+            for(float i=0.; i<4.; i++) {
+                vec2 q = p*s, g=fract(floor(q)*vec2(123.34,233.53));
+                g += dot(g, g+23.234);
+                a = fract(g.x*g.y)*1e3 +z*(mod(g.x+g.y, 2.)-1.); // add vorticity
+                q = (fract(q)-.5)*mat2(cos(a),-sin(a),sin(a),cos(a));
+                d += sin(q.x*10.+z)*smoothstep(.25, .0, dot(q,q))/s;
+                p = p*mat2(.54,-.84, .84, .54)+i;
+                m += 1./s;
+                s *= k; 
+            }
+            return d/m;
+        }
+
+        void main() {
+            vec3 viewDirection = normalize(vWorldPosition - cameraPos);
+
+            // get spherical coordinates from global position
+            vec3 n = normalize(globalPosition.xyz);
+            vec2 uv = vec2(atan(n.z, n.x), acos(n.y));
+    //         vec2 st = uv*10.;
+
+            float color = 0.;
+            
+    //         vec2 i_st = floor(st);
+    //         vec2 f_st = fract(st);
+            
+    //           float m_dist = .5;  // minimum distance
+    // for (int j= -1; j <= 1; j++ ) {
+    //     for (int i= -1; i <= 1; i++ ) {
+    //         // Neighbor place in the grid
+    //         vec2 neighbor = vec2(float(i),float(j));
+
+    //         // Random position from current + neighbor place in the grid
+    //         vec2 offset = random2(i_st + neighbor);
+
+    //         // Animate the offset
+    //         offset = 0.5 + 0.5*sin(6.2831*offset + time*.1);
+
+    //         // Position of the cell
+    //         vec2 pos = neighbor + offset - f_st;
+
+    //         // Cell distance
+    //         float dist = length(pos);
+
+    //         // Metaball it!
+    //         m_dist = min(m_dist, m_dist*dist);
+    //     }
+    // }
+
+    // Draw cells
+    // color += step(0.060, m_dist);
+
+            color = waveletNoise(uv, time, 3.);
+            gl_FragColor = vec4(colorPalette(color), 1.0);
+            // gl_FragColor = textureCube(envMap, viewDirection) * envMapIntensity;
+        }
+    `,
+    transparent: false,
+    side: THREE.DoubleSide,
+    // all options: THREE.AdditiveBlending, THREE.SubtractiveBlending, THREE.MultiplyBlending, THREE.NormalBlending, THREE.NoBlending
+    // blending: THREE.AdditiveBlending,
+    depthWrite: false
+})
+// const skyboxCamera = new THREE.CubeCamera(0.001, 800, skyboxRenderTarget);
+    particleSystem.visible = true;
+    
+    // Update cubemap
+    // skyboxCamera.update(renderer, scene);
+    
+    // Blend with previous frame
+    // skyboxMaterial.envMap = previousTarget.texture;
+
+    // skyboxMaterial.envMap = skyboxRenderTarget.texture;
+    // skyboxMaterial.uniforms.envMap.value = skyboxRenderTarget.texture;
+    // skyboxMaterial.map = skyboxRenderTarget.texture;
+    // skyboxMaterial.envMap = currentCamera.texture;
+    // skyboxMaterial.needsUpdate = true;
+    
+    // Hide particles after capture
+    // particleSystem.visible = false;
+    
+    // Swap targets
+    // currentTarget = currentTarget === 1 ? 2 : 1;
+    // particleSystem.visible = false;
+    
+    const skybox = new THREE.Mesh(
+    new THREE.SphereGeometry(bounds*2.5, 128, 128),
+    skyboxMaterial
+);
+scene.add(skybox);
+
+
+
+        // particleSystem.visible = false;
+
+
+        // const redTestSphere = new THREE.Mesh(sphereGeometry, new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+        // redTestSphere.scale.setScalar(bounds/8.);
+        // redTestSphere.position.set(0, bounds/2., 0);
+        // scene.add(redTestSphere);
 
 
         const sphereVert = `
@@ -58,16 +276,16 @@
             varying vec3 vPosition;
             varying float vFogDepth;
             varying vec4 globalPosition;
-            // built ins:
-            // position: the position of the vertex in model space
-            // normal: the normal of the vertex in model space
-            // modelViewMatrix: the model matrix multiplied by the view matrix, used to transform the vertex to camera space
-            // projectionMatrix: the projection matrix
+            varying vec3 vWorldPosition;
+            varying vec3 vWorldNormal;  // Add this for world-space normal
+            
             void main() {
                 vNormal = normalize(normalMatrix * normal);
                 vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
                 vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-                globalPosition = modelMatrix * vec4(position, 1.0); // represents the position of the vertex in world space, to get the pixel in world space
+                globalPosition = modelMatrix * vec4(position, 1.0);
+                vWorldPosition = globalPosition.xyz;
+                vWorldNormal = normalize(mat3(modelMatrix) * normal);  // Transform normal to world space here
                 vFogDepth = -mvPosition.z;
                 gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
             }
@@ -80,32 +298,57 @@
             uniform float fogNear;
             uniform float fogFar;
             uniform vec3 tendrilPoints[8];
+            uniform samplerCube envMap;
+            uniform float envMapIntensity;
+            uniform vec3 cameraPos;
             varying vec3 vNormal;
             varying vec3 vPosition;
             varying float vFogDepth;
             varying vec4 globalPosition;
+            varying vec3 vWorldPosition;
+            varying vec3 vWorldNormal;
+
             void main() {
+                // Use pre-computed world normal
+                vec3 viewDirection = normalize(vWorldPosition - cameraPos);
+                vec3 reflectDir = reflect(viewDirection, normalize(vWorldNormal));
+                
+                // Sample environment map
+                vec3 envColor = textureCube(envMap, reflectDir).rgb;
+                
+                // Rest of your effects...
                 vec3 baseColor = vec3(0.533, 0.8, 1.0);
+                // baseColor = mix(baseColor, envColor, 1.);
                 float rim = 1.0 - max(0.0, dot(normalize(-vPosition), vNormal));
                 rim = pow(rim, 2.0);
                 float t = time + timeOffset;
-                float pulse = 1124.4*cos(t + 3.14159*.25 ) - 1122.4;
-                // distance between sphere surface and tendril points
+                float pulse = cos(t + 3.14159*.25 );
+                float pulse2 = 2.*cos(t - 3.14159*.125)- .4;
+                
                 float tendrilEffect = 0.0;
-
+                float sumDistanceFromTendrils = 0.0;
                 for (int i = 0; i < 8; i++) {
                     vec3 tendrilPoint = tendrilPoints[i];
-                    
                     float dist = distance(globalPosition.xyz, tendrilPoint);
                     tendrilEffect += clamp(pulse + 10.-dist, 0., 1.0);
-                }
+                    sumDistanceFromTendrils += clamp(4.0 - dist, 0.0, 10.0);
+                    }
                 pulse = clamp(pulse, 0.0, 1.0);
-                vec4 color = vec4(baseColor + rim * 0.5 + 1.*pulse, 0.5);
+                pulse2 = clamp(pulse2, 0.0, 1.0);
+
+                float opacity = 1.;
+                // float opacity = 1. - sumDistanceFromTendrils;
+                vec4 color = vec4(baseColor + rim * 0.5 + 1.*pulse, opacity);
                 vec4 tendrilColor = vec4(1.0, 1.0, 1.0, 0.0);
-                color -= tendrilColor * tendrilEffect;
+                // color -= tendrilColor * tendrilEffect;
+                
                 float fogFactor = smoothstep(fogNear, fogFar, vFogDepth);
-                // gl_FragColor = vec4(tendrilEffect, 0.0, 0.0, 1.0);
-                gl_FragColor = mix(color, vec4(fogColor, 0.8), fogFactor);
+                
+                // gl_FragColor = vec4(color, 1.0);
+                // gl_FragColor = vec4(rim*baseColor + 2.*pulse2*envColor - sumDistanceFromTendrils*pulse, 100.0);
+                vec4 c = vec4(rim*baseColor*(1.-pulse*10.) + 2.*pulse2*envColor - sumDistanceFromTendrils*pulse, 1.);
+                // gl_FragColor = vec4(c, 1.0);
+                gl_FragColor = mix(c, vec4(fogColor, 0.8), fogFactor);  // Full effect
             }
         `;
 
@@ -162,91 +405,79 @@
         `;
 
         const sphereMaterials = new Map(); // sphere -> material
-
         const createMaterialSet = () => {
-    const timeOffset = Math.random() * 1000.0;
-    return {
-        sphere: new THREE.ShaderMaterial({
-            uniforms: {
-                timeOffset: { value: timeOffset },
-                time: { value: 0 },
-                fogColor: { value: scene.fog.color },
-                fogNear: { value: scene.fog.near },
-                fogFar: { value: scene.fog.far },
-                tendrilPoints: { value: [] },
-            },
-            vertexShader: sphereVert,
-            fragmentShader: sphereFrag,
-            transparent: true,
-        }),
-        strand: new THREE.ShaderMaterial({
-            uniforms: {
-                timeOffset: { value: timeOffset },
-                scale: { value: 1 },
-                direction: { value: 1 },
-                time: { value: 0 },
-                color: { value: new THREE.Color(0x000000) },
-                fogColor: { value: scene.fog.color },
-                fogNear: { value: scene.fog.near },
-                fogFar: { value: scene.fog.far }
-            },
-            vertexShader: strandVert,
-            fragmentShader: strandFrag,
-            transparent: true
-        }),
-        tendril: new THREE.ShaderMaterial({
-            uniforms: {
-                timeOffset: { value: timeOffset },
-                scale: { value: .1 },
-                direction: { value: -1.0 },
-                time: { value: 0 },
-                color: { value: new THREE.Color(0x000000) },
-                fogColor: { value: scene.fog.color },
-                fogNear: { value: scene.fog.near },
-                fogFar: { value: scene.fog.far }
-            },
-            vertexShader: strandVert,
-            fragmentShader: strandFrag,
-            transparent: true
-        }),
-        connect: new THREE.ShaderMaterial({
-            uniforms: {
-                timeOffset: { value: timeOffset },
-                scale: { value: 0.1 },
-                direction: { value: -1.0 },
-                time: { value: 0 },
-                color: { value: new THREE.Color(0xccddee) },
-                fogColor: { value: scene.fog.color },
-                fogNear: { value: scene.fog.near },
-                fogFar: { value: scene.fog.far }
-            },
-            vertexShader: strandVert,
-            fragmentShader: strandFrag,
-            transparent: true
-        })
+        const timeOffset = Math.random() * 1000.0;
+        return {
+            sphere: new THREE.ShaderMaterial({
+                uniforms: {
+                    timeOffset: { value: timeOffset },
+                    time: { value: 0 },
+                    fogColor: { value: scene.fog.color },
+                    fogNear: { value: scene.fog.near },
+                    fogFar: { value: scene.fog.far },
+                    tendrilPoints: { value: [] },
+                    envMap: { value: null },
+                    envMapIntensity: { value: 1. },
+                    cameraPos: { value: new THREE.Vector3() }
+                },
+                vertexShader: sphereVert,
+                fragmentShader: sphereFrag,
+                transparent: false,
+                // all options: THREE.AdditiveBlending, THREE.SubtractiveBlending, THREE.MultiplyBlending, THREE.NormalBlending, THREE.NoBlending
+                // blending: THREE.AdditiveBlending,
+                depthWrite: true  
+            }),
+            strand: new THREE.ShaderMaterial({
+                uniforms: {
+                    timeOffset: { value: timeOffset },
+                    scale: { value: 1 },
+                    direction: { value: 1 },
+                    time: { value: 0 },
+                    color: { value: new THREE.Color(0x000000) },
+                    fogColor: { value: scene.fog.color },
+                    fogNear: { value: scene.fog.near },
+                    fogFar: { value: scene.fog.far }
+                },
+                vertexShader: strandVert,
+                fragmentShader: strandFrag,
+                transparent: true
+            }),
+            tendril: new THREE.ShaderMaterial({
+                uniforms: {
+                    timeOffset: { value: timeOffset },
+                    scale: { value: .1 },
+                    direction: { value: -1.0 },
+                    time: { value: 0 },
+                    color: { value: new THREE.Color(0x000000) },
+                    fogColor: { value: scene.fog.color },
+                    fogNear: { value: scene.fog.near },
+                    fogFar: { value: scene.fog.far }
+                },
+                vertexShader: strandVert,
+                fragmentShader: strandFrag,
+                transparent: true
+            }),
+            connect: new THREE.ShaderMaterial({
+                uniforms: {
+                    timeOffset: { value: timeOffset },
+                    scale: { value: 0.1 },
+                    direction: { value: -1.0 },
+                    time: { value: 0 },
+                    color: { value: new THREE.Color(0xccddee) },
+                    fogColor: { value: scene.fog.color },
+                    fogNear: { value: scene.fog.near },
+                    fogFar: { value: scene.fog.far }
+                },
+                vertexShader: strandVert,
+                fragmentShader: strandFrag,
+                transparent: true
+            })
+        };
     };
-};
-
-
-        const sphereGeometry = new THREE.SphereGeometry(2, 32, 32);
-
-        for (let i = 0; i < sphereCount; i++) {
-            const materials = createMaterialSet();
-            const sphere = new THREE.Mesh(sphereGeometry, materials.sphere);
-            sphere.scale.setScalar(Math.random() * 32 + 6);
-            sphere.position.set(
-                (Math.random() * bounds - bounds / 2)*.6,
-                (Math.random() * bounds - bounds / 2)*.6,
-                (Math.random() * bounds - bounds / 2)*2.0
-            );
-            scene.add(sphere);
-            sphereMaterials.set(sphere, materials);
-            spheres.push(sphere);
-        }
 
         const createTendrils = (strand, sphere) => {
             const spherePos = sphere.position.clone();
-            const sphereRad = sphere.scale.x * 2;
+            const sphereRad = sphere.scale.x;
 
             const standPoint = strand.geometry.parameters.path.getPoint(0);
             const offset = new THREE.Vector3().subVectors(standPoint, spherePos).normalize().multiplyScalar(sphereRad)
@@ -324,10 +555,10 @@
             const tendril2End = tendril2.geometry.parameters.path.getPoint(1);
             const tendril2Penultimate = tendril2.geometry.parameters.path.getPoint(0.99);
             const spherePos = sphere.position.clone();
-            const sphereRad = sphere.scale.x * 2;
+            const sphereRad = sphere.scale.x ;
             
-            const control1 = new THREE.Vector3().subVectors(tendril1End, tendril1Penultimate).normalize().multiplyScalar(sphereRad * 0.5).add(tendril1End);
-            const control2 = new THREE.Vector3().subVectors(tendril2End, tendril2Penultimate).normalize().multiplyScalar(sphereRad * 0.5).add(tendril2End);
+            const control1 = new THREE.Vector3().subVectors(tendril1End, tendril1Penultimate).normalize().multiplyScalar(sphereRad * 1.0).add(tendril1End);
+            const control2 = new THREE.Vector3().subVectors(tendril2End, tendril2Penultimate).normalize().multiplyScalar(sphereRad * 1.0).add(tendril2End);
 
             const points = [tendril1End, control1, control2, tendril2End];
             const curve = new THREE.CubicBezierCurve3(...points);
@@ -348,8 +579,20 @@
             return new THREE.Mesh(geometry, strand.material);
         };
 
-        for (let i = 0; i < spheres.length; i++) {
-            const sphere = spheres[i];
+        const makeSphere = (position, radius) => {
+            const materials = createMaterialSet();
+            const sphere = new THREE.Mesh(sphereGeometry, materials.sphere);
+            sphere.scale.setScalar(radius || Math.random() * 80 + 20);
+            position ? sphere.position.copy(position) :
+            sphere.position.set(
+                (Math.random() * bounds - bounds / 2)*.6,
+                (Math.random() * bounds - bounds / 2)*.6,
+                (Math.random() * bounds - bounds / 2)*2.0
+            );
+            scene.add(sphere);
+            sphereMaterials.set(sphere, materials);
+            spheres.push(sphere);
+
             const [strand1, strand2] = createBiDirectionalStrands(sphere);
             const endPointsToPassToSphere = []
             for (let j = 0; j < tendrilsPerStrand; j++) {
@@ -362,7 +605,6 @@
                 endPointsToPassToSphere.push(tendril1.geometry.parameters.path.getPoint(1))
                 endPointsToPassToSphere.push(tendril2.geometry.parameters.path.getPoint(1))
 
-                // drape
                 const connectingStrand = connectTendrilsDrapedAroundSphere(tendril1, tendril2, sphere);
                 strands.push(connectingStrand);
                 scene.add(connectingStrand);
@@ -370,7 +612,6 @@
             strands.push(strand1, strand2);
             scene.add(strand1, strand2);
 
-            console.log('endPointsToPassToSphere', endPointsToPassToSphere);
             sphereMaterials.get(sphere).sphere.uniforms.tendrilPoints.value = endPointsToPassToSphere;
 
             const extendedStrand1 = extendStrand(strand1);
@@ -378,8 +619,37 @@
             strands.push(extendedStrand1, extendedStrand2);
             scene.add(extendedStrand1, extendedStrand2);
 
+            const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(1024, {
+                format: THREE.RGBAFormat,
+                mapping: THREE.CubeReflectionMapping,
+                type: THREE.UnsignedByteType,
+                generateMipmaps: true
+            });
             
+            const cubeCamera = new THREE.CubeCamera(sphere.scale.x * 0.0001, 8000, cubeRenderTarget);
+            cubeCamera.position.copy(sphere.position);
+            scene.add(cubeCamera);
+            
+            // Hide sphere temporarily
+            // sphere.visible = false;
+            cubeCamera.update(renderer, scene);
+            sphere.visible = true;
+            
+            // Assign to sphere's material
+            const material = sphereMaterials.get(sphere);
+            material.sphere.uniforms.envMap.value = cubeRenderTarget.texture;
+            material.sphere.uniforms.cameraPos.value = camera.position;
         }
+
+        for (let i = 0; i < sphereCount; i++) {
+            makeSphere();
+        }
+        makeSphere(new THREE.Vector3(205., 0, 0), bounds/32.0);
+
+        // ////////////////////////////////////////
+
+
+
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -390,25 +660,31 @@
 
         function animate() {
             const t = clock.getElapsedTime();
+
             sphereMaterials.forEach(materials => {
                 Object.values(materials).forEach(mat => {
                     mat.uniforms.time.value = t;
+                    if(mat.uniforms.cameraPos) mat.uniforms.cameraPos.value.copy(camera.position);
                 });
             });
+            skyboxMaterial.uniforms.cameraPos.value.copy(camera.position);
+            skyboxMaterial.uniforms.time.value = t;
+            skyboxMaterial.needsUpdate = true;
+
+            // slowly spin the camera around the first sphere, slowly in and out based on sphere's radius
+            // const speed = 0.1;
+            // camera.position.x = 100. + Math.cos(t * speed) * bounds/16
+            // camera.position.z = Math.sin(t * speed) *bounds/32+Math.cos(t*.05)*bounds/16
+            // camera.position.y = Math.sin(t * speed) * bounds/64
+            // camera.position.z = Math.sin(t * speed) * radius * 1.2;
+
             
-            camera.position.x = Math.sin(t * 0.01) * bounds * .5;
-            // camera.position.y = Math.cos(t * 0.01) * bounds * .5;
-            // camera.position.z = Math.sin(t * 0.04) * bounds * 1.;
-            camera.lookAt(0, 0, 0);
             controls.update();
-
             renderer.render(scene, camera);
-
-
-    requestAnimationFrame(animate);
+            requestAnimationFrame(animate);
         }
-        
         animate();
+
     </script>
 </body>
 </html>
