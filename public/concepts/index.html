@@ -140,45 +140,11 @@ let relationToColorMap = {
       About:"pink", References:"pink", 'Referenced By':"pink", Related:"pink",
       Knew: "brown", Married: "brown", Mothered: "brown", Fathered: "brown", Taught: "brown", 
       Translated: "orange", 'Commented On': "orange", Edited: "orange"
-  };
-
-let relationsMap = {
-  'Equivalent':'Is',
-
-  // 'Explains'
-  // 'About'
-
-  // Person -> Person
-  'Knew':'Adjacent',
-  'Married':'Adjacent',
-  'Fathered':'Adjacent',
-  'Mothered':'Adjacent',
-  'Raised':'Adjacent',
-  'Parented':'Adjacent',
-
-  'Discovered':'',
-
-  // Person -> Work
-  'Proposed':'Created',
-  'Wrote':'Created',
-
-  // Work/Idea -> Work/Idea
-  'Anticipated':'Prefigured',
-  'Influenced':'Prefigured',
-  'Equivalent':'Prefigured',
-
-  // Person -> Work
-  'Translated': 'Observed',
-  'Commented On': 'Observed',
-  'Read': 'Observed',
-  'Referenced': 'Observed',
-}
+};
 
 function reinitTime(){
   if(params.timeOnYAxis){ 
-    pinNodeAxisToProperty(fGraph, 'y', 'time', (val)=> { 
-      return timeFunc(val)
-    } ) 
+    pinNodeAxisToProperty(fGraph, 'y', 'time', timeFunc ) 
     fGraph.renderer
   }
   else { 
@@ -297,7 +263,7 @@ window.addEventListener("keyup", (e) => onKeyUp(e), false);
 
 function pinNodeAxisToProperty(fGraph, axis, prop, nonlinearFunc){
   fGraph.graphData().nodes.forEach(node=> {
-    if(node.hasOwnProperty(prop)){
+    if(node.hasOwnProperty(prop) && node[prop] !== null){
       const val = nonlinearFunc ? nonlinearFunc( node[prop] ) : node[prop]
       node[ 'f'+ axis ] = val
       node[axis] = val
@@ -334,19 +300,40 @@ function filterVisibleByAttr(fGraph, attr){
 }
 
 function setNodeObjectsToSpriteLabels(fGraph, textHeight, colorFunc) {
-  if (!colorFunc) colorFunc = function(n){
+  if (!colorFunc) colorFunc = function(n){ // a default color function if none is provided
     let c = new THREE.Color()
-    c.setHSL(0.0, 0.0, 1.0)
-    if(n.type === 'person') {
-      c = c.setHSL(.9, .95, .67)
+
+    // if(n["type"] !== 'person') return c.setHSL(0.0, 0.0, 1.0).getStyle()
+
+    // first get the range of nodes' types and link's relations
+    let categories = ["epistemology", "metaphysics", "ethics", "logic", "physics", "mathematics", "biology", "astronomy", "science_fiction", "weird_fiction", "fantasy", "literary_experimentalists", "media_theory", "critical_theory", "linguistics", "historiography", "cognitive_science", "systems_theory", "information_theory", "humanism"]
+    // let relations = new Set(fGraph.graphData().links.map(l=>l.relation))
+
+    // map types to hues:
+    const categoriesToHues = (cats) => {
+      let hues = {}
+      let hueStep = 1.0 / cats.length
+      cats.forEach((cat, i) => {
+        hues[cat] = i * hueStep
+      })
+      return hues
     }
-    if(n.type === 'concept') {
-      c = c.setHSL(.55, .75, .67)
-    }
-    if(n.type === 'concept') {
-      c = c.setHSL(.55, .75, .67)
-    }
-    if (!n.reviewed) c.offsetHSL(0.0, 0.0, -.4) 
+
+    if(!n.category) return c.setHSL(0.0, 0.0, 1.0).getStyle()
+    const hue = categoriesToHues(categories)[n.category]
+    c.setHSL( hue, 1., .5)
+    // console.log("colorFunc", n.category, hue, c.getStyle())
+    // c.setHSL(0.0, 0.0, 1.0)
+    // if(n.type === 'person') {
+    //   c = c.setHSL(.9, .95, .67)
+    // }
+    // if(n.type === 'concept') {
+    //   c = c.setHSL(.55, .75, .67)
+    // }
+    // if(n.type === 'concept') {
+    //   c = c.setHSL(.55, .75, .67)
+    // }
+    // if (!n.reviewed) c.offsetHSL(0.0, 0.0, -.4) 
     return c.getStyle()
   }
   fGraph.nodeThreeObject((node) => {
@@ -568,6 +555,25 @@ function difference(setA, setB) {
     return _difference
 }
 
+function checkForRedundantIds(data){
+  let ids = new Set()
+  data.nodes.forEach(n=>{ ids.add(n.id) })
+  let redundantIds = new Set()
+  data.nodes.forEach(n=>{
+    if(ids.has(n.id)){
+      ids.delete(n.id)
+    } else {
+      redundantIds.add(n.id)
+    }
+  })
+  console.log("redundantIds", redundantIds)
+}
+
+function checkForNullTimeProps(data){
+  let nullTimeNodes = data.nodes.filter(n=> n.hasOwnProperty('time') && n.time === null)
+  console.log("nullTimeNodes", nullTimeNodes)
+}
+
 function checkForMissingNodeIds(data){
   console.log("checkForMissingNodeIds, data.nodes.length:", data.nodes.length)
   let necessaryIds = new Set()
@@ -738,9 +744,54 @@ fetch(filePath)
   }
 })
 .then(data => {
+  const idBlockList = new Set(["Borges"]);
+  const typeBlockList = new Set(["concept"]);
+  data.nodes = data.nodes.filter(n => !idBlockList.has(n.id))
+  data.links = data.links.filter(l => !idBlockList.has(l.source) && !idBlockList.has(l.target))
+  return data;
+})
+.then(data => {
+  const typeMappings = {
+  "node_categories": {
+    "creator": ["person", "organization", "pseudonym"],
+    "text": ["book", "novel", "novella", "story", "short story", "essay", "paper", "article", "review", "letter", "blog post", "poems", "poem", "novelette"],
+    "media": ["movie", "film", "tv", "tv show", "tv episode", "documentary", "radio play", "video", "youtube"],
+    "collection": ["anthology", "collection", "magazine", "journal"],
+    "art": ["painting", "etching", "comic"],
+    "performance": ["play", "game", "video game", "Games"],
+    "concept": ["concept", "thought experiment"],
+    "event": ["event", "lecture"],
+    "place": ["location", "country"],
+    "publication": ["blog", "service", "project", "magazine", "work"]
+  },
+  "relation_categories": {
+    "created": ["wrote", "co-wrote", "made", "directed", "created", "founded", "invented", "proposed"],
+    "referenced": ["references", "quotes", "discusses", "paraphrases", "about", "Referenced", "Quotes", "About", "Contains", "Includes"],
+    "influenced": ["inspired", "influenced", "mentored", "taught", "Influenced", "Inspired", "lead", "Protege Of"],
+    "reviewed": ["reviewed", "annotated", "Commented On", "Criticized", "Reviewed", "Refuted"],
+    "included_in": ["published in", "included_in", "in", "Contains"],
+    "personal": ["married", "best friend", "knew as a child", "Friends", "Married", "Mothered", "Fathered", "Knew"],
+    "similar": ["mimics", "similar to", "evokes", "pastiches", "Based on", "Related", "Equivalent", "Synonym", "Adjacent"],
+    "professional": ["member", "faculty", "alumni", "worked_with", "published", "Succeeded"]
+  }
+}
+  data.nodes.forEach(n => {
+    n.type = Object.keys(typeMappings.node_categories).find(k => typeMappings.node_categories[k].includes(n.type)) || n.type;
+  });
+  data.links.forEach(l => {
+    l.relation = Object.keys(typeMappings.relation_categories).find(k => typeMappings.relation_categories[k].includes(l.relation)) || l.relation;
+  });
+  const creatorNodesIds = data.nodes.filter(n => n.type === "creator").map(n => n.id);
+  console.log("creatorNodes", JSON.stringify(creatorNodesIds));
+
+  return data;
+})
+.then(data => {
   console.log("data", data)
   // makeAttrsValueOfAttr2(data, 'concept', 'type')  
   checkForMissingNodeIds(data)
+  checkForRedundantIds(data)
+  checkForNullTimeProps(data)
   
   fGraph = ForceGraph3D({rendererConfig:{ antialias: true, alpha: true, clearColor: "black" }, controlType:'orbit' } )
   (document.getElementById('3d-graph'))
@@ -943,6 +994,16 @@ function shuffleRelations(){
 }
 
 setInterval( updateEdgeMaterialUniforms, 32 )
+
+// on resize of window, update the camera aspect ratio
+window.addEventListener("resize", () => {
+  let width = window.innerWidth;
+  let height = window.innerHeight;
+  fGraph.camera().aspect = width / height;
+  fGraph.camera().updateProjectionMatrix();
+  fGraph.renderer().setSize(width, height);
+  fGraph.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 2));
+});
 
 </script>
     
