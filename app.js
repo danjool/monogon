@@ -43,7 +43,8 @@ app.use((req, res, next) => { // expanded cert with  sudo certbot certonly --sta
 
 app.use('/', express.static(path.join(__dirname, 'public')))
 
-app.use(express.json())
+// JSON body parser with size limits to prevent DoS attacks
+app.use(express.json({ limit: '1mb' }))
 
 try {
 	const privateKey = fs.readFileSync('/etc/letsencrypt/live/monogon.net-0001/privkey.pem', 'utf8')
@@ -122,22 +123,37 @@ app.post('/annotate/updateRefs', (req, res) => {
 
 app.get('/db', async (req, res) => {
     try {
+		// Check if pool is initialized
+		if (!pool) {
+			return res.status(503).send('Database not available');
+		}
+		
 		const client = await pool.connect();
-		const result = await client.query('SELECT * FROM test_table');
-		const results = { 'results': (result) ? result.rows : null};
-		console.log("rending results", results)
-		res.send(JSON.stringify(results) );
-		client.release();
+		try {
+			const result = await client.query('SELECT * FROM test_table');
+			const results = { 'results': (result) ? result.rows : null};
+			console.log("Rendering database results");
+			res.setHeader('Content-Type', 'application/json');
+			res.send(JSON.stringify(results));
+		} finally {
+			// Ensure client is always released back to the pool
+			client.release();
+		}
 	} catch (err) {
-		console.error(err);
-		res.send("~~Error " + err);
+		console.error('Database query error:', err);
+		// Don't expose error details to client
+		res.status(500).send('Database error occurred');
 	}
 })
 
 const PORT = process.env.PORT || 80
 
 
-app.use(express.urlencoded({extended:true}))
+// Parse URL-encoded bodies with size limits
+app.use(express.urlencoded({
+	extended: true,
+	limit: '1mb'
+}))
 
 const httpServer = http.createServer(app)
 const httpsServer = https.createServer(credentials, app);
