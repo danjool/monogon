@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bridge - Monogon</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --lcars-orange: #ff9900;
+            --lcars-pink: #cc6699;
+            --lcars-purple: #9999ff;
+            --lcars-blue: #9999cc;
+            --lcars-brown: #cc9966;
+            --lcars-red: #cc6666;
+            --lcars-beige: #ffcc99;
+            --lcars-navy: #000066;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            background-color: black;
+            color: white;
+            overflow: hidden;
+        }
+        
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        .interface {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            height: 80px;
+            display: flex;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        
+        .corner {
+            width: 80px;
+            height: 100%;
+            background-color: var(--lcars-orange);
+            border-radius: 0 0 20px 0;
+            margin-right: 10px;
+        }
+        
+        .title-bar {
+            flex-grow: 1;
+            background-color: var(--lcars-beige);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+        }
+        
+        .title {
+            color: black;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .content {
+            flex-grow: 1;
+            display: flex;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        
+        .sidebar {
+            width: 80px;
+            background-color: var(--lcars-blue);
+            border-radius: 20px 0 0 20px;
+            margin-right: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px 0;
+        }
+        
+        .sidebar-button {
+            height: 40px;
+            margin: 5px 0;
+            background-color: var(--lcars-navy);
+            border-radius: 20px 0 0 20px;
+        }
+        
+        .main-content {
+            flex-grow: 1;
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--lcars-purple);
+            border-radius: 20px;
+            padding: 20px;
+            box-sizing: border-box;
+            pointer-events: auto;
+            overflow: auto;
+        }
+        
+        .footer {
+            height: 60px;
+            display: flex;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        
+        .footer-bar {
+            flex-grow: 1;
+            background-color: var(--lcars-pink);
+            border-radius: 20px;
+            margin-left: 90px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            color: black;
+            font-weight: bold;
+        }
+        
+        .project-card {
+            background-color: rgba(0, 0, 102, 0.7);
+            border: 1px solid var(--lcars-purple);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .project-card:hover {
+            background-color: rgba(0, 0, 153, 0.7);
+            transform: translateY(-5px);
+        }
+        
+        .project-title {
+            color: var(--lcars-orange);
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .project-description {
+            color: #cccccc;
+            margin-bottom: 15px;
+        }
+        
+        .project-link {
+            display: inline-block;
+            background-color: var(--lcars-blue);
+            color: black;
+            padding: 5px 15px;
+            border-radius: 15px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        
+        .project-link:hover {
+            background-color: var(--lcars-orange);
+        }
+        
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1s ease;
+        }
+        
+        .loading-text {
+            color: var(--lcars-orange);
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .loading-bar-container {
+            width: 300px;
+            height: 20px;
+            background-color: var(--lcars-navy);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .loading-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--lcars-orange);
+            transition: width 0.5s ease;
+        }
+        
+        .stardate {
+            color: var(--lcars-beige);
+            font-size: 14px;
+            margin-left: auto;
+        }
+        
+        /* CRT effect */
+        .crt-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            opacity: 0.15;
+        }
+        
+        /* Scanline effect */
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 4;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent 0%,
+                rgba(0, 0, 0, 0.1) 0.5%,
+                transparent 1%
+            );
+            animation: scanline 10s linear infinite;
+            opacity: 0.3;
+        }
+        
+        @keyframes scanline {
+            0% {
+                background-position: 0 0;
+            }
+            100% {
+                background-position: 0 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-text">INITIALIZING LCARS INTERFACE</div>
+        <div class="loading-bar-container">
+            <div class="loading-bar" id="loadingBar"></div>
+        </div>
+    </div>
+    
+    <canvas id="spaceScene"></canvas>
+    
+    <div class="interface">
+        <div class="header">
+            <div class="corner"></div>
+            <div class="title-bar">
+                <div class="title">MONOGON BRIDGE INTERFACE</div>
+                <div class="stardate" id="stardate"></div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="sidebar">
+                <div class="sidebar-button"></div>
+                <div class="sidebar-button"></div>
+                <div class="sidebar-button"></div>
+                <div class="sidebar-button"></div>
+                <div class="sidebar-button"></div>
+            </div>
+            
+            <div class="main-content">
+                <div class="project-card">
+                    <div class="project-title">RAYTRACING</div>
+                    <div class="project-description">A journey into the world of GPU-based raytracing, exploring light and shadow through shader programming.</div>
+                    <a href="/raytracing/" class="project-link">EXPLORE</a>
+                </div>
+                
+                <div class="project-card">
+                    <div class="project-title">INFLUENCE GRAPH</div>
+                    <div class="project-description">A directed acyclic graph visualizing the flow of ideas and influence across time and disciplines.</div>
+                    <a href="/concepts/" class="project-link">ANALYZE</a>
+                </div>
+                
+                <div class="project-card">
+                    <div class="project-title">WAT</div>
+                    <div class="project-description">A multi-user virtual environment inspired by cyberpunk aesthetics and early digital frontiers.</div>
+                    <a href="/wat/" class="project-link">ENTER</a>
+                </div>
+                
+                <div class="project-card">
+                    <div class="project-title">ASTEROIDS</div>
+                    <div class="project-description">Visualization of over 600,000 asteroids in our solar system, their orbits calculated in real-time on the GPU.</div>
+                    <a href="/asteroids/" class="project-link">OBSERVE</a>
+                </div>
+                
+                <div class="project-card">
+                    <div class="project-title">CARDS</div>
+                    <div class="project-description">A collaborative storytelling tool using tarot cards, synchronized in real-time across multiple users.</div>
+                    <a href="/cards/" class="project-link">DEAL</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="footer-bar">
+                <div>STARFLEET COMMAND • AUTHORIZED ACCESS ONLY • STARDATE <span id="footerStardate"></span></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="crt-effect"></div>
+    <div class="scanline"></div>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    
+    <script type="module" src="bridge/js/main.js"></script>
+    
+    <script>
+        // Loading animation
+        const loadingBar = document.getElementById('loadingBar');
+        const loadingScreen = document.getElementById('loadingScreen');
+        let progress = 0;
+        
+        const loadingInterval = setInterval(() => {
+            progress += Math.random() * 10;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(loadingInterval);
+                setTimeout(() => {
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 1000);
+                }, 500);
+            }
+            loadingBar.style.width = `${progress}%`;
+        }, 200);
+        
+        // Stardate calculation (TNG style)
+        function calculateStardate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const startOfYear = new Date(year, 0, 1);
+            const dayOfYear = Math.floor((now - startOfYear) / (24 * 60 * 60 * 1000));
+            
+            // TNG stardates roughly started at 41000 in 2364
+            const tngYearOffset = year - 2364;
+            const baseStardate = 41000 + (tngYearOffset * 1000);
+            
+            // Day of year contributes to decimal portion
+            const dayFraction = dayOfYear / 365;
+            const decimalPortion = Math.floor(dayFraction * 999);
+            
+            // Add time of day for more precision
+            const timeOffset = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) / 86400;
+            const timeDecimal = Math.floor(timeOffset * 100) / 100;
+            
+            return (baseStardate + decimalPortion + timeDecimal).toFixed(2);
+        }
+        
+        function updateStardate() {
+            const stardate = calculateStardate();
+            document.getElementById('stardate').textContent = `STARDATE ${stardate}`;
+            document.getElementById('footerStardate').textContent = stardate;
+        }
+        
+        updateStardate();
+        setInterval(updateStardate, 10000);
+    </script>
+</body>
+</html>

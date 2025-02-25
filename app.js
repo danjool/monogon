@@ -36,6 +36,15 @@ app.use((req, res, next) => { // expanded cert with  sudo certbot certonly --sta
 		} else if (req.url === '/index.html' || req.url === '/') {
 			res.sendFile(path.join(__dirname, 'public/noir.html'));
 		}
+	} else if (host.startsWith('bridge.')) {
+		// bridge.monogon.net - Star Trek TNG inspired subdomain
+		if (req.url.startsWith('/js/') || req.url.startsWith('/css/') || req.url.startsWith('/images/')) {
+			express.static(path.join(__dirname, 'public/bridge'))(req, res, next);
+		} else if (req.url === '/index.html' || req.url === '/') {
+			res.sendFile(path.join(__dirname, 'public/bridge.html'));
+		} else {
+			next();
+		}
 	} else {
 	  next();
 	}

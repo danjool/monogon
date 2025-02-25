@@ -1,0 +1,143 @@
+/* Additional styles for bridge.monogon.net */
+
+/* Custom font for LCARS interface */
+@font-face {
+    font-family: 'LCARS';
+    src: url('https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&display=swap');
+}
+
+/* Blinking effect for certain elements */
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
+.blink {
+    animation: blink 2s infinite;
+}
+
+/* Pulsing effect for buttons */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.pulse {
+    animation: pulse 3s infinite;
+}
+
+/* Hover effects for interactive elements */
+.interactive:hover {
+    cursor: pointer;
+    filter: brightness(1.2);
+    transition: filter 0.3s ease;
+}
+
+/* Media queries for responsive design */
+@media (max-width: 768px) {
+    .header {
+        height: 60px;
+    }
+    
+    .corner {
+        width: 60px;
+    }
+    
+    .title {
+        font-size: 18px;
+    }
+    
+    .sidebar {
+        width: 60px;
+    }
+    
+    .footer {
+        height: 40px;
+    }
+    
+    .footer-bar {
+        margin-left: 70px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header {
+        height: 50px;
+    }
+    
+    .corner {
+        width: 40px;
+    }
+    
+    .title {
+        font-size: 16px;
+    }
+    
+    .sidebar {
+        width: 40px;
+    }
+    
+    .sidebar-button {
+        height: 30px;
+    }
+    
+    .footer {
+        height: 30px;
+    }
+    
+    .footer-bar {
+        margin-left: 50px;
+        font-size: 10px;
+        padding: 0 10px;
+    }
+    
+    .project-title {
+        font-size: 16px;
+    }
+    
+    .project-description {
+        font-size: 12px;
+    }
+}
+
+/* Accessibility improvements */
+.project-link:focus {
+    outline: 2px solid var(--lcars-orange);
+    outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+    .interface {
+        position: static;
+        background-color: white;
+        color: black;
+    }
+    
+    canvas, .crt-effect, .scanline, .loading-screen {
+        display: none;
+    }
+    
+    .main-content {
+        border: 1px solid #000;
+        background-color: white;
+    }
+    
+    .project-card {
+        page-break-inside: avoid;
+        border: 1px solid #000;
+        background-color: white;
+        color: black;
+    }
+    
+    .project-title {
+        color: black;
+    }
+    
+    .project-description {
+        color: black;
+    }
+}
