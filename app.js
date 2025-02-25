@@ -158,9 +158,20 @@ app.use(express.urlencoded({
 const httpServer = http.createServer(app)
 const httpsServer = https.createServer(credentials, app);
 
-const io = socketio()
-io.attach(httpServer)
-io.attach(httpsServer)
+// Configure Socket.IO with security options
+const io = socketio({
+  cors: {
+    origin: ["https://monogon.net", "https://wat.monogon.net", "https://noir.monogon.net"],
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  // Add ping timeout and interval for better connection management
+  pingTimeout: 60000,
+  pingInterval: 25000
+});
+
+io.attach(httpServer);
+io.attach(httpsServer);
 
 require('./public/wat/subapp')(io)
 
