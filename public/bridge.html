@@ -7,22 +7,28 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --lcars-orange: #ff9900;
-            --lcars-pink: #cc6699;
-            --lcars-purple: #9999ff;
-            --lcars-blue: #9999cc;
-            --lcars-brown: #cc9966;
-            --lcars-red: #cc6666;
-            --lcars-beige: #ffcc99;
-            --lcars-navy: #000066;
+            /* Star Trek TNG-inspired interface colors */
+            --bridge-orange: #ff9900;
+            --bridge-salmon: #ff6666; /* Main header color in TNG */
+            --bridge-pink: #cc6699;
+            --bridge-purple: #9999ff;
+            --bridge-blue: #9999cc;
+            --bridge-tan: #ff9966; /* Common in interfaces */
+            --bridge-brown: #cc9966;
+            --bridge-red: #cc6666;
+            --bridge-beige: #ffcc99;
+            --bridge-navy: #000066;
+            --bridge-bg: #000000; /* Background color */
+            --bridge-text: #ffffff; /* Text color */
+            --bridge-yellow: #ffcc00; /* Used for alerts/highlights */
         }
         
         body {
             margin: 0;
             padding: 0;
             font-family: 'Roboto', sans-serif;
-            background-color: black;
-            color: white;
+            background-color: var(--bridge-bg);
+            color: var(--bridge-text);
             overflow: hidden;
         }
         
@@ -57,14 +63,15 @@
         .corner {
             width: 80px;
             height: 100%;
-            background-color: var(--lcars-orange);
+            background-color: var(--bridge-salmon);
             border-radius: 0 0 20px 0;
             margin-right: 10px;
+            position: relative;
         }
         
         .title-bar {
             flex-grow: 1;
-            background-color: var(--lcars-beige);
+            background-color: var(--bridge-beige);
             border-radius: 20px;
             display: flex;
             align-items: center;
@@ -87,7 +94,7 @@
         
         .sidebar {
             width: 80px;
-            background-color: var(--lcars-blue);
+            background-color: var(--bridge-blue);
             border-radius: 20px 0 0 20px;
             margin-right: 10px;
             display: flex;
@@ -99,14 +106,20 @@
         .sidebar-button {
             height: 40px;
             margin: 5px 0;
-            background-color: var(--lcars-navy);
+            background-color: var(--bridge-navy);
             border-radius: 20px 0 0 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .sidebar-button:hover {
+            background-color: var(--bridge-orange);
         }
         
         .main-content {
             flex-grow: 1;
             background-color: rgba(0, 0, 0, 0.5);
-            border: 2px solid var(--lcars-purple);
+            border: 2px solid var(--bridge-purple);
             border-radius: 20px;
             padding: 20px;
             box-sizing: border-box;
@@ -123,7 +136,7 @@
         
         .footer-bar {
             flex-grow: 1;
-            background-color: var(--lcars-pink);
+            background-color: var(--bridge-pink);
             border-radius: 20px;
             margin-left: 90px;
             display: flex;
@@ -135,11 +148,13 @@
         
         .project-card {
             background-color: rgba(0, 0, 102, 0.7);
-            border: 1px solid var(--lcars-purple);
+            border: 1px solid var(--bridge-purple);
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 20px;
             transition: all 0.3s ease;
+            display: flex;
+            flex-wrap: wrap;
         }
         
         .project-card:hover {
@@ -148,29 +163,50 @@
         }
         
         .project-title {
-            color: var(--lcars-orange);
+            color: var(--bridge-orange);
             font-size: 20px;
             margin-bottom: 10px;
+            width: 100%;
         }
         
         .project-description {
             color: #cccccc;
             margin-bottom: 15px;
+            width: 100%;
+        }
+        
+        .project-image {
+            flex: 0 0 200px;
+            margin-right: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .project-image img {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+        
+        .project-content {
+            flex: 1;
+            min-width: 200px;
         }
         
         .project-link {
             display: inline-block;
-            background-color: var(--lcars-blue);
+            background-color: var(--bridge-blue);
             color: black;
             padding: 5px 15px;
             border-radius: 15px;
             text-decoration: none;
             font-weight: bold;
             transition: background-color 0.3s ease;
+            margin-right: 5px;
+            margin-bottom: 5px;
         }
         
         .project-link:hover {
-            background-color: var(--lcars-orange);
+            background-color: var(--bridge-orange);
         }
         
         .loading-screen {
@@ -189,7 +225,7 @@
         }
         
         .loading-text {
-            color: var(--lcars-orange);
+            color: var(--bridge-orange);
             font-size: 24px;
             margin-bottom: 20px;
         }
@@ -197,7 +233,7 @@
         .loading-bar-container {
             width: 300px;
             height: 20px;
-            background-color: var(--lcars-navy);
+            background-color: var(--bridge-navy);
             border-radius: 10px;
             overflow: hidden;
         }
@@ -205,12 +241,12 @@
         .loading-bar {
             height: 100%;
             width: 0%;
-            background-color: var(--lcars-orange);
+            background-color: var(--bridge-orange);
             transition: width 0.5s ease;
         }
         
         .stardate {
-            color: var(--lcars-beige);
+            color: var(--bridge-beige);
             font-size: 14px;
             margin-left: auto;
         }
@@ -256,11 +292,72 @@
                 background-position: 0 100%;
             }
         }
+        
+        /* Additional styles for better TNG-inspired interface */
+        .elbow-connector {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: var(--bridge-bg);
+            border-radius: 0 0 0 20px;
+            bottom: 0;
+            right: 0;
+        }
+        
+        .section-divider {
+            height: 10px;
+            background-color: var(--bridge-bg);
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        
+        .button-label {
+            color: var(--bridge-text);
+            font-size: 12px;
+            text-align: center;
+            margin-top: 5px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .project-card {
+                flex-direction: column;
+            }
+            
+            .project-image {
+                flex: 0 0 100%;
+                margin-right: 0;
+            }
+        }
+        
+        /* About section */
+        .about-section {
+            background-color: rgba(0, 0, 102, 0.7);
+            border: 1px solid var(--bridge-purple);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 30px;
+        }
+        
+        .about-title {
+            color: var(--bridge-orange);
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .about-content {
+            color: #cccccc;
+        }
+        
+        .contact {
+            margin-top: 20px;
+            color: var(--bridge-beige);
+        }
     </style>
 </head>
 <body>
     <div class="loading-screen" id="loadingScreen">
-        <div class="loading-text">INITIALIZING LCARS INTERFACE</div>
+        <div class="loading-text">INITIALIZING BRIDGE INTERFACE</div>
         <div class="loading-bar-container">
             <div class="loading-bar" id="loadingBar"></div>
         </div>
@@ -270,7 +367,9 @@
     
     <div class="interface">
         <div class="header">
-            <div class="corner"></div>
+            <div class="corner">
+                <div class="elbow-connector"></div>
+            </div>
             <div class="title-bar">
                 <div class="title">MONOGON BRIDGE INTERFACE</div>
                 <div class="stardate" id="stardate"></div>
@@ -287,34 +386,180 @@
             </div>
             
             <div class="main-content">
+                <!-- Raytracing -->
                 <div class="project-card">
                     <div class="project-title">RAYTRACING</div>
-                    <div class="project-description">A journey into the world of GPU-based raytracing, exploring light and shadow through shader programming.</div>
-                    <a href="/raytracing/" class="project-link">EXPLORE</a>
+                    <div class="project-image">
+                        <img src="/images/tiles/raytracing.png" alt="Raytracing">
+                    </div>
+                    <div class="project-content">
+                        <div class="project-description">A journey into the world of GPU-based raytracing, exploring light and shadow through shader programming. The fundamentals learned from Inigo Quilez's live demo.</div>
+                        <a href="/raytracing/" class="project-link">EXPLORE</a>
+                    </div>
                 </div>
                 
+                <!-- Influence Graph -->
                 <div class="project-card">
                     <div class="project-title">INFLUENCE GRAPH</div>
-                    <div class="project-description">A directed acyclic graph visualizing the flow of ideas and influence across time and disciplines.</div>
-                    <a href="/concepts/" class="project-link">ANALYZE</a>
+                    <div class="project-image">
+                        <img src="/images/tiles/concepts-graph.png" alt="Influence Graph">
+                    </div>
+                    <div class="project-content">
+                        <div class="project-description">A directed acyclic graph visualizing the flow of ideas and influence across time and disciplines. Perhaps a generator of anxiety, this partly force-directed DAG depicts a filtered list of people and works.</div>
+                        <a href="/concepts/" class="project-link">ANALYZE</a>
+                    </div>
                 </div>
                 
+                <!-- WAT -->
                 <div class="project-card">
                     <div class="project-title">WAT</div>
-                    <div class="project-description">A multi-user virtual environment inspired by cyberpunk aesthetics and early digital frontiers.</div>
-                    <a href="/wat/" class="project-link">ENTER</a>
+                    <div class="project-image">
+                        <img src="/images/tiles/wattilebig.png" alt="WAT">
+                    </div>
+                    <div class="project-content">
+                        <div class="project-description">A multi-user virtual environment inspired by cyberpunk aesthetics and early digital frontiers. Reminiscent of Neuromancer, Snow Crash, Tron and pretty much any other 80's to 90's rendition of what computers are all about.</div>
+                        <a href="/wat/" class="project-link">ENTER</a>
+                    </div>
                 </div>
                 
+                <!-- Riemann Sum -->
                 <div class="project-card">
-                    <div class="project-title">ASTEROIDS</div>
-                    <div class="project-description">Visualization of over 600,000 asteroids in our solar system, their orbits calculated in real-time on the GPU.</div>
-                    <a href="/asteroids/" class="project-link">OBSERVE</a>
+                    <div class="project-title">RIEMANN SUM</div>
+                    <div class="project-image">
+                        <img src="/images/tiles/riemann.png" alt="Riemann Sum">
+                    </div>
+                    <div class="project-content">
+                        <div class="project-description">A quick tool to demonstrate how a Riemann Sum works. Visualize mathematical concepts in an interactive way.</div>
+                        <a href="/riemann/" class="project-link">CALCULATE</a>
+                    </div>
                 </div>
                 
+                <!-- Cards -->
                 <div class="project-card">
                     <div class="project-title">CARDS</div>
-                    <div class="project-description">A collaborative storytelling tool using tarot cards, synchronized in real-time across multiple users.</div>
-                    <a href="/cards/" class="project-link">DEAL</a>
+                    <div class="project-image">
+                        <img src="/images/tiles/cards.png" alt="Cards">
+                    </div>
+                    <div class="project-content">
+                        <div class="project-description">A multiplayer, interactive deck of tarot cards used for collaborative storytelling. All players see the same result in real-time. Click a face down card to flip it, click a face up card to get a better look.</div>
+                        <a href="/cards/" class="project-link">DEAL</a>
+                    </div>
+                </div>
+                
+                <!-- Asteroids -->
+                <div class="project-card">
+                    <div class="project-title">ASTEROIDS</div>
+                    <div class="project-image">
+                        <img src="/images/tiles/asteroidstilebig.png" alt="Asteroids">
+                    </div>
+                    <div class="project-content">
+                        <div class="project-description">Visualization of over 600,000 asteroids in our solar system, their orbits calculated in real-time on the GPU. Positions for each asteroid are approximated on the GPU by way of a custom vertex shader.</div>
+                        <a href="/asteroids/index.html#50000" class="project-link">50,000</a>
+                        <a href="/asteroids/index.html#200000" class="project-link">200,000</a>
+                        <a href="/asteroids/index.html#688000" class="project-link">688,000</a>
+                    </div>
+                </div>
+                
+                <!-- Eight Queens -->
+                <div class="project-card">
+                    <div class="project-title">EIGHT QUEENS</div>
+                    <div class="project-image">
+                        <img src="/images/tiles/eightqueentilebig.png" alt="Eight Queens">
+                    </div>
+                    <div class="project-content">
+                        <div class="project-description">Can you place eight queens on a chess board such that no queen may take another? From observing people attempt this challenge, the time it takes to find a solution is directly proportional to the age of the person.</div>
+                        <a href="/eightqueens/" class="project-link">CHALLENGE</a>
+                    </div>
+                </div>
+                
+                <!-- Solitaire Chess -->
+                <div class="project-card">
+                    <div class="project-title">SOLITAIRE CHESS</div>
+                    <div class="project-image">
+                        <img src="/images/tiles/solchesstilebig.png" alt="Solitaire Chess">
+                    </div>
+                    <div class="project-content">
+                        <div class="project-description">A chess based version of solitaire, and my first experiment in ThreeJS. The goal is to keep taking pieces on the board with any other piece until there is only one left.</div>
+                        <a href="/solchess/" class="project-link">PLAY</a>
+                    </div>
+                </div>
+                
+                <!-- Scale Compare -->
+                <div class="project-card">
+                    <div class="project-title">SCALE COMPARE</div>
+                    <div class="project-image">
+                        <img src="/images/tiles/scalecomparehitilebig.png" alt="Scale Compare">
+                    </div>
+                    <div class="project-content">
+                        <div class="project-description">A comparison of scales for a few scifi ships and Halo. Earth for scale. The Halo ring is spinning at an appropriate rate to generate one earth gravity on the surface.</div>
+                        <a href="/scalecompare/scalecomparehi.html" class="project-link">VIEW</a>
+                        <a href="/scalecompare/scalecompareringworld.html" class="project-link">RINGWORLD</a>
+                    </div>
+                </div>
+                
+                <!-- N-body Gravity Sim -->
+                <div class="project-card">
+                    <div class="project-title">N-BODY GRAVITY SIM</div>
+                    <div class="project-image">
+                        <img src="/images/tiles/gravitytilebig.png" alt="N-body Gravity Sim">
+                    </div>
+                    <div class="project-content">
+                        <div class="project-description">General purpose computing on graphics processing units is pretty neat. At 16,000+ particles some pretty nice proto-galaxy stuff starts to appear.</div>
+                        <a href="/nbody/gravity.html#64" class="project-link">4,096 PARTICLES</a>
+                        <a href="/nbody/gravity.html#128" class="project-link">16,384 PARTICLES</a>
+                    </div>
+                </div>
+                
+                <!-- Point Cloud Terrain -->
+                <div class="project-card">
+                    <div class="project-title">POINT CLOUD TERRAIN</div>
+                    <div class="project-image">
+                        <img src="/images/tiles/pointcloudbig.png" alt="Point Cloud Terrain">
+                    </div>
+                    <div class="project-content">
+                        <div class="project-description">Using the power of point clouds to render terrain data. First attempt was Olympus Mons, tallest mountain in the solar system. So tall you could walk out of the Martian atmosphere!</div>
+                        <a href="/pointcloud/ncar.html#4" class="project-link">NCAR TRAILS</a>
+                        <a href="/pointcloud/olympus.html#8" class="project-link">OLYMPUS</a>
+                        <a href="/pointcloud/potree/ncar/" class="project-link">NCAR POTREE</a>
+                    </div>
+                </div>
+                
+                <!-- Orbit Trap Fractal -->
+                <div class="project-card">
+                    <div class="project-title">ORBIT TRAP FRACTAL</div>
+                    <div class="project-image">
+                        <img src="/images/tiles/orbittraptilebig.png" alt="Orbit Trap Fractal">
+                    </div>
+                    <div class="project-content">
+                        <div class="project-description">Construct your own fractal by tweaking a complicated, complex function. Like sand art but for grown ups.</div>
+                        <a href="/orbittrap/" class="project-link">EXPLORE</a>
+                    </div>
+                </div>
+                
+                <!-- About Section -->
+                <div class="about-section">
+                    <div class="about-title">PERSONNEL FILE</div>
+                    <div class="about-content">
+                        <p>Monogon.net is a playground for Daniel Martin to easily share things he has made. Daniel Martin is a thing for turning calories into triangles. Triangles are so nice because if you get enough of them to cooperate at the same time, you can do anything.</p>
+                        
+                        <p>More specifically he reads, writes, and doodles the following:<br>
+                        Typescript, Javascript, Node, Deno, irrespectively<br>
+                        SQL, I domain/datamodel the best, query super good, normalize to 3.5 without being told, put the indices where they will be unappreciated<br>
+                        C#, Python, Mathematica, Jupyter Notebooks<br>
+                        C++, Java, React, Angular, ThreeJS, WebGL<br>
+                        and I've put dynamic SVG manipulation with animated CSS to good use,<br>
+                        for protocols I've http'd, websocketed, webRTC'd, and socket.io'd<br>
+                        a little Yocto, AOSP, and a little bit of Linux kernel hacking, a little docker composition, a little terraform gardening<br>
+                        touched Rust<br>
+                        mermaaaaaaaid js, and lol even this page still has some jQuery in it<br>
+                        slide rule and compass<br>
+                        and, wherever possible, shaders to make computers do particular things. Preferably in parallel.</p>
+                        
+                        <div class="contact">
+                            <p>COMMUNICATION PROTOCOLS:</p>
+                            <h3>danny.craig.martin@gmail.com</h3>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
