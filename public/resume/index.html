@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daniel Martin - Resume</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --text-color: #2c3e50;
+            --light-bg: #f5f7fa;
+            --border-color: #e5e7eb;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            color: var(--text-color);
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+        
+        .contact-info {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+        
+        section {
+            margin-bottom: 2rem;
+        }
+        
+        h2 {
+            color: var(--secondary-color);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.3rem;
+            margin-bottom: 1rem;
+        }
+        
+        h3 {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .job-title {
+            font-weight: bold;
+        }
+        
+        .job-period {
+            font-weight: normal;
+            color: var(--secondary-color);
+        }
+        
+        .job-location {
+            font-style: italic;
+            margin-bottom: 0.5rem;
+        }
+        
+        ul {
+            list-style-type: square;
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .tech-tag {
+            background-color: var(--light-bg);
+            border-radius: 4px;
+            padding: 0.2rem 0.5rem;
+            margin: 0.2rem;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+        
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .skills-category {
+            margin-bottom: 1rem;
+        }
+        
+        .skills-category h4 {
+            margin-bottom: 0.5rem;
+        }
+        
+        .tag-list {
+            font-size: 0.6rem;
+            color: #999;
+            word-break: break-all;
+            margin-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Daniel Martin</h1>
+        <div class="contact-info">
+            <span>318-674-0437</span>
+            <span>danny.craig.martin@gmail.com</span>
+            <span>www.monogon.net</span>
+            <span>Denver, CO</span>
+        </div>
+    </header>
+    
+    <section>
+        <h2>Professional Summary</h2>
+        <p>Versatile software engineer with expertise spanning full-stack development, embedded systems, real-time communications, and data visualization. Proven track record of optimizing performance, solving complex technical problems, and translating business needs into robust technical solutions. Particularly skilled in graph-based problem solving, technical diagramming, and creating intuitive interfaces between people and technology.</p>
+    </section>
+    
+    <section>
+        <h2>Professional Experience</h2>
+        
+        <div class="job">
+            <h3><span class="job-title">Senior Software Engineer</span> <span class="job-period">2020-Present</span></h3>
+            <div class="job-location">Mersive Technologies</div>
+            <ul>
+                <li>Collaborated with a team to improve cloud database response times by replacing Hasura with a streamlined GraphQL implementation</li>
+                <li>Designed and implemented web-based features including "First Run Experience"</li>
+                <li>Integrated Solstice Routing functionality into cloud infrastructure</li>
+                <li>Built AOSP operating systems for embedded products and Yocto-based Linux distributions</li>
+                <li>Inherited and maintained multiple Expo WebRTC projects utilizing React Native and EAS</li>
+                <li>Worked with low-level systems including reading Rust and C++ codebases</li>
+            </ul>
+            <div>
+                <span class="tech-tag">GraphQL</span>
+                <span class="tech-tag">React</span>
+                <span class="tech-tag">WebRTC</span>
+                <span class="tech-tag">React Native</span>
+                <span class="tech-tag">Expo</span>
+                <span class="tech-tag">AOSP</span>
+                <span class="tech-tag">Yocto</span>
+                <span class="tech-tag">Linux</span>
+            </div>
+        </div>
+        
+        <div class="job">
+            <h3><span class="job-title">Software Engineer</span> <span class="job-period">2020</span></h3>
+            <div class="job-location">CoverMyMeds, Columbus, OH</div>
+            <ul>
+                <li>Contributed to a backend team supporting a service gateway used by dozens of internal services</li>
+                <li>Extended a GraphQL API endpoint to consolidate external services</li>
+                <li>Maintained a standalone application for patient cases using directed acyclic graph architecture</li>
+                <li>Successfully optimized client onboarding process by extending a configuration proof of concept</li>
+            </ul>
+            <div>
+                <span class="tech-tag">Ruby/Rails</span>
+                <span class="tech-tag">React</span>
+                <span class="tech-tag">PostgreSQL</span>
+                <span class="tech-tag">GraphQL</span>
+                <span class="tech-tag">MSSQL</span>
+            </div>
+        </div>
+        
+        <div class="job">
+            <h3><span class="job-title">Web Developer</span> <span class="job-period">2017-2020</span></h3>
+            <div class="job-location">Metasource, Denver, CO</div>
+            <ul>
+                <li>Improved application performance by 40-200% and increased maximum job load from 20,000 to 2 million</li>
+                <li>Interpreted business requirements and implemented new features while maintaining system stability</li>
+                <li>Restructured data models to improve scalability and performance</li>
+                <li>Maintained deployment pipelines and release management</li>
+            </ul>
+            <div>
+                <span class="tech-tag">Ruby/Rails</span>
+                <span class="tech-tag">Java</span>
+                <span class="tech-tag">Grails</span>
+                <span class="tech-tag">AngularJS</span>
+                <span class="tech-tag">Svelte</span>
+                <span class="tech-tag">MSSQL</span>
+                <span class="tech-tag">PostgreSQL</span>
+                <span class="tech-tag">Azure</span>
+            </div>
+        </div>
+        
+        <div class="job">
+            <h3><span class="job-title">QA Automation Engineer</span> <span class="job-period">2015-2017</span></h3>
+            <div class="job-location">Shasta QA, Shreveport, LA</div>
+            <ul>
+                <li>Developed automated test frameworks for mobile and web applications</li>
+                <li>Created internal tools using Node.js to improve testing workflows</li>
+                <li>Conducted thorough testing to ensure product quality</li>
+            </ul>
+            <div>
+                <span class="tech-tag">TestNG</span>
+                <span class="tech-tag">Selenium</span>
+                <span class="tech-tag">Java</span>
+                <span class="tech-tag">Node.js</span>
+                <span class="tech-tag">JIRA</span>
+            </div>
+        </div>
+        
+        <div class="job">
+            <h3><span class="job-title">Teacher</span> <span class="job-period">2009-2014</span></h3>
+            <div class="job-location">Southwood High School, Shreveport, LA</div>
+            <ul>
+                <li>Taught mathematics, programming, and sciences</li>
+                <li>Created interactive simulations in Mathematica to demonstrate complex concepts</li>
+                <li>Initiated an elective course in Mathematical Programming (Python)</li>
+            </ul>
+        </div>
+    </section>
+    
+    <section>
+        <h2>Technical Skills</h2>
+        
+        <div class="skills-grid">
+            <div class="skills-category">
+                <h4>Core Competencies</h4>
+                <ul>
+                    <li>Graph-based problem solving</li>
+                    <li>Database optimization and query analysis</li>
+                    <li>Technical diagramming and system architecture</li>
+                    <li>Performance optimization</li>
+                    <li>WebGL and GPU-based visualization</li>
+                    <li>Integrating language models into development workflows</li>
+                    <li>CI/CD practices with AI-assisted development</li>
+                </ul>
+            </div>
+            
+            <div class="skills-category">
+                <h4>Programming Languages</h4>
+                <ul>
+                    <li><strong>Advanced:</strong> JavaScript/TypeScript, Python, Node.js, WebGL</li>
+                    <li><strong>Proficient:</strong> Ruby/Rails, Java, GraphQL, C/C++, SQL</li>
+                    <li><strong>Familiar:</strong> Lua, Rust, Go</li>
+                </ul>
+            </div>
+            
+            <div class="skills-category">
+                <h4>Frameworks & Libraries</h4>
+                <ul>
+                    <li>React/React Native</li>
+                    <li>Expo, EAS</li>
+                    <li>WebRTC</li>
+                    <li>Ruby on Rails</li>
+                    <li>Grails</li>
+                </ul>
+            </div>
+            
+            <div class="skills-category">
+                <h4>Tools & Platforms</h4>
+                <ul>
+                    <li><strong>DevOps:</strong> Git, Docker, Kubernetes, Terraform</li>
+                    <li><strong>Cloud:</strong> Google Cloud Platform (GCP), AWS</li>
+                <li><strong>OS:</strong> Windows, macOS, Linux</li>
+                    <li><strong>Mobile:</strong> Android (AOSP)</li>
+                    <li><strong>Embedded:</strong> Yocto, Linux</li>
+                    <li><strong>Visualization:</strong> MermaidJS, Ilograph</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+    
+    <section>
+        <h2>Education</h2>
+        <h3><span>Bachelor of Education - Secondary Math and Physics</span> <span class="job-period">2009</span></h3>
+        <div class="job-location">Louisiana State University in Shreveport</div>
+        <p>Post-graduate work towards Masters in Liberal Arts and Sciences (Math and Physics emphasis)</p>
+    </section>
+    
+
+    
+    <div class="tag-list">
+        fullstack javascript typescript python ruby rails java graphql react reactnative node.js webgl glsl aws gcp google-cloud-platform kubernetes terraform docker ci/cd postgresql mysql mongodb nosql microservices restapi websockets webrtc mobile android embedded linux yocto git devops performance-optimization data-visualization system-architecture database-optimization erd sql-tuning query-analysis graph-algorithms technical-diagramming mermaidjs ilograph real-time-communications os-agnostic windows macos linux ai-assisted-development language-models agentic-workflows
+    </div>
+</body>
+</html>

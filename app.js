@@ -45,6 +45,8 @@ app.use((req, res, next) => { // expanded cert with  sudo certbot certonly --sta
 		} else {
 			next();
 		}
+	} else if (host.startsWith('resume.')) {
+		res.sendFile(path.join(__dirname, 'public/resume/index.html'));
 	} else {
 	  next();
 	}
