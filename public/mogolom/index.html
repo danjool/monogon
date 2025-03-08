@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOGOLOM - Monogon's Optimizing Golem of Layouts of Mermaid</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.8.0/dist/mermaid.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/mogolom.css">
+</head>
+<body>
+  <header>
+    <div class="title-container">
+      <h1><span class="big-letter">M</span>onogon's <span class="big-letter">O</span>ptimizing <span class="big-letter">G</span><span class="robot-icon">o</span>lem <span class="big-letter">O</span>f <span class="big-letter">L</span>ayouts <span class="big-letter">O</span>f <span class="big-letter">M</span>ermaid</h1>
+    </div>
+    <div class="header-controls">
+      <div class="examples-dropdown">
+        <button class="examples-btn header-btn">
+          <i class="fas fa-list"></i> Examples
+        </button>
+        <div class="examples-content" id="examples-list">
+          <!-- Example buttons will be inserted here -->
+        </div>
+      </div>
+      <button id="stop-btn" class="stop-btn header-btn">
+        <i class="fas fa-stop"></i> Stop Optimization
+      </button>
+      <button id="optimize-btn" class="optimize-btn header-btn">
+        <i class="fas fa-magic"></i> Optimize Layout
+      </button>
+    </div>
+  </header>
+  
+  <main>
+    <div class="split-pane">
+      <div class="pane left-pane">
+        <div class="code-container">
+          <textarea id="code-editor" class="code-editor" spellcheck="false"></textarea>
+        </div>
+      </div>
+      
+      <div class="resizer" id="resizer"></div>
+      
+      <div class="pane right-pane">
+        <div class="mermaid-container">
+          <div class="mermaid" id="diagram"></div>
+        </div>
+        
+        <div class="optimization-stats">
+          <div class="stat-card">
+            <h3>Score</h3>
+            <p id="score">N/A</p>
+            <div class="stat-details">
+              <span>Edge-Edge: <span id="edge-edge-count">0</span></span>
+              <span>Edge-Node: <span id="edge-node-count">0</span></span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <h3>Improvements Found</h3>
+            <p id="improvements-count">0</p>
+          </div>
+          <div class="stat-card">
+            <h3>Iterations</h3>
+            <p id="iterations-count">0</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <div class="overlay" id="completion-dialog">
+    <div class="dialog">
+      <h2>Optimization Complete!</h2>
+      <p>Found <span id="final-improvements">0</span> improvements.</p>
+      <p>Final score: <span id="final-score">0</span></p>
+      <button class="optimize-btn" onclick="document.getElementById('completion-dialog').style.display = 'none';">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <!-- Load scripts -->
+  <script src="js/svg-analyzer.js"></script>
+  <script src="js/syntax-swapper.js"></script>
+  <script src="js/example-manager.js"></script>
+  <script src="js/mogolom.js"></script>
+</body>
+</html> 
