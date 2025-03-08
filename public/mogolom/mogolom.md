@@ -69,3 +69,8 @@ MOGOLOM consists of several key components:
 ## Performance
 
 The optimization algorithm is efficient enough to handle complex diagrams with many nodes and edges. The number of iterations can be adjusted based on diagram complexity and desired optimization level.
+
+## Known flaws
+### Mermaid
+Mermaid doesn't actually support backwards arrows like <---
+<--- renders the same as a --- renders the same as ---> what a terrible default mermaid behavior!

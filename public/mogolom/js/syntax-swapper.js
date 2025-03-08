@@ -88,54 +88,24 @@ function generateVariation(code) {
   
   // 2. Only shuffle edges within the same subgraph, not across subgraphs
   if (mainEdges.length > 1) {
-    // Shuffle edges strategy (70% chance)
-    if (Math.random() < 0.7) {
-      const shuffleCount = 1 + Math.floor(Math.random() * 3); // Shuffle 1-3 edges
-      
-      for (let i = 0; i < shuffleCount; i++) {
-        // Pick two random edge lines from the main graph (outside subgraphs)
-        const idx1 = Math.floor(Math.random() * mainEdges.length);
-        let idx2 = Math.floor(Math.random() * mainEdges.length);
-        // Make sure idx2 is different from idx1
-        while (idx2 === idx1) {
-          idx2 = Math.floor(Math.random() * mainEdges.length);
-        }
-        
-        // Swap the lines
-        const temp = newLines[mainEdges[idx1]];
-        newLines[mainEdges[idx1]] = newLines[mainEdges[idx2]];
-        newLines[mainEdges[idx2]] = temp;
+    // Shuffle edges strategy (100% chance)
+    const shuffleCount = 1 + Math.floor(Math.random() * 3); // Shuffle 1-3 edges
+    
+    for (let i = 0; i < shuffleCount; i++) {
+      // Pick two random edge lines from the main graph (outside subgraphs)
+      const idx1 = Math.floor(Math.random() * mainEdges.length);
+      let idx2 = Math.floor(Math.random() * mainEdges.length);
+      // Make sure idx2 is different from idx1
+      while (idx2 === idx1) {
+        idx2 = Math.floor(Math.random() * mainEdges.length);
       }
-    } 
-    // Reverse edge direction strategy (30% chance)
-    else {
-      // Pick a random edge line
-      const lineIndex = mainEdges[Math.floor(Math.random() * mainEdges.length)];
-      const line = lines[lineIndex];
       
-      // Split the line at the arrow
-      if (line.includes('-->')) {
-        const parts = line.split('-->');
-        if (parts.length === 2) {
-          // Extract any label
-          let label = '';
-          let target = parts[1];
-          
-          if (parts[1].includes('|')) {
-            const labelParts = parts[1].split('|');
-            if (labelParts.length >= 3) {
-              label = `|${labelParts[1]}|`;
-              target = labelParts[2];
-            }
-          }
-          
-          // Get indentation
-          const indent = line.match(/^\s*/)[0];
-          
-          // Swap the parts
-          newLines[lineIndex] = `${indent}${target.trim()} -->${label} ${parts[0].trim()}`;
-        }
-      }
+      // Swap the lines
+      const temp = newLines[mainEdges[idx1]];
+      newLines[mainEdges[idx1]] = newLines[mainEdges[idx2]];
+      newLines[mainEdges[idx2]] = temp;
+    
+    
     }
   }
   
