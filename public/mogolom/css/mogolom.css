@@ -328,6 +328,12 @@ main {
   padding: 0.75rem;
   text-align: center;
   min-width: 120px;
+  transition: all 0.3s ease;
+}
+
+.stat-card.success {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 8px rgba(255, 107, 235, 0.3);
 }
 
 .stat-card h3 {

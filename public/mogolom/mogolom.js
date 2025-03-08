@@ -21,9 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const edgeEdgeCount = document.getElementById('edge-edge-count');
   const edgeNodeCount = document.getElementById('edge-node-count');
   const improvementsCount = document.getElementById('improvements-count');
-  const finalImprovements = document.getElementById('final-improvements');
-  const finalScore = document.getElementById('final-score');
-  const completionDialog = document.getElementById('completion-dialog');
   
   // State
   let isOptimizing = false;
@@ -238,10 +235,16 @@ document.addEventListener('DOMContentLoaded', () => {
     statusText.textContent = 'Optimization complete';
     progressBar.style.width = '100%';
     
-    // Show completion dialog
-    finalImprovements.textContent = improvementsFound;
-    finalScore.textContent = bestScore;
-    completionDialog.style.display = 'flex';
+    // Add success styling to stat cards
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach(card => {
+      card.classList.add('success');
+      
+      // Remove success class after 5 seconds
+      setTimeout(() => {
+        card.classList.remove('success');
+      }, 5000);
+    });
   }
   
   function stopOptimization() {
