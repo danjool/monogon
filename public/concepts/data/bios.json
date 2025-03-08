@@ -1179,9 +1179,14 @@
     {"id": "Hayy ibn Yaqdhan", "type": "book", "time": 1169},
     {"id": "Robinson Crusoe", "type": "book", "time": 1719},
     {"id": "An Experiment with Time Borges review", "type": "review", "time": 1940},
-    {"id": "An Experiment with Time Nagel review", "type": "review", "time": 1936}
+    {"id": "An Experiment with Time Nagel review", "type": "review", "time": 1936},
+	{"id": "The Art of the Problem", "type": "youtube", "time": 2012},
+	{"id": "How AI Took Over The World", "type": "video", "time": 2025, "url": "https://www.youtube.com/watch?v=SN4Z95pvg0Y"}
+
 
 ],"links":[
+	{"source": "The Art of the Problem", "target": "How AI Took Over The World", "relation": "created"},
+	{"source": "How AI Took Over The World", "target": "Funes the Memorious", "relation": "summarizes"},
 	{"source": "George Dyson", "target": "The Universal Library - Dyson article", "relation": "wrote"},
 	{"source": "The Universal Library - Dyson article", "target": "Thomas Hobbes", "relation": "references"},
 	{"source": "The Universal Library - Dyson article", "target": "John Wilkins", "relation": "references"},
