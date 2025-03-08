@@ -272,6 +272,12 @@ function optimizeDiagram() {
           
           // Mark intersections
           markIntersections(svgElement, edgeIntersections, nodeIntersections);
+          
+          // Auto-stop if score reaches zero
+          if (totalScore === 0) {
+            completeOptimization();
+            return;
+          }
         }
       }
       
