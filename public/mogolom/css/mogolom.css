@@ -230,6 +230,9 @@ main {
   cursor: pointer;
   transition: background-color 0.2s;
   align-self: center;
+  display: inline-block;
+  margin: 0 0.25rem;
+  vertical-align: middle;
 }
 
 .optimize-btn:hover {
@@ -239,6 +242,23 @@ main {
 .optimize-btn:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+}
+
+/* Pulse animation for the optimize button */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+  }
+}
+
+.pulse-until-click {
+  animation: pulse 1.5s infinite;
 }
 
 .stop-btn {

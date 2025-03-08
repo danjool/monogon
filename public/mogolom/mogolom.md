@@ -1,10 +1,10 @@
-# MOGOLOM - Monogon's Optimizing Golem of Layouts of Mermaid
+# MOGOLOM - Monogon's Optimize Golem of Layouts of Mermaid
 
 MOGOLOM is an advanced tool for optimizing the visual layout of Mermaid.js diagrams by reducing edge crossings and improving overall readability while preserving the semantic meaning of your diagrams.
 
 ## What is MOGOLOM?
 
-MOGOLOM (Monogon's Optimizing Golem of Layouts of Mermaid) is a specialized tool that automatically improves the visual clarity of Mermaid.js flowcharts by:
+MOGOLOM (Monogon's Optimize Golem of Layouts of Mermaid) is a specialized tool that automatically improves the visual clarity of Mermaid.js flowcharts by:
 
 - Reducing edge-to-edge intersections (where lines cross each other)
 - Minimizing edge-to-node intersections (where lines pass through nodes)

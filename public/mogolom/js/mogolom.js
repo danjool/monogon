@@ -180,6 +180,9 @@ function startOptimization() {
     return;
   }
   
+  // Remove pulse animation on first click
+  optimizeBtn.classList.remove('pulse-until-click');
+  
   isOptimizing = true;
   currentIteration = 0;
   maxIterations = 2000;
