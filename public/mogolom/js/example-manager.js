@@ -4,6 +4,51 @@
 // Collection of example diagrams
 const exampleDiagrams = [
   {
+    id: 'mogolom-demo',
+    name: 'MOGOLOM Demo',
+    description: 'A demo of MOGOLOM',
+    code: `flowchart RL
+    subgraph LayoutEngine["Layout Engine"]
+        parser
+        elk["ELK.js"]
+    end
+    HardToReadDiagram["Hard to Read<br>SVG Diagram"]
+    ClearDiagram["Clear<br>SVG Diagram"]
+    BadOutcome["😱 Bad Outcome<br>Confusion & Misunderstanding"]
+    GoodOutcome["😊 Good Outcome<br>Clarity & Insight"]
+    LayoutEngine --> HardToReadDiagram
+    Parser  --> LayoutEngine
+    OriginalCode --> Parser
+    HardToReadDiagram --> BadOutcome
+    subgraph "MOGOLOM Optimization"
+        EdgeAnalysis["Edge Crossing<br>Analysis"]
+        NodeAnalysis["Node Intersection<br>Analysis"]
+        ranking["Arbitrary Ranking<"]
+        smaller{"smaller"}
+    end
+    HardToReadDiagram --> EdgeAnalysis
+    HardToReadDiagram --> NodeAnalysis
+    ranking --> smaller
+    NodeAnalysis --> ranking
+    EdgeAnalysis --> ranking
+    smaller --> ImprovedCode
+    ClearDiagram --> GoodOutcome
+    LayoutEngine --> ClearDiagram
+    ImprovedCode --> Parser
+
+    %% Main flow components
+    OriginalCode["Original Mermaid<br>Syntax Code"]
+    ImprovedCode["Improved Mermaid<br>Syntax Code"]
+    Parser["Parser"]
+
+    User -->|paste|OriginalCode
+    ImprovedCode -->|copy|User
+    BadOutcome --> User
+    GoodOutcome --> User
+    
+    `
+  },
+  {
     id: 'vector-space',
     name: 'Vector Space Concepts',
     description: 'A diagram showing relationships between vector space concepts',
