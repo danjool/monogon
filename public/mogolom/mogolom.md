@@ -74,3 +74,4 @@ The optimization algorithm is efficient enough to handle complex diagrams with m
 ### Mermaid
 Mermaid doesn't actually support backwards arrows like <---
 <--- renders the same as a --- renders the same as ---> what a terrible default mermaid behavior!
+Because I did not know this at first, I implemented this optimization as if <--- would allow a novel layout, which it does, and maintain semantic integrity, which it doesn't.
