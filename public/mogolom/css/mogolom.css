@@ -60,7 +60,7 @@ header {
 
 .title-container h1 {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 1.2rem;
   font-weight: normal;
 }
 
@@ -213,7 +213,7 @@ main {
   border: 1px solid var(--border-color);
   border-radius: 4px;
   resize: none;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   line-height: 1.5;
   margin-bottom: 1rem;
   overflow: auto;
