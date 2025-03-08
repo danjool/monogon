@@ -24,7 +24,7 @@ const exampleDiagrams = [
         EdgeAnalysis["Edge Crossing<br>Analysis"]
         NodeAnalysis["Node Intersection<br>Analysis"]
         ranking["Arbitrary Ranking<"]
-        smaller{"smaller"}
+        smaller{"smaller?"}
     end
     HardToReadDiagram --> EdgeAnalysis
     HardToReadDiagram --> NodeAnalysis

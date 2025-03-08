@@ -219,8 +219,27 @@ function optimizeDiagram() {
   currentIteration++;
   iterationsCount.textContent = currentIteration;
   
-  // Generate a variation
-  const variation = window.SyntaxSwapper.generateVariation(currentCode);
+  // Get problematic edges from previous iteration if available
+  let problematicEdges = [];
+  if (currentIteration > 1) {
+    const svgElement = diagram.querySelector('svg');
+    if (svgElement) {
+      const edgeIntersections = window.SVGAnalyzer.findEdgeEdgeIntersections(svgElement);
+      const nodeIntersections = window.SVGAnalyzer.findEdgeNodeIntersections(svgElement);
+      
+      // Extract edge identifiers from intersections
+      problematicEdges = [
+        ...edgeIntersections.flatMap(int => {
+          const paths = int.paths || [];
+          return paths.map(p => p.id || '').filter(id => id);
+        }),
+        ...nodeIntersections.map(int => int.path?.id || '').filter(id => id)
+      ];
+    }
+  }
+  
+  // Generate a variation with problematic edges info
+  const variation = window.SyntaxSwapper.generateVariation(currentCode, problematicEdges);
   
   // Create a temporary container for rendering
   const tempContainer = document.createElement('div');

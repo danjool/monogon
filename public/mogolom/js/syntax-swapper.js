@@ -76,7 +76,7 @@ function parseFlowchart(code) {
 }
 
 // Generate a variation of the diagram by permuting elements within their respective scopes
-function generateVariation(code) {
+function generateVariation(code, problematicEdges = []) {
   const parsedData = parseFlowchart(code);
   const lines = code.split('\n');
   const newLines = [...lines];
@@ -85,14 +85,43 @@ function generateVariation(code) {
   const mainEdges = parsedData.mainNodes
     .filter(node => node.isEdge)
     .map(node => node.lineIndex);
-  
   // 2. Only shuffle edges within the same subgraph, not across subgraphs
   if (mainEdges.length > 1) {
     // Shuffle edges strategy (100% chance)
     const shuffleCount = 1 + Math.floor(Math.random() * 3); // Shuffle 1-3 edges
     
     for (let i = 0; i < shuffleCount; i++) {
-      // Pick two random edge lines from the main graph (outside subgraphs)
+      // 50% chance to prioritize problematic edges if available
+      if (problematicEdges.length > 0 && Math.random() < .6) {
+        // Pick a random problematic edge
+        const problemIdx = Math.floor(Math.random() * problematicEdges.length);
+        const problemEdge = problematicEdges[problemIdx];
+        
+        // Find a matching edge in mainEdges if possible
+        const matchingEdges = mainEdges.filter(idx => {
+          const line = lines[idx].trim();
+          return line.includes(problemEdge);
+        });
+        
+        if (matchingEdges.length > 0) {
+          // Pick a random matching edge and a random other edge
+          const idx1 = matchingEdges[Math.floor(Math.random() * matchingEdges.length)];
+          let idx2 = mainEdges[Math.floor(Math.random() * mainEdges.length)];
+          
+          // Make sure idx2 is different from idx1
+          while (mainEdges.indexOf(idx1) === mainEdges.indexOf(idx2)) {
+            idx2 = mainEdges[Math.floor(Math.random() * mainEdges.length)];
+          }
+          
+          // Swap the lines
+          const temp = newLines[idx1];
+          newLines[idx1] = newLines[idx2];
+          newLines[idx2] = temp;
+          continue;
+        }
+      }
+      
+      // Default random swap if no problematic edges or 50% of the time
       const idx1 = Math.floor(Math.random() * mainEdges.length);
       let idx2 = Math.floor(Math.random() * mainEdges.length);
       // Make sure idx2 is different from idx1
@@ -104,8 +133,6 @@ function generateVariation(code) {
       const temp = newLines[mainEdges[idx1]];
       newLines[mainEdges[idx1]] = newLines[mainEdges[idx2]];
       newLines[mainEdges[idx2]] = temp;
-    
-    
     }
   }
   
