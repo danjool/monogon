@@ -8,69 +8,21 @@ const exampleDiagrams = [
     name: 'Mogolom Example',
     description: 'A simple ER diagram',
     code: `erDiagram
+    MOGOLOMOptimizer ||--o{ MermaidCode : "produces improved"    
+    NodeAnalysis ||--|| ScoreCalculation : "contributes to"
     User ||--o{ MermaidCode : "creates/pastes"
     MermaidCode ||--|| Parser : "processed by"
+    Outcome ||--|| Diagram : "leads to" 
     Parser ||--|| LayoutEngine : "uses"
     LayoutEngine ||--o{ Diagram : "generates"
-    Diagram ||--|| Outcome : "leads to"
     Outcome }|--|| User : "experienced by"
-    
-    MermaidCode {
-        string content
-        date createdAt
-    }
-    
-    Parser {
-        string version
-    }
-    
-    LayoutEngine {
-        string algorithm
-    }
-    
-    Diagram {
-        string svgContent
-        int complexity
-    }
-    
-    Outcome {
-        string type
-        string description
-    }
-    
     MermaidCode ||--o{ MOGOLOMOptimizer : "input to"
     Diagram ||--o{ MOGOLOMOptimizer : "analyzed by"
-    MOGOLOMOptimizer ||--o{ MermaidCode : "produces improved"
-    
-    MOGOLOMOptimizer {
-        int iterations
-        float score
-    }
-    
     MOGOLOMOptimizer ||--|| EdgeAnalysis : "performs"
     MOGOLOMOptimizer ||--|| NodeAnalysis : "performs"
-    EdgeAnalysis ||--|| ScoreCalculation : "contributes to"
-    NodeAnalysis ||--|| ScoreCalculation : "contributes to"
-    ScoreCalculation ||--|| Variation : "evaluates"
+    Variation ||--|| ScoreCalculation : "evaluates"
     Variation ||--o{ MermaidCode : "becomes"
-    
-    EdgeAnalysis {
-        int crossingCount
-    }
-    
-    NodeAnalysis {
-        int intersectionCount
-    }
-    
-    ScoreCalculation {
-        float totalScore
-        float weight
-    }
-    
-    Variation {
-        string type
-        int attemptNumber
-    }`
+    EdgeAnalysis ||--|| ScoreCalculation : "contributes to"`
   },
   {
     id: 'order-example',

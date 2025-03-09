@@ -94,10 +94,29 @@ function renderDiagram() {
           svgElement.setAttribute('viewBox', `0 0 ${width} ${height}`);
         }
         
-        // Add responsive styling
+        // Add responsive styling for ER diagrams
         svgElement.style.width = '100%';
-        svgElement.style.minWidth = '300px';
         svgElement.style.height = 'auto';
+        svgElement.style.maxHeight = '100%';
+        svgElement.style.display = 'block';
+        svgElement.style.margin = '0 auto';
+        
+        // Add padding to ensure diagram is fully visible
+        const containerWidth = diagram.clientWidth;
+        const containerHeight = diagram.clientHeight;
+        const svgBBox = svgElement.getBBox();
+        
+        // Calculate appropriate padding
+        const paddingX = Math.max(20, containerWidth * 0.05);
+        const paddingY = Math.max(20, containerHeight * 0.05);
+        
+        // Update viewBox to include padding
+        const viewBox = `${svgBBox.x - paddingX} ${svgBBox.y - paddingY} ${svgBBox.width + (paddingX * 2)} ${svgBBox.height + (paddingY * 2)}`;
+        svgElement.setAttribute('viewBox', viewBox);
+        
+        // Ensure the container has appropriate sizing
+        diagram.style.height = '100%';
+        diagram.style.overflow = 'hidden';
       }
       
       analyzeDiagram();
@@ -279,11 +298,33 @@ function optimizeDiagram() {
           // Ensure SVG is properly sized
           const displayedSvg = diagram.querySelector('svg');
           if (displayedSvg) {
+            // Remove fixed dimensions
             displayedSvg.removeAttribute('width');
             displayedSvg.removeAttribute('height');
+            
+            // Add responsive styling for ER diagrams
             displayedSvg.style.width = '100%';
-            displayedSvg.style.minWidth = '300px';
             displayedSvg.style.height = 'auto';
+            displayedSvg.style.maxHeight = '100%';
+            displayedSvg.style.display = 'block';
+            displayedSvg.style.margin = '0 auto';
+            
+            // Add padding to ensure diagram is fully visible
+            const containerWidth = diagram.clientWidth;
+            const containerHeight = diagram.clientHeight;
+            const svgBBox = displayedSvg.getBBox();
+            
+            // Calculate appropriate padding
+            const paddingX = Math.max(20, containerWidth * 0.05);
+            const paddingY = Math.max(20, containerHeight * 0.05);
+            
+            // Update viewBox to include padding
+            const viewBox = `${svgBBox.x - paddingX} ${svgBBox.y - paddingY} ${svgBBox.width + (paddingX * 2)} ${svgBBox.height + (paddingY * 2)}`;
+            displayedSvg.setAttribute('viewBox', viewBox);
+            
+            // Ensure the container has appropriate sizing
+            diagram.style.height = '100%';
+            diagram.style.overflow = 'hidden';
           }
           
           // Mark intersections
