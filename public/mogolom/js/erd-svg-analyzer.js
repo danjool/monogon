@@ -63,46 +63,42 @@ function findEdgeEdgeIntersections(svg) {
 function findEdgeNodeIntersections(svg) {
   if (!svg) return [];
   
-  // Get all path elements (edges)
-  const paths = Array.from(svg.querySelectorAll('path'));
-  const relationshipPaths = paths.filter(path => 
-    path.classList.contains('er') || 
-    path.classList.contains('relationshipLine') || 
-    (path.hasAttribute('class') && path.getAttribute('class').includes('er')) ||
-    (path.hasAttribute('class') && path.getAttribute('class').includes('relation'))
-  );
+  // Get all relationship paths
+  const relationshipPaths = Array.from(svg.querySelectorAll('path.er.relationshipLine, path.relationshipLine, path[class*="er"]'));
   
-  // ONLY get entity rectangles - nothing else
-  // This is the most direct way to ensure we're only checking against entity boxes
-  const entityRects = Array.from(svg.querySelectorAll('rect.er.entityBox, rect.entityBox'));
+  // Get all entity groups
+  const entityGroups = Array.from(svg.querySelectorAll('g[id^="entity-"]'));
   
   const intersections = [];
   
-  // Check each path against each entity rect
+  // For each path, check intersections with each entity
   for (const path of relationshipPaths) {
-    const pathData = path.getAttribute('d') || '';
-    const segments = parseSVGPath(pathData);
+    // Get the entities this path connects (should be 2 for a relationship)
+    const connectedEntityIds = getConnectedEntityIds(path);
     
-    for (const rect of entityRects) {
-      // Skip if this rect is connected to the path (it's supposed to connect to it)
-      if (isRectConnectedToPath(rect, path)) {
+    // Convert path to absolute coordinates
+    const pathSegments = getAbsolutePathSegments(path);
+    
+    // Check each entity for intersections
+    for (const entityGroup of entityGroups) {
+      // Skip if this entity is one of the connected entities
+      const entityId = entityGroup.id;
+      if (connectedEntityIds.includes(entityId)) {
         continue;
       }
       
-      // Get rect dimensions
-      const rx = parseFloat(rect.getAttribute('x') || 0);
-      const ry = parseFloat(rect.getAttribute('y') || 0);
-      const rw = parseFloat(rect.getAttribute('width') || 0);
-      const rh = parseFloat(rect.getAttribute('height') || 0);
+      // Get the entity's rectangle
+      const entityRect = entityGroup.querySelector('rect');
+      if (!entityRect) continue;
       
-      // Check if any segment intersects with the rect
-      let foundIntersection = false;
-      for (const segment of segments) {
-        if (foundIntersection) break;
-        
-        const intersection = lineRectIntersection(
+      // Get entity rect in absolute coordinates
+      const absoluteRect = getAbsoluteRectCoordinates(entityRect, entityGroup);
+      
+      // Check for intersections between path segments and entity rect
+      for (const segment of pathSegments) {
+        const intersection = checkLineRectIntersection(
           segment.x1, segment.y1, segment.x2, segment.y2,
-          rx, ry, rw, rh
+          absoluteRect.x, absoluteRect.y, absoluteRect.width, absoluteRect.height
         );
         
         if (intersection) {
@@ -110,11 +106,11 @@ function findEdgeNodeIntersections(svg) {
             type: 'edge-node',
             point: intersection,
             path: path,
-            node: rect
+            node: entityGroup
           });
           
-          // Break early to avoid counting multiple intersections between the same path and rect
-          foundIntersection = true;
+          // Only count one intersection per entity-path pair
+          break;
         }
       }
     }
@@ -123,60 +119,158 @@ function findEdgeNodeIntersections(svg) {
   return intersections;
 }
 
-// Helper function to check if a rect is connected to a path
-function isRectConnectedToPath(rect, path) {
-  // Get rect dimensions and center
-  const rx = parseFloat(rect.getAttribute('x') || 0);
-  const ry = parseFloat(rect.getAttribute('y') || 0);
-  const rw = parseFloat(rect.getAttribute('width') || 0);
-  const rh = parseFloat(rect.getAttribute('height') || 0);
+// Get the IDs of entities connected by a relationship path
+function getConnectedEntityIds(path) {
+  // Try to extract entity IDs from the path's ID or class
+  const pathId = path.id || '';
+  const pathClass = path.getAttribute('class') || '';
   
-  const rectCenter = {
-    x: rx + rw / 2,
-    y: ry + rh / 2
-  };
+  // In Mermaid ER diagrams, relationship paths often have IDs or classes that include the connected entity IDs
+  // Example: "path-Entity1-Entity2" or similar patterns
   
-  // Get path endpoints
-  const pathData = path.getAttribute('d') || '';
-  const segments = parseSVGPath(pathData);
+  // First, try to extract from data attributes if available
+  const sourceId = path.getAttribute('data-source-entity');
+  const targetId = path.getAttribute('data-target-entity');
   
-  if (segments.length === 0) return false;
+  if (sourceId && targetId) {
+    return [`entity-${sourceId}`, `entity-${targetId}`];
+  }
   
-  // Check first segment start point
+  // If data attributes aren't available, we need to analyze the path geometry
+  // Get the start and end points of the path
+  const d = path.getAttribute('d') || '';
+  const segments = parseSVGPath(d);
+  
+  if (segments.length === 0) return [];
+  
   const startPoint = { x: segments[0].x1, y: segments[0].y1 };
-  
-  // Check last segment end point
   const lastSegment = segments[segments.length - 1];
   const endPoint = { x: lastSegment.x2, y: lastSegment.y2 };
   
-  // Check if either endpoint is near the rect
-  const proximityThreshold = 15; // pixels
+  // Find entities near these points
+  const connectedIds = [];
   
-  // Check if point is near rect border
-  const isPointNearRect = (point) => {
-    // Check if point is inside rect
-    if (point.x >= rx && point.x <= rx + rw && 
-        point.y >= ry && point.y <= ry + rh) {
-      return true;
+  // Get all entity groups
+  const entityGroups = Array.from(path.ownerSVGElement.querySelectorAll('g[id^="entity-"]'));
+  
+  for (const group of entityGroups) {
+    const rect = group.querySelector('rect');
+    if (!rect) continue;
+    
+    // Get absolute coordinates of the rect
+    const absoluteRect = getAbsoluteRectCoordinates(rect, group);
+    
+    // Check if start or end point is near this entity
+    const expandedRect = {
+      x: absoluteRect.x - 10,
+      y: absoluteRect.y - 10,
+      width: absoluteRect.width + 20,
+      height: absoluteRect.height + 20
+    };
+    
+    if (isPointInRect(startPoint, expandedRect) || isPointInRect(endPoint, expandedRect)) {
+      connectedIds.push(group.id);
     }
-    
-    // Check if point is near rect border
-    const isNearHorizontalBorder = 
-      (Math.abs(point.y - ry) <= proximityThreshold || 
-       Math.abs(point.y - (ry + rh)) <= proximityThreshold) &&
-      (point.x >= rx - proximityThreshold && 
-       point.x <= rx + rw + proximityThreshold);
-    
-    const isNearVerticalBorder = 
-      (Math.abs(point.x - rx) <= proximityThreshold || 
-       Math.abs(point.x - (rx + rw)) <= proximityThreshold) &&
-      (point.y >= ry - proximityThreshold && 
-       point.y <= ry + rh + proximityThreshold);
-    
-    return isNearHorizontalBorder || isNearVerticalBorder;
-  };
+  }
   
-  return isPointNearRect(startPoint) || isPointNearRect(endPoint);
+  return connectedIds;
+}
+
+// Convert path segments to absolute coordinates
+function getAbsolutePathSegments(path) {
+  const d = path.getAttribute('d') || '';
+  const segments = parseSVGPath(d);
+  
+  // For SVG paths, the coordinates are already in the SVG coordinate system
+  // No additional transformation needed for paths
+  return segments;
+}
+
+// Get absolute coordinates for a rectangle, accounting for transforms
+function getAbsoluteRectCoordinates(rect, parentGroup) {
+  // Get basic rect attributes
+  const x = parseFloat(rect.getAttribute('x') || 0);
+  const y = parseFloat(rect.getAttribute('y') || 0);
+  const width = parseFloat(rect.getAttribute('width') || 0);
+  const height = parseFloat(rect.getAttribute('height') || 0);
+  
+  // Get transform from parent group
+  const transform = parentGroup.getAttribute('transform') || '';
+  const translateMatch = transform.match(/translate\(([^,]+),([^)]+)/);
+  
+  if (translateMatch) {
+    const tx = parseFloat(translateMatch[1]);
+    const ty = parseFloat(translateMatch[2]);
+    
+    return {
+      x: x + tx,
+      y: y + ty,
+      width: width,
+      height: height
+    };
+  }
+  
+  return { x, y, width, height };
+}
+
+// Check if a line segment intersects with a rectangle
+function checkLineRectIntersection(x1, y1, x2, y2, rx, ry, rw, rh) {
+  // First, check if either endpoint is inside the rectangle
+  if (isPointInRect({ x: x1, y: y1 }, { x: rx, y: ry, width: rw, height: rh }) ||
+      isPointInRect({ x: x2, y: y2 }, { x: rx, y: ry, width: rw, height: rh })) {
+    return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 }; // Return midpoint as intersection
+  }
+  
+  // Check intersection with each edge of the rectangle
+  const edges = [
+    { x1: rx, y1: ry, x2: rx + rw, y2: ry },           // top
+    { x1: rx + rw, y1: ry, x2: rx + rw, y2: ry + rh }, // right
+    { x1: rx, y1: ry + rh, x2: rx + rw, y2: ry + rh }, // bottom
+    { x1: rx, y1: ry, x2: rx, y2: ry + rh }            // left
+  ];
+  
+  for (const edge of edges) {
+    const intersection = findIntersection(
+      x1, y1, x2, y2,
+      edge.x1, edge.y1, edge.x2, edge.y2
+    );
+    
+    if (intersection) {
+      return intersection;
+    }
+  }
+  
+  return null;
+}
+
+// Check if a point is inside a rectangle
+function isPointInRect(point, rect) {
+  return point.x >= rect.x && 
+         point.x <= rect.x + rect.width && 
+         point.y >= rect.y && 
+         point.y <= rect.y + rect.height;
+}
+
+// Find intersection between two line segments
+function findIntersection(x1, y1, x2, y2, x3, y3, x4, y4) {
+  // Calculate the denominator
+  const denominator = ((y4 - y3) * (x2 - x1)) - ((x4 - x3) * (y2 - y1));
+  
+  // If denominator is 0, lines are parallel
+  if (denominator === 0) return null;
+  
+  // Calculate the parameters
+  const ua = (((x4 - x3) * (y1 - y3)) - ((y4 - y3) * (x1 - x3))) / denominator;
+  const ub = (((x2 - x1) * (y1 - y3)) - ((y2 - y1) * (x1 - x3))) / denominator;
+  
+  // Check if the intersection is within both line segments
+  if (ua < 0 || ua > 1 || ub < 0 || ub > 1) return null;
+  
+  // Calculate the intersection point
+  const x = x1 + (ua * (x2 - x1));
+  const y = y1 + (ua * (y2 - y1));
+  
+  return { x, y };
 }
 
 // Parse SVG path data into line segments
@@ -400,50 +494,6 @@ function parseSVGPath(pathData) {
   }
   
   return segments;
-}
-
-// Find intersection between two line segments
-function findIntersection(x1, y1, x2, y2, x3, y3, x4, y4) {
-  // Calculate the denominator
-  const denominator = ((y4 - y3) * (x2 - x1)) - ((x4 - x3) * (y2 - y1));
-  
-  // If denominator is 0, lines are parallel
-  if (denominator === 0) return null;
-  
-  // Calculate the parameters
-  const ua = (((x4 - x3) * (y1 - y3)) - ((y4 - y3) * (x1 - x3))) / denominator;
-  const ub = (((x2 - x1) * (y1 - y3)) - ((y2 - y1) * (x1 - x3))) / denominator;
-  
-  // Check if the intersection is within both line segments
-  if (ua < 0 || ua > 1 || ub < 0 || ub > 1) return null;
-  
-  // Calculate the intersection point
-  const x = x1 + (ua * (x2 - x1));
-  const y = y1 + (ua * (y2 - y1));
-  
-  return { x, y };
-}
-
-// Find intersection between a line segment and a rectangle
-function lineRectIntersection(x1, y1, x2, y2, rx, ry, rw, rh) {
-  // Check if either endpoint is inside the rectangle
-  if (pointInRect(x1, y1, rx, ry, rw, rh) || pointInRect(x2, y2, rx, ry, rw, rh)) {
-    return null; // Endpoints inside rectangle are not considered intersections
-  }
-  
-  // Check intersection with each edge of the rectangle
-  const top = findIntersection(x1, y1, x2, y2, rx, ry, rx + rw, ry);
-  const right = findIntersection(x1, y1, x2, y2, rx + rw, ry, rx + rw, ry + rh);
-  const bottom = findIntersection(x1, y1, x2, y2, rx, ry + rh, rx + rw, ry + rh);
-  const left = findIntersection(x1, y1, x2, y2, rx, ry, rx, ry + rh);
-  
-  // Return the first intersection found
-  return top || right || bottom || left;
-}
-
-// Check if a point is inside a rectangle
-function pointInRect(x, y, rx, ry, rw, rh) {
-  return x >= rx && x <= rx + rw && y >= ry && y <= ry + rh;
 }
 
 // Export functions for use in other modules
