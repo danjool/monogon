@@ -188,6 +188,20 @@ function markIntersections(svg, edgeIntersections, nodeIntersections) {
   } else {
     svg.appendChild(intersectionGroup);
   }
+  
+  // Add a counter text to show the number of intersections
+  const totalIntersections = edgeIntersections.length + nodeIntersections.length;
+  if (totalIntersections > 0) {
+    const counterText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    const svgBBox = svg.getBBox();
+    counterText.setAttribute("x", svgBBox.x + svgBBox.width - 10);
+    counterText.setAttribute("y", svgBBox.y + 20);
+    counterText.setAttribute("text-anchor", "end");
+    counterText.setAttribute("font-size", "12px");
+    counterText.setAttribute("fill", "#333");
+    counterText.textContent = `Intersections: ${totalIntersections}`;
+    intersectionGroup.appendChild(counterText);
+  }
 }
 
 function startOptimization() {
@@ -325,15 +339,27 @@ function optimizeDiagram() {
             // Ensure the container has appropriate sizing
             diagram.style.height = '100%';
             diagram.style.overflow = 'hidden';
+            
+            // Mark intersections on the displayed SVG, not the temporary one
+            markIntersections(displayedSvg, edgeIntersections, nodeIntersections);
           }
-          
-          // Mark intersections
-          markIntersections(svgElement, edgeIntersections, nodeIntersections);
           
           // Auto-stop if score reaches zero
           if (totalScore === 0) {
             completeOptimization();
             return;
+          }
+        } else {
+          // Even if we didn't find an improvement, update the intersection markers
+          // on the current diagram to show the user what's being evaluated
+          const displayedSvg = diagram.querySelector('svg');
+          if (displayedSvg) {
+            // Get the current intersections from the displayed diagram
+            const currentEdgeIntersections = window.SVGAnalyzer.findEdgeEdgeIntersections(displayedSvg);
+            const currentNodeIntersections = window.SVGAnalyzer.findEdgeNodeIntersections(displayedSvg);
+            
+            // Mark the current intersections
+            markIntersections(displayedSvg, currentEdgeIntersections, currentNodeIntersections);
           }
         }
       }
