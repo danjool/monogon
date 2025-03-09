@@ -14,6 +14,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      position: relative; /* Added for proper positioning */
+      touch-action: none; /* Prevent browser handling of touch events */
+      user-select: none; /* Prevent text selection during drag */
     }
     
     .mermaid {
@@ -22,6 +25,20 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: visible; /* Allow content to overflow for panning */
+    }
+    
+    /* Ensure SVG can be transformed */
+    .mermaid svg {
+      transform-origin: 0 0;
+      max-width: none !important; /* Override any max-width constraints */
+      max-height: none !important; /* Override any max-height constraints */
+    }
+    
+    /* Override any fixed dimensions that might be set by Mermaid */
+    .mermaid svg[width], .mermaid svg[height] {
+      width: auto !important;
+      height: auto !important;
     }
     
     /* Ensure ER diagram entities are properly styled */
@@ -44,6 +61,21 @@
     .right-pane {
       display: flex;
       flex-direction: column;
+    }
+    
+    /* Zoom controls indicator */
+    .zoom-controls-indicator {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #333;
+      pointer-events: none; /* Don't interfere with mouse events */
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     }
   </style>
 </head>
@@ -80,6 +112,9 @@
       <div class="pane right-pane">
         <div class="mermaid-container">
           <div class="mermaid" id="diagram"></div>
+          <div class="zoom-controls-indicator">
+            <i class="fas fa-mouse"></i> Drag to pan | Scroll to zoom | Double-click to reset
+          </div>
         </div>
         
         <div class="optimization-stats">
@@ -109,5 +144,6 @@
   <script src="js/erd-syntax-swapper.js"></script>
   <script src="js/erd-example-manager.js"></script>
   <script src="js/erd-optimizer.js"></script>
+  <script src="js/erd-pan-zoom.js"></script>
 </body>
 </html> 

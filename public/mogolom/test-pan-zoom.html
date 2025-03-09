@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pan Zoom Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.8.0/dist/mermaid.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+    
+    .container {
+      width: 800px;
+      height: 500px;
+      border: 2px solid #ccc;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      touch-action: none;
+      user-select: none;
+    }
+    
+    .mermaid {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .controls {
+      margin-top: 20px;
+      text-align: center;
+    }
+    
+    button {
+      padding: 8px 16px;
+      margin: 0 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pan and Zoom Test</h1>
+  
+  <div class="container" id="container">
+    <div class="mermaid" id="diagram">
+      erDiagram
+        CUSTOMER ||--o{ ORDER : places
+        ORDER ||--|{ LINE-ITEM : contains
+        CUSTOMER }|..|{ DELIVERY-ADDRESS : uses
+    </div>
+  </div>
+  
+  <div class="controls">
+    <button id="reset-btn">Reset View</button>
+    <button id="render-btn">Re-render Diagram</button>
+  </div>
+  
+  <script>
+    // Initialize Mermaid
+    mermaid.initialize({ 
+      startOnLoad: true,
+      securityLevel: 'loose',
+      er: {
+        useMaxWidth: false,
+        diagramPadding: 20
+      }
+    });
+    
+    // Wait for DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      // Simple Pan and Zoom functionality
+      const container = document.getElementById('container');
+      let svgElement = null;
+      
+      // Find SVG after Mermaid renders
+      function findSvg() {
+        svgElement = document.querySelector('.mermaid svg');
+        if (svgElement) {
+          setupPanZoom();
+        } else {
+          // If not found, try again in a moment
+          setTimeout(findSvg, 100);
+        }
+      }
+      
+      // Start looking for SVG
+      findSvg();
+      
+      // Setup pan and zoom
+      function setupPanZoom() {
+        console.log('Setting up pan-zoom for SVG:', svgElement);
+        
+        // State variables
+        let isDragging = false;
+        let lastX = 0;
+        let lastY = 0;
+        let translateX = 0;
+        let translateY = 0;
+        let scale = 1;
+        
+        // Make sure the SVG can be transformed
+        svgElement.style.transformOrigin = '0 0';
+        
+        // Set cursor style
+        container.style.cursor = 'grab';
+        
+        // Apply transform
+        function applyTransform() {
+          svgElement.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        }
+        
+        // Mouse wheel zoom
+        container.addEventListener('wheel', function(e) {
+          e.preventDefault();
+          
+          // Determine zoom direction
+          const delta = e.deltaY < 0 ? 0.1 : -0.1;
+          const newScale = Math.max(0.1, Math.min(5, scale + delta));
+          
+          // Get mouse position relative to container
+          const rect = container.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+          
+          // Calculate new position to zoom at mouse point
+          if (newScale !== scale) {
+            // Calculate mouse position relative to current transform
+            const mouseRelativeX = (mouseX - translateX) / scale;
+            const mouseRelativeY = (mouseY - translateY) / scale;
+            
+            // Calculate new position
+            translateX = mouseX - mouseRelativeX * newScale;
+            translateY = mouseY - mouseRelativeY * newScale;
+            
+            scale = newScale;
+            applyTransform();
+          }
+        }, { passive: false });
+        
+        // Mouse drag panning
+        container.addEventListener('mousedown', function(e) {
+          if (e.button === 0) { // Left mouse button
+            isDragging = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+            container.style.cursor = 'grabbing';
+            e.preventDefault();
+          }
+        });
+        
+        document.addEventListener('mousemove', function(e) {
+          if (isDragging) {
+            const dx = e.clientX - lastX;
+            const dy = e.clientY - lastY;
+            
+            translateX += dx;
+            translateY += dy;
+            
+            lastX = e.clientX;
+            lastY = e.clientY;
+            
+            applyTransform();
+            e.preventDefault();
+          }
+        });
+        
+        document.addEventListener('mouseup', function() {
+          if (isDragging) {
+            isDragging = false;
+            container.style.cursor = 'grab';
+          }
+        });
+        
+        // Reset button
+        document.getElementById('reset-btn').addEventListener('click', function() {
+          scale = 1;
+          translateX = 0;
+          translateY = 0;
+          applyTransform();
+        });
+        
+        // Re-render button
+        document.getElementById('render-btn').addEventListener('click', function() {
+          // Reset transform before re-rendering
+          scale = 1;
+          translateX = 0;
+          translateY = 0;
+          applyTransform();
+          
+          // Re-render the diagram
+          const diagramElement = document.getElementById('diagram');
+          mermaid.render('rendered-diagram', diagramElement.textContent.trim())
+            .then(({ svg }) => {
+              diagramElement.innerHTML = svg;
+              svgElement = document.querySelector('.mermaid svg');
+              setupPanZoom(); // Re-setup pan-zoom
+            });
+        });
+        
+        // Apply initial transform
+        applyTransform();
+      }
+    });
+  </script>
+</body>
+</html> 
