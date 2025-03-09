@@ -63,60 +63,46 @@ function findEdgeEdgeIntersections(svg) {
 function findEdgeNodeIntersections(svg) {
   if (!svg) return [];
   
-  // Get all path elements (edges) - specifically target ER diagram relationship lines
-  const paths = Array.from(svg.querySelectorAll('path')).filter(path => 
+  // Get all path elements (edges)
+  const paths = Array.from(svg.querySelectorAll('path'));
+  const relationshipPaths = paths.filter(path => 
     path.classList.contains('er') || 
     path.classList.contains('relationshipLine') || 
     (path.hasAttribute('class') && path.getAttribute('class').includes('er')) ||
-    // Additional selectors for Mermaid ER diagram relationship lines
     (path.hasAttribute('class') && path.getAttribute('class').includes('relation'))
   );
   
-  // Skip paths that are part of markers or arrowheads
-  const filteredPaths = paths.filter(path => {
-    const parent = path.parentElement;
-    return !(parent && (
-      parent.tagName.toLowerCase() === 'marker' || 
-      (parent.hasAttribute('class') && parent.getAttribute('class').includes('marker'))
-    ));
-  });
-  
-  // Get all node elements - in ER diagrams, these are typically rect or g.er.entityBox elements
-  const nodes = Array.from(svg.querySelectorAll('.er.entityBox, .er.attributeBox, rect.er, .entityBox, .entity'));
+  // ONLY get entity rectangles - nothing else
+  // This is the most direct way to ensure we're only checking against entity boxes
+  const entityRects = Array.from(svg.querySelectorAll('rect.er.entityBox, rect.entityBox'));
   
   const intersections = [];
   
-  // Check each path against each node
-  for (const path of filteredPaths) {
+  // Check each path against each entity rect
+  for (const path of relationshipPaths) {
     const pathData = path.getAttribute('d') || '';
     const segments = parseSVGPath(pathData);
     
-    // Find the entities this path connects
-    const connectedEntities = findConnectedEntities(path, svg);
-    
-    for (const node of nodes) {
-      // Skip if this node is one of the entities the path is supposed to connect
-      if (connectedEntities.includes(node)) {
+    for (const rect of entityRects) {
+      // Skip if this rect is connected to the path (it's supposed to connect to it)
+      if (isRectConnectedToPath(rect, path)) {
         continue;
       }
       
-      // Get node bounding box
-      const nodeBBox = node.getBBox();
-      const nodeRect = {
-        x: nodeBBox.x,
-        y: nodeBBox.y,
-        width: nodeBBox.width,
-        height: nodeBBox.height
-      };
+      // Get rect dimensions
+      const rx = parseFloat(rect.getAttribute('x') || 0);
+      const ry = parseFloat(rect.getAttribute('y') || 0);
+      const rw = parseFloat(rect.getAttribute('width') || 0);
+      const rh = parseFloat(rect.getAttribute('height') || 0);
       
-      // Check if any segment intersects with the node
+      // Check if any segment intersects with the rect
       let foundIntersection = false;
       for (const segment of segments) {
         if (foundIntersection) break;
         
         const intersection = lineRectIntersection(
           segment.x1, segment.y1, segment.x2, segment.y2,
-          nodeRect.x, nodeRect.y, nodeRect.width, nodeRect.height
+          rx, ry, rw, rh
         );
         
         if (intersection) {
@@ -124,10 +110,10 @@ function findEdgeNodeIntersections(svg) {
             type: 'edge-node',
             point: intersection,
             path: path,
-            node: node
+            node: rect
           });
           
-          // Break early to avoid counting multiple intersections between the same path and node
+          // Break early to avoid counting multiple intersections between the same path and rect
           foundIntersection = true;
         }
       }
@@ -137,54 +123,60 @@ function findEdgeNodeIntersections(svg) {
   return intersections;
 }
 
-// Helper function to find entities connected by a path
-function findConnectedEntities(path, svg) {
-  const connectedEntities = [];
+// Helper function to check if a rect is connected to a path
+function isRectConnectedToPath(rect, path) {
+  // Get rect dimensions and center
+  const rx = parseFloat(rect.getAttribute('x') || 0);
+  const ry = parseFloat(rect.getAttribute('y') || 0);
+  const rw = parseFloat(rect.getAttribute('width') || 0);
+  const rh = parseFloat(rect.getAttribute('height') || 0);
   
-  // Get all entity nodes
-  const entities = Array.from(svg.querySelectorAll('.er.entityBox, .entityBox, .entity'));
+  const rectCenter = {
+    x: rx + rw / 2,
+    y: ry + rh / 2
+  };
   
-  // For each entity, check if the path starts or ends near it
-  for (const entity of entities) {
-    const entityBBox = entity.getBBox();
-    const entityCenter = {
-      x: entityBBox.x + entityBBox.width / 2,
-      y: entityBBox.y + entityBBox.height / 2
-    };
-    
-    // Get path endpoints
-    const pathData = path.getAttribute('d') || '';
-    const segments = parseSVGPath(pathData);
-    
-    if (segments.length > 0) {
-      // Check first segment start point
-      const startPoint = { x: segments[0].x1, y: segments[0].y1 };
-      const distanceToStart = Math.sqrt(
-        Math.pow(entityCenter.x - startPoint.x, 2) + 
-        Math.pow(entityCenter.y - startPoint.y, 2)
-      );
-      
-      // Check last segment end point
-      const lastSegment = segments[segments.length - 1];
-      const endPoint = { x: lastSegment.x2, y: lastSegment.y2 };
-      const distanceToEnd = Math.sqrt(
-        Math.pow(entityCenter.x - endPoint.x, 2) + 
-        Math.pow(entityCenter.y - endPoint.y, 2)
-      );
-      
-      // If either endpoint is close to the entity center or within the entity bounds,
-      // consider this entity connected to the path
-      const proximityThreshold = Math.max(entityBBox.width, entityBBox.height) / 2 + 10; // Add some margin
-      
-      if (distanceToStart < proximityThreshold || distanceToEnd < proximityThreshold ||
-          pointInRect(startPoint.x, startPoint.y, entityBBox.x, entityBBox.y, entityBBox.width, entityBBox.height) ||
-          pointInRect(endPoint.x, endPoint.y, entityBBox.x, entityBBox.y, entityBBox.width, entityBBox.height)) {
-        connectedEntities.push(entity);
-      }
+  // Get path endpoints
+  const pathData = path.getAttribute('d') || '';
+  const segments = parseSVGPath(pathData);
+  
+  if (segments.length === 0) return false;
+  
+  // Check first segment start point
+  const startPoint = { x: segments[0].x1, y: segments[0].y1 };
+  
+  // Check last segment end point
+  const lastSegment = segments[segments.length - 1];
+  const endPoint = { x: lastSegment.x2, y: lastSegment.y2 };
+  
+  // Check if either endpoint is near the rect
+  const proximityThreshold = 15; // pixels
+  
+  // Check if point is near rect border
+  const isPointNearRect = (point) => {
+    // Check if point is inside rect
+    if (point.x >= rx && point.x <= rx + rw && 
+        point.y >= ry && point.y <= ry + rh) {
+      return true;
     }
-  }
+    
+    // Check if point is near rect border
+    const isNearHorizontalBorder = 
+      (Math.abs(point.y - ry) <= proximityThreshold || 
+       Math.abs(point.y - (ry + rh)) <= proximityThreshold) &&
+      (point.x >= rx - proximityThreshold && 
+       point.x <= rx + rw + proximityThreshold);
+    
+    const isNearVerticalBorder = 
+      (Math.abs(point.x - rx) <= proximityThreshold || 
+       Math.abs(point.x - (rx + rw)) <= proximityThreshold) &&
+      (point.y >= ry - proximityThreshold && 
+       point.y <= ry + rh + proximityThreshold);
+    
+    return isNearHorizontalBorder || isNearVerticalBorder;
+  };
   
-  return connectedEntities;
+  return isPointNearRect(startPoint) || isPointNearRect(endPoint);
 }
 
 // Parse SVG path data into line segments
@@ -457,5 +449,16 @@ function pointInRect(x, y, rx, ry, rw, rh) {
 // Export functions for use in other modules
 window.SVGAnalyzer = {
   findEdgeEdgeIntersections,
-  findEdgeNodeIntersections
+  findEdgeNodeIntersections,
+  calculateDiagramScore: function(svg) {
+    const edgeIntersections = findEdgeEdgeIntersections(svg);
+    const nodeIntersections = findEdgeNodeIntersections(svg);
+    const edgeEdgeWeight = 10;
+    const edgeNodeWeight = 1;
+    return {
+      edgeEdgeCount: edgeIntersections.length,
+      edgeNodeCount: nodeIntersections.length,
+      totalScore: edgeIntersections.length * edgeEdgeWeight + nodeIntersections.length * edgeNodeWeight
+    };
+  }
 }; 
