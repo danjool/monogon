@@ -21,10 +21,11 @@ function parseERDiagram(code) {
       continue;
     }
     
-    // Check for entity block start
-    if (line.match(/\w+\s*{/)) {
+    // Check for entity block start - match only the entity name without relationship syntax
+    const entityMatch = line.match(/^(\w+[\w-]*)\s*{/);
+    if (entityMatch) {
       inEntityBlock = true;
-      currentEntity = line.split('{')[0].trim();
+      currentEntity = entityMatch[1];
       result.entities[currentEntity] = {
         startLine: i,
         attributes: [],
@@ -91,7 +92,7 @@ function parseERDiagram(code) {
       }
     }
   }
-  
+  console.log('ERD structure:', result);
   return result;
 }
 
@@ -190,6 +191,7 @@ function generateVariation(code, problematicEdges = []) {
         relationship.content.trim(),
         reversedRelationship
       );
+      console.log('Reversed relationship:', reversedRelationship);
     }
   }
   
