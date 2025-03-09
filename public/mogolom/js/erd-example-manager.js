@@ -25,6 +25,99 @@ const exampleDiagrams = [
     EdgeAnalysis ||--|| ScoreCalculation : "contributes to"`
   },
   {
+    id: 'erd-mogolom-bonkers',
+    name: 'Mogolom Bonkers',
+    description: 'A bonkers ER diagram',
+    code: `erDiagram
+    User ||--o{ Project : "manages"
+    User ||--o{ MermaidCode : "authors"
+    User ||--o{ OptimizationSession : "initiates"
+    User }|--o{ SharedTemplate : "accesses"
+    
+    Project ||--o{ MermaidCode : "contains"
+    Project ||--o{ OptimizationHistory : "tracks"
+    Project ||--o{ SharedTemplate : "exports to"
+    
+    MermaidCode ||--|| SyntaxType : "classified as"
+    MermaidCode ||--o{ MermaidVersion : "compatible with"
+    MermaidCode ||--|| Parser : "validated by"
+    MermaidCode ||--o{ OptimizationSession : "input to"
+    MermaidCode ||--o{ Diagram : "renders as"
+    MermaidCode ||--o{ Snapshot : "saved as"
+    
+    Parser ||--|| LayoutEngine : "feeds into"
+    Parser ||--o{ SyntaxError : "may produce"
+    SyntaxError }|--|| User : "notified to"
+    
+    LayoutEngine ||--o{ RenderingEngine : "configures"
+    LayoutEngine ||--|| ELKAlgorithm : "implements"
+    LayoutEngine ||--o{ LayoutConstraint : "respects"
+    LayoutEngine ||--o{ Diagram : "generates"
+    
+    Diagram ||--o{ DiagramMetrics : "measured by"
+    Diagram ||--|| OptimizationSession : "analyzed in"
+    Diagram ||--o{ IntersectionPoint : "contains"
+    Diagram ||--|| SVGElement : "composed of"
+    
+    IntersectionPoint ||--|| IntersectionType : "classified as"
+    IntersectionPoint ||--o{ OptimizationScore : "contributes to"
+    
+    OptimizationSession ||--|| MOGOLOMOptimizer : "executes"
+    OptimizationSession ||--o{ OptimizationHistory : "recorded in"
+    OptimizationSession ||--o{ OptimizationIteration : "consists of"
+    OptimizationSession ||--|| OptimizationSettings : "configured by"
+    
+    OptimizationSettings ||--o{ WeightParameter : "includes"
+    OptimizationSettings ||--|| IterationLimit : "defines"
+    OptimizationSettings ||--|| OptimizationStrategy : "selects"
+    
+    MOGOLOMOptimizer ||--|| EdgeAnalysis : "performs"
+    MOGOLOMOptimizer ||--|| NodeAnalysis : "performs"
+    MOGOLOMOptimizer ||--|| SyntaxVariationGenerator : "utilizes"
+    MOGOLOMOptimizer ||--o{ MermaidCode : "produces improved"
+    
+    SyntaxVariationGenerator ||--o{ SubgraphAnalyzer : "employs"
+    SyntaxVariationGenerator ||--o{ EdgePermutation : "creates"
+    SyntaxVariationGenerator ||--o{ DirectionInverter : "applies"
+    SyntaxVariationGenerator ||--o{ MermaidCode : "outputs"
+    
+    EdgeAnalysis ||--o{ IntersectionPoint : "detects"
+    EdgeAnalysis ||--o{ SVGPath : "examines"
+    EdgeAnalysis ||--|| ScoreCalculation : "informs"
+    
+    NodeAnalysis ||--o{ IntersectionPoint : "detects"
+    NodeAnalysis ||--o{ SVGElement : "examines"
+    NodeAnalysis ||--|| ScoreCalculation : "informs"
+    
+    ScoreCalculation ||--o{ OptimizationScore : "produces"
+    ScoreCalculation ||--o{ WeightParameter : "uses"
+    ScoreCalculation ||--|| OptimizationIteration : "evaluates"
+    
+    OptimizationIteration ||--|| MermaidCode : "tests"
+    OptimizationIteration ||--o{ OptimizationScore : "receives"
+    OptimizationIteration ||--|| ComparisonResult : "yields"
+    
+    ComparisonResult ||--|| MermaidCode : "may select"
+    
+    OptimizationHistory ||--o{ Snapshot : "contains"
+    OptimizationHistory ||--o{ MetricTrend : "reveals"
+    
+    Snapshot ||--|| MermaidCode : "preserves"
+    Snapshot ||--|| OptimizationScore : "records"
+    Snapshot ||--|| Timestamp : "taken at"
+    
+    MetricTrend ||--|| TrendAnalysis : "subject to"
+    TrendAnalysis ||--o{ OptimizationStrategy : "informs"
+    
+    SVGElement ||--o{ SVGPath : "includes"
+    SVGElement ||--o{ SVGNode : "includes"
+    
+    DiagramMetrics ||--o{ Readability : "quantifies"
+    DiagramMetrics ||--o{ Complexity : "measures"
+    DiagramMetrics ||--o{ Aesthetics : "evaluates"
+    `
+  },
+  {
     id: 'order-example',
     name: 'Order Example',
     description: 'A simple order system ER diagram',

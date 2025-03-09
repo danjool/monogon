@@ -92,7 +92,7 @@ function parseERDiagram(code) {
       }
     }
   }
-  console.log('ERD structure:', result);
+//   console.log('ERD structure:', result);
   return result;
 }
 
@@ -191,7 +191,6 @@ function generateVariation(code, problematicEdges = []) {
         relationship.content.trim(),
         reversedRelationship
       );
-      console.log('Reversed relationship:', reversedRelationship);
     }
   }
   
