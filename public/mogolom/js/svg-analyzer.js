@@ -6,6 +6,7 @@ function findEdgeEdgeIntersections(svg) {
   const paths = Array.from(svg.querySelectorAll('path'));
   const flowchartPaths = paths.filter(path => 
     path.classList.contains('flowchart-link') || 
+    path.classList.contains('flowchart') || 
     (path.hasAttribute('class') && path.getAttribute('class').includes('flowchart'))
   );
   
@@ -16,9 +17,6 @@ function findEdgeEdgeIntersections(svg) {
     for (let j = i + 1; j < flowchartPaths.length; j++) {
       const path1 = flowchartPaths[i];
       const path2 = flowchartPaths[j];
-      
-      const path1Id = path1.id || `path-${i}`;
-      const path2Id = path2.id || `path-${j}`;
       
       const path1Data = path1.getAttribute('d');
       const path2Data = path2.getAttribute('d');
@@ -65,6 +63,7 @@ function findEdgeNodeIntersections(svg) {
   // Get all path elements (edges)
   const paths = Array.from(svg.querySelectorAll('path')).filter(path => 
     path.classList.contains('flowchart-link') || 
+    path.classList.contains('flowchart') || 
     (path.hasAttribute('class') && path.getAttribute('class').includes('flowchart'))
   );
   
@@ -168,32 +167,10 @@ function findEdgeNodeIntersections(svg) {
         );
         if (segmentLength < 5) continue;
         
-        // Check intersections with the four sides of the node rectangle
-        const intersectLeft = findIntersection(
+        const intersection = checkLineRectIntersection(
           segment.x1, segment.y1, segment.x2, segment.y2,
-          nodeRect.x, nodeRect.y, nodeRect.x, nodeRect.y + nodeRect.height
+          nodeRect.x, nodeRect.y, nodeRect.width, nodeRect.height
         );
-        
-        const intersectRight = findIntersection(
-          segment.x1, segment.y1, segment.x2, segment.y2,
-          nodeRect.x + nodeRect.width, nodeRect.y, 
-          nodeRect.x + nodeRect.width, nodeRect.y + nodeRect.height
-        );
-        
-        const intersectTop = findIntersection(
-          segment.x1, segment.y1, segment.x2, segment.y2,
-          nodeRect.x, nodeRect.y, 
-          nodeRect.x + nodeRect.width, nodeRect.y
-        );
-        
-        const intersectBottom = findIntersection(
-          segment.x1, segment.y1, segment.x2, segment.y2,
-          nodeRect.x, nodeRect.y + nodeRect.height, 
-          nodeRect.x + nodeRect.width, nodeRect.y + nodeRect.height
-        );
-        
-        // Use the first intersection found
-        const intersection = intersectLeft || intersectRight || intersectTop || intersectBottom;
         
         if (intersection) {
           intersections.push({
@@ -401,14 +378,52 @@ function findIntersection(x1, y1, x2, y2, x3, y3, x4, y4) {
   return null;
 }
 
+// Check if a line segment intersects with a rectangle
+function checkLineRectIntersection(x1, y1, x2, y2, rx, ry, rw, rh) {
+  // First, check if either endpoint is inside the rectangle
+  if (isPointInRect({ x: x1, y: y1 }, { x: rx, y: ry, width: rw, height: rh }) ||
+      isPointInRect({ x: x2, y: y2 }, { x: rx, y: ry, width: rw, height: rh })) {
+    return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 }; // Return midpoint as intersection
+  }
+  
+  // Check intersection with each edge of the rectangle
+  const edges = [
+    { x1: rx, y1: ry, x2: rx + rw, y2: ry },           // top
+    { x1: rx + rw, y1: ry, x2: rx + rw, y2: ry + rh }, // right
+    { x1: rx, y1: ry + rh, x2: rx + rw, y2: ry + rh }, // bottom
+    { x1: rx, y1: ry, x2: rx, y2: ry + rh }            // left
+  ];
+  
+  for (const edge of edges) {
+    const intersection = findIntersection(
+      x1, y1, x2, y2,
+      edge.x1, edge.y1, edge.x2, edge.y2
+    );
+    
+    if (intersection) {
+      return intersection;
+    }
+  }
+  
+  return null;
+}
+
+// Check if a point is inside a rectangle
+function isPointInRect(point, rect) {
+  return point.x >= rect.x && 
+         point.x <= rect.x + rect.width && 
+         point.y >= rect.y && 
+         point.y <= rect.y + rect.height;
+}
+
 // Calculate the score for a diagram based on intersections
 function calculateDiagramScore(svg) {
   if (!svg) return { edgeIntersections: [], nodeIntersections: [], totalScore: Infinity };
   
   const edgeIntersections = findEdgeEdgeIntersections(svg);
   const nodeIntersections = findEdgeNodeIntersections(svg);
-  const edgeEdgeWeight = parseFloat(document.getElementById('edge-edge-weight').value) || 10;
-  const edgeNodeWeight = parseFloat(document.getElementById('edge-node-weight').value) || 1;
+  const edgeEdgeWeight = parseFloat(document.getElementById('edge-edge-weight')?.value) || 10;
+  const edgeNodeWeight = parseFloat(document.getElementById('edge-node-weight')?.value) || 1;
   
   const totalScore = edgeIntersections.length * edgeEdgeWeight + 
     nodeIntersections.length * edgeNodeWeight;
