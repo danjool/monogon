@@ -7,7 +7,7 @@ function findEdgeEdgeIntersections(svg) {
     // Check style attribute for stroke-width: 0
     const style = path.getAttribute('style') || '';
     if (style.includes('stroke-width: 0')) {
-      console.log('Found invisible edge (stroke-width: 0):', path.getAttribute('id'), path.getAttribute('class'));
+      
       return true;
     }
     
@@ -16,13 +16,13 @@ function findEdgeEdgeIntersections(svg) {
     const pathId = path.getAttribute('id') || '';
     const pathClass = path.getAttribute('class') || '';
     if (pathData.includes('~~~') || pathId.includes('~~~') || pathClass.includes('~~~')) {
-      console.log('Found invisible edge (~~~):', path.getAttribute('id'), path.getAttribute('class'));
+      
       return true;
     }
     
     // Check for other invisibility indicators
     if (style.includes('visibility: hidden') || style.includes('display: none')) {
-      console.log('Found invisible edge (hidden/none):', path.getAttribute('id'), path.getAttribute('class'));
+      
       return true;
     }
     
@@ -31,7 +31,7 @@ function findEdgeEdgeIntersections(svg) {
     if (computedStyle.strokeWidth === '0px' || 
         computedStyle.visibility === 'hidden' || 
         computedStyle.display === 'none') {
-      console.log('Found invisible edge (computed style):', path.getAttribute('id'), path.getAttribute('class'));
+      
       return true;
     }
     
@@ -102,7 +102,7 @@ function findEdgeNodeIntersections(svg) {
     // Check style attribute for stroke-width: 0
     const style = path.getAttribute('style') || '';
     if (style.includes('stroke-width: 0')) {
-      console.log('Found invisible edge (stroke-width: 0):', path.getAttribute('id'), path.getAttribute('class'));
+      
       return true;
     }
     
@@ -111,13 +111,13 @@ function findEdgeNodeIntersections(svg) {
     const pathId = path.getAttribute('id') || '';
     const pathClass = path.getAttribute('class') || '';
     if (pathData.includes('~~~') || pathId.includes('~~~') || pathClass.includes('~~~')) {
-      console.log('Found invisible edge (~~~):', path.getAttribute('id'), path.getAttribute('class'));
+      
       return true;
     }
     
     // Check for other invisibility indicators
     if (style.includes('visibility: hidden') || style.includes('display: none')) {
-      console.log('Found invisible edge (hidden/none):', path.getAttribute('id'), path.getAttribute('class'));
+      
       return true;
     }
     
@@ -126,7 +126,7 @@ function findEdgeNodeIntersections(svg) {
     if (computedStyle.strokeWidth === '0px' || 
         computedStyle.visibility === 'hidden' || 
         computedStyle.display === 'none') {
-      console.log('Found invisible edge (computed style):', path.getAttribute('id'), path.getAttribute('class'));
+      
       return true;
     }
     
@@ -509,9 +509,82 @@ function calculateDiagramScore(svg) {
   };
 }
 
+// Collects comprehensive diagram metrics
+function collectDiagramMetrics(svg) {
+  if (!svg) return null;
+  
+  // Get diagram dimensions
+  const width = parseFloat(svg.getAttribute('width') || (svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.width : 0));
+  const height = parseFloat(svg.getAttribute('height') || (svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.height : 0));
+  
+  // Count nodes (rect, circle, etc.)
+  const nodes = svg.querySelectorAll('rect, circle, ellipse, polygon, path.node');
+  const nodeCount = nodes.length;
+  
+  // Get all paths that represent edges
+  const allPaths = Array.from(svg.querySelectorAll('path')).filter(path => {
+    // Filter out paths that are part of markers or nodes
+    return !path.classList.contains('node') && 
+           !path.closest('marker') &&
+           !path.classList.contains('edge-edge-marker') &&
+           !path.classList.contains('edge-node-marker');
+  });
+  
+  // Count normal edges
+  const visibleEdges = allPaths.filter(path => {
+    return !path.getAttribute('stroke-dasharray') || 
+           !path.getAttribute('stroke-dasharray').includes('0');
+  });
+  
+  // Count invisible edges (~~~)
+  const invisibleEdges = allPaths.filter(path => {
+    return path.getAttribute('stroke-dasharray') && 
+           path.getAttribute('stroke-dasharray').includes('0');
+  });
+  
+  // Calculate total length of all edge paths
+  let totalPathLength = 0;
+  const pathLengths = [];
+  
+  allPaths.forEach(path => {
+    const length = path.getTotalLength ? path.getTotalLength() : 0;
+    totalPathLength += length;
+    
+    if (length > 0) {
+      pathLengths.push({
+        id: path.id || '',
+        length: length,
+        path: path
+      });
+    }
+  });
+  
+  // Sort paths by length (descending)
+  pathLengths.sort((a, b) => b.length - a.length);
+  
+  // Take top 5 longest paths
+  const longestPaths = pathLengths.slice(0, 5);
+  
+  return {
+    dimensions: { width, height, area: width * height },
+    nodes: nodeCount,
+    edges: {
+      total: allPaths.length,
+      visible: visibleEdges.length,
+      invisible: invisibleEdges.length
+    },
+    pathLengths: {
+      total: totalPathLength,
+      average: allPaths.length ? totalPathLength / allPaths.length : 0,
+      longest: longestPaths
+    }
+  };
+}
+
 // Export functions for use in other modules
 window.SVGAnalyzer = {
   findEdgeEdgeIntersections,
   findEdgeNodeIntersections,
-  calculateDiagramScore
+  calculateDiagramScore,
+  collectDiagramMetrics
 }; 

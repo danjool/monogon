@@ -1,14 +1,26 @@
 // Functions for scrambling edge positions
-function scrambleEdges(tree, problematicEdges) {
+function scrambleEdges(tree, problematicEdges, longestPaths = []) {
   if (tree.edges.length <= 1) return tree;
 
   const shuffleCount = 1 + Math.floor(Math.random() * 3);
   
+  // Combine problematic edges and longest paths with different priorities
+  const priorityEdges = [...problematicEdges];
+  
+  // Add longest paths with lower priority (by adding them fewer times)
+  if (longestPaths.length) {
+    longestPaths.forEach(path => {
+      if (Math.random() < 0.7) { // 70% chance to include each long path
+        priorityEdges.push(path);
+      }
+    });
+  }
+  
   for (let i = 0; i < shuffleCount; i++) {
-    if (problematicEdges.length && Math.random() < 0.6) {
-      // Prioritize problematic edges
-      const problemEdge = problematicEdges[Math.floor(Math.random() * problematicEdges.length)];
-      const matchingEdges = tree.edges.filter(e => e.raw.includes(problemEdge));
+    if (priorityEdges.length && Math.random() < 0.6) {
+      // Prioritize problematic or long edges
+      const priorityEdge = priorityEdges[Math.floor(Math.random() * priorityEdges.length)];
+      const matchingEdges = tree.edges.filter(e => e.raw.includes(priorityEdge));
       
       if (matchingEdges.length) {
         const edge1 = matchingEdges[Math.floor(Math.random() * matchingEdges.length)];

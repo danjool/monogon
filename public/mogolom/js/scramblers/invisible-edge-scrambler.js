@@ -26,12 +26,15 @@ function findNodesFromProblematicEdges(edges, problematicEdges) {
   return nodePairs;
 }
 
-function addInvisibleEdges(tree, problematicEdges = []) {
+function addInvisibleEdges(tree, problematicEdges = [], longestPaths = []) {
   const allNodes = collectAllNodes(tree);
   const existingCombos = new Set();
   
-  // First try to add invisible edges between problematic nodes
-  const problematicPairs = findNodesFromProblematicEdges(tree.edges, problematicEdges);
+  // Create a combined priority list with both problematic edges and longest paths
+  const priorityEdges = [...new Set([...problematicEdges, ...longestPaths])];
+  
+  // First try to add invisible edges between problematic or long nodes
+  const problematicPairs = findNodesFromProblematicEdges(tree.edges, priorityEdges);
   
   if (problematicPairs.length && Math.random() < 0.6) {
     // Pick a random problematic edge and create an invisible edge from target to source
@@ -52,8 +55,16 @@ function addInvisibleEdges(tree, problematicEdges = []) {
     }
   }
   
+  // Adaptive decision based on current invisible edge count
+  // If we already have many invisible edges (>20% of total), reduce chance of adding more
+  const invisibleEdgeCount = tree.edges.filter(e => e.raw.includes('~~~')).length;
+  const totalEdgeCount = tree.edges.length;
+  const invisibleRatio = totalEdgeCount > 0 ? invisibleEdgeCount / totalEdgeCount : 0;
+  
+  const addRandomChance = Math.max(0.3 - (invisibleRatio * 0.5), 0.05);
+  
   // Then maybe add some random invisible edges
-  if (Math.random() < 0.3 && allNodes.length > 1) {
+  if (Math.random() < addRandomChance && allNodes.length > 1) {
     const numToAdd = 1 + Math.floor(Math.random() * 2);
     
     for (let i = 0; i < numToAdd; i++) {

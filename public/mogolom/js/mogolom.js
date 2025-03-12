@@ -129,9 +129,16 @@ function analyzeDiagram() {
   const edgeNodeWeight = 1;
   const totalScore = edgeIntersections.length * edgeEdgeWeight + nodeIntersections.length * edgeNodeWeight;
   
+  // Collect additional metrics
+  const metrics = window.SVGAnalyzer.collectDiagramMetrics(svg);
+  
+  // Update UI with metrics
   scoreDisplay.textContent = totalScore;
   edgeEdgeCount.textContent = edgeIntersections.length;
   edgeNodeCount.textContent = nodeIntersections.length;
+  
+  // Store metrics for use in optimization
+  window.currentDiagramMetrics = metrics;
   
   // Mark intersections on the SVG
   markIntersections(svg, edgeIntersections, nodeIntersections);
@@ -234,6 +241,9 @@ function optimizeDiagram() {
   
   // Get problematic edges from previous iteration if available
   let problematicEdges = [];
+  let longestPaths = [];
+  let metrics = null;
+  
   if (currentIteration > 1) {
     const svgElement = diagram.querySelector('svg');
     if (svgElement) {
@@ -248,12 +258,25 @@ function optimizeDiagram() {
         }),
         ...nodeIntersections.map(int => int.path?.id || '').filter(id => id)
       ];
+      
+      // Get complete metrics
+      metrics = window.SVGAnalyzer.collectDiagramMetrics(svgElement);
+      
+      // Extract longest paths
+      if (metrics && metrics.pathLengths && metrics.pathLengths.longest) {
+        longestPaths = metrics.pathLengths.longest.map(p => p.id).filter(id => id);
+      }
     }
   }
   
-  // Generate a variation with problematic edges info
+  // Generate a variation with enhanced metrics
   const variation = window.SyntaxSwapper.generateVariation(
-    currentCode, problematicEdges, iterationsSinceImprovement, bestScore
+    currentCode, 
+    problematicEdges, 
+    iterationsSinceImprovement, 
+    bestScore,
+    metrics, // Pass full metrics
+    longestPaths // Pass longest paths
   );
   
   // Create a temporary container for rendering
