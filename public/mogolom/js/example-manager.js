@@ -114,8 +114,6 @@ User -->|"Picks"| ExamplesBtn`
     ClearDiagram --> GoodOutcome
     LayoutEngine --> ClearDiagram
     ImprovedCode --> Parser
-
-    %% Main flow components
     OriginalCode["Original Mermaid<br>Syntax Code"]
     ImprovedCode["Improved Mermaid<br>Syntax Code"]
     Parser["Parser"]
