@@ -193,42 +193,54 @@ User -->|"Picks"| ExamplesBtn`
     name: 'MOGOLOM Demo',
     description: 'A demo of MOGOLOM',
     code: `flowchart RL
-    subgraph LayoutEngine["Layout Engine"]
-        parser
-        elk["ELK.js"]
-    end
-    HardToReadDiagram["Hard to Read<br>SVG Diagram"]
-    ClearDiagram["Clear<br>SVG Diagram"]
-    BadOutcome["😱 Bad Outcome<br>Confusion & Misunderstanding"]
-    GoodOutcome["😊 Good Outcome<br>Clarity & Insight"]
-    LayoutEngine --> HardToReadDiagram
-    Parser  --> LayoutEngine
-    OriginalCode --> Parser
-    HardToReadDiagram --> BadOutcome
-    subgraph "MOGOLOM Optimization"
-        EdgeAnalysis["Edge Crossing<br>Analysis"]
-        NodeAnalysis["Node Intersection<br>Analysis"]
-        ranking["Arbitrary Ranking<"]
-        smaller{"smaller?"}
-    end
-    HardToReadDiagram --> EdgeAnalysis
-    HardToReadDiagram --> NodeAnalysis
-    ranking --> smaller
-    NodeAnalysis --> ranking
-    EdgeAnalysis --> ranking
-    smaller --> ImprovedCode
-    ClearDiagram --> GoodOutcome
-    LayoutEngine --> ClearDiagram
-    ImprovedCode --> Parser
-    OriginalCode["Original Mermaid<br>Syntax Code"]
-    ImprovedCode["Improved Mermaid<br>Syntax Code"]
-    Parser["Parser"]
 
-    User -->|paste|OriginalCode
-    ImprovedCode -->|copy|User
-    BadOutcome --> User
-    GoodOutcome --> User
-    
+    HardToReadDiagram["Hard to Read<br>SVG Diagram"]
+    ImprovedCode["Improved Mermaid<br>Syntax Code"]
+    BadOutcome["😱 Bad Outcome<br>Confusion & Misunderstanding"]
+    OriginalCode["Original Mermaid<br>Syntax Code"]
+    Parser["Parser"]
+    ClearDiagram["Clear<br>SVG Diagram"]
+    GoodOutcome["😊 Good Outcome<br>Clarity & Insight"]
+ClearDiagram --> GoodOutcome
+LayoutEngine --> HardToReadDiagram
+OriginalCode --> Parser
+ImprovedCode -->|copy|User
+ClearDiagram ~~~ HardToReadDiagram
+BadOutcome --> User
+HardToReadDiagram --> BadOutcome
+ClearDiagram ~~~ OriginalCode
+LayoutEngine --> ClearDiagram
+elk ~~~ NodeAnalysis
+EdgeAnalysis --> ranking
+ranking --> smaller
+smaller --> ImprovedCode
+NodeAnalysis ~~~ HardToReadDiagram
+HardToReadDiagram ~~~ EdgeAnalysis
+NodeAnalysis ~~~ BadOutcome
+NodeAnalysis --> ranking
+GoodOutcome ~~~ OriginalCode
+smaller{"smaller?"} ~~~ EdgeAnalysis
+BadOutcome ~~~ smaller{"smaller?"}
+HardToReadDiagram --> EdgeAnalysis
+HardToReadDiagram --> NodeAnalysis
+User -->|paste|OriginalCode
+EdgeAnalysis ~~~ ImprovedCode
+GoodOutcome --> User
+elk ~~~ parser
+Parser  --> LayoutEngine
+HardToReadDiagram ~~~ EdgeAnalysis
+ImprovedCode --> Parser
+EdgeAnalysis ~~~ NodeAnalysis
+subgraph LayoutEngine["Layout Engine"]
+    parser
+    elk["ELK.js"]
+end
+subgraph "MOGOLOM Optimization"
+    EdgeAnalysis["Edge Crossing<br>Analysis"]
+    NodeAnalysis["Node Intersection<br>Analysis"]
+    smaller{"smaller?"}
+    ranking["Arbitrary Ranking<"]
+end
     `
   },
   {
