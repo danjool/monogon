@@ -2,12 +2,49 @@
 function findEdgeEdgeIntersections(svg) {
   if (!svg) return [];
   
+  // Helper function to check if a path is invisible
+  const isInvisible = (path) => {
+    // Check style attribute for stroke-width: 0
+    const style = path.getAttribute('style') || '';
+    if (style.includes('stroke-width: 0')) {
+      console.log('Found invisible edge (stroke-width: 0):', path.getAttribute('id'), path.getAttribute('class'));
+      return true;
+    }
+    
+    // Check for ~~~ in raw data which indicates our invisible edges
+    const pathData = path.getAttribute('d') || '';
+    const pathId = path.getAttribute('id') || '';
+    const pathClass = path.getAttribute('class') || '';
+    if (pathData.includes('~~~') || pathId.includes('~~~') || pathClass.includes('~~~')) {
+      console.log('Found invisible edge (~~~):', path.getAttribute('id'), path.getAttribute('class'));
+      return true;
+    }
+    
+    // Check for other invisibility indicators
+    if (style.includes('visibility: hidden') || style.includes('display: none')) {
+      console.log('Found invisible edge (hidden/none):', path.getAttribute('id'), path.getAttribute('class'));
+      return true;
+    }
+    
+    // Check computed style as fallback
+    const computedStyle = window.getComputedStyle(path);
+    if (computedStyle.strokeWidth === '0px' || 
+        computedStyle.visibility === 'hidden' || 
+        computedStyle.display === 'none') {
+      console.log('Found invisible edge (computed style):', path.getAttribute('id'), path.getAttribute('class'));
+      return true;
+    }
+    
+    return false;
+  };
+  
   // Get all path elements
   const paths = Array.from(svg.querySelectorAll('path'));
   const flowchartPaths = paths.filter(path => 
-    path.classList.contains('flowchart-link') || 
+    (path.classList.contains('flowchart-link') || 
     path.classList.contains('flowchart') || 
-    (path.hasAttribute('class') && path.getAttribute('class').includes('flowchart'))
+    (path.hasAttribute('class') && path.getAttribute('class').includes('flowchart'))) &&
+    !isInvisible(path) // Filter out invisible paths
   );
   
   const intersections = [];
@@ -60,11 +97,48 @@ function findEdgeEdgeIntersections(svg) {
 function findEdgeNodeIntersections(svg) {
   if (!svg) return [];
   
+  // Helper function to check if a path is invisible (reused from above)
+  const isInvisible = (path) => {
+    // Check style attribute for stroke-width: 0
+    const style = path.getAttribute('style') || '';
+    if (style.includes('stroke-width: 0')) {
+      console.log('Found invisible edge (stroke-width: 0):', path.getAttribute('id'), path.getAttribute('class'));
+      return true;
+    }
+    
+    // Check for ~~~ in raw data which indicates our invisible edges
+    const pathData = path.getAttribute('d') || '';
+    const pathId = path.getAttribute('id') || '';
+    const pathClass = path.getAttribute('class') || '';
+    if (pathData.includes('~~~') || pathId.includes('~~~') || pathClass.includes('~~~')) {
+      console.log('Found invisible edge (~~~):', path.getAttribute('id'), path.getAttribute('class'));
+      return true;
+    }
+    
+    // Check for other invisibility indicators
+    if (style.includes('visibility: hidden') || style.includes('display: none')) {
+      console.log('Found invisible edge (hidden/none):', path.getAttribute('id'), path.getAttribute('class'));
+      return true;
+    }
+    
+    // Check computed style as fallback
+    const computedStyle = window.getComputedStyle(path);
+    if (computedStyle.strokeWidth === '0px' || 
+        computedStyle.visibility === 'hidden' || 
+        computedStyle.display === 'none') {
+      console.log('Found invisible edge (computed style):', path.getAttribute('id'), path.getAttribute('class'));
+      return true;
+    }
+    
+    return false;
+  };
+  
   // Get all path elements (edges)
   const paths = Array.from(svg.querySelectorAll('path')).filter(path => 
-    path.classList.contains('flowchart-link') || 
+    (path.classList.contains('flowchart-link') || 
     path.classList.contains('flowchart') || 
-    (path.hasAttribute('class') && path.getAttribute('class').includes('flowchart'))
+    (path.hasAttribute('class') && path.getAttribute('class').includes('flowchart'))) &&
+    !isInvisible(path) // Filter out invisible paths
   );
   
   // Get all node elements
