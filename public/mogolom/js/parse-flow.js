@@ -93,6 +93,195 @@ const parseFlow = (code) => {
            line.includes('x--x');
   }
   
+  // Helper function to break down chain links (A --> B --> C) into individual links (A --> B, B --> C)
+  function breakDownChainLinks(line) {
+    // Regular expressions to match different link types
+    const linkPatterns = [
+      { regex: /-->/g, type: 'arrow' },
+      { regex: /---/g, type: 'line' },
+      { regex: /-\.->/g, type: 'dottedArrow' },
+      { regex: /-\.-/g, type: 'dotted' },
+      { regex: /==>/g, type: 'thickArrow' },
+      { regex: /===/g, type: 'thick' },
+      { regex: /~~~/g, type: 'invisible' },
+      { regex: /--o/g, type: 'circleEnd' },
+      { regex: /--x/g, type: 'crossEnd' },
+      { regex: /o--o/g, type: 'circleBoth' },
+      { regex: /x--x/g, type: 'crossBoth' }
+    ];
+    
+    // Find all link positions
+    let linkPositions = [];
+    for (const pattern of linkPatterns) {
+      let match;
+      while ((match = pattern.regex.exec(line)) !== null) {
+        linkPositions.push({
+          start: match.index,
+          end: match.index + match[0].length,
+          type: pattern.type
+        });
+      }
+    }
+    
+    // Sort link positions by their start position
+    linkPositions.sort((a, b) => a.start - b.start);
+    
+    // If no links or only one link, return the original line as a single edge
+    if (linkPositions.length <= 1) {
+      return [{
+        content: line,
+        linkProperties: analyzeLinkProperties(line)
+      }];
+    }
+    
+    // Filter out overlapping or consecutive link operators
+    // This prevents errors when there are patterns like "-.->-.->" (consecutive link operators)
+    const filteredPositions = [];
+    for (let i = 0; i < linkPositions.length; i++) {
+      // Skip this link if it overlaps with the previous one
+      if (i > 0 && linkPositions[i].start < filteredPositions[filteredPositions.length - 1].end) {
+        continue;
+      }
+      
+      // Skip this link if it's immediately adjacent to the previous one (no node in between)
+      if (i > 0 && linkPositions[i].start === filteredPositions[filteredPositions.length - 1].end) {
+        // Merge the two links by extending the previous one
+        filteredPositions[filteredPositions.length - 1].end = linkPositions[i].end;
+        filteredPositions[filteredPositions.length - 1].type = 'combined';
+        continue;
+      }
+      
+      filteredPositions.push(linkPositions[i]);
+    }
+    
+    // If after filtering we only have one link, return the original line
+    if (filteredPositions.length <= 1) {
+      return [{
+        content: line,
+        linkProperties: analyzeLinkProperties(line)
+      }];
+    }
+    
+    // Extract nodes and create individual links
+    const nodes = [];
+    
+    // Extract first node
+    nodes.push(line.substring(0, filteredPositions[0].start).trim());
+    
+    // Extract middle nodes
+    for (let i = 0; i < filteredPositions.length; i++) {
+      const linkEnd = filteredPositions[i].end;
+      const nextLinkStart = i < filteredPositions.length - 1 ? filteredPositions[i + 1].start : line.length;
+      
+      // Extract node between links
+      const node = line.substring(linkEnd, nextLinkStart).trim();
+      if (node) {
+        nodes.push(node);
+      } else if (i < filteredPositions.length - 1) {
+        // If there's no node between links, this is an invalid chain
+        // Return the original line instead of trying to break it down
+        return [{
+          content: line,
+          linkProperties: analyzeLinkProperties(line)
+        }];
+      }
+    }
+    
+    // Create individual links
+    const individualLinks = [];
+    for (let i = 0; i < filteredPositions.length; i++) {
+      if (i < nodes.length - 1) {
+        // Extract link text if present
+        const linkPart = line.substring(filteredPositions[i].start, filteredPositions[i].end);
+        
+        // Create the individual link
+        const linkContent = `${nodes[i]} ${linkPart} ${nodes[i + 1]}`;
+        individualLinks.push({
+          content: linkContent,
+          linkProperties: analyzeLinkProperties(linkContent)
+        });
+      }
+    }
+    
+    // If we couldn't create any valid links, return the original line
+    if (individualLinks.length === 0) {
+      return [{
+        content: line,
+        linkProperties: analyzeLinkProperties(line)
+      }];
+    }
+    
+    return individualLinks;
+  }
+  
+  // Helper function to break down multi-directional links (A & B --> C & D) into individual links
+  function breakDownMultiLinks(line) {
+    // Check if line contains multi-link syntax with & character
+    if (!line.includes('&')) {
+      return [{ content: line, linkProperties: analyzeLinkProperties(line) }];
+    }
+    
+    // Find the link operator (-->, ---, etc.)
+    let linkOperator = '';
+    const operators = ['-->', '---', '-.->','-.-', '==>', '===', '~~~', '--o', '--x', 'o--o', 'x--x'];
+    
+    // Find the longest matching operator
+    let operatorIndex = -1;
+    for (const op of operators) {
+      const index = line.indexOf(op);
+      if (index !== -1 && (operatorIndex === -1 || index < operatorIndex)) {
+        linkOperator = op;
+        operatorIndex = index;
+      }
+    }
+    
+    if (!linkOperator || operatorIndex === -1) {
+      return [{ content: line, linkProperties: analyzeLinkProperties(line) }];
+    }
+    
+    // Check if there are multiple operators of the same type (chain links)
+    // If so, don't try to break down multi-links, let the chain link function handle it
+    if (line.indexOf(linkOperator, operatorIndex + linkOperator.length) !== -1) {
+      return [{ content: line, linkProperties: analyzeLinkProperties(line) }];
+    }
+    
+    // Split the line by the link operator
+    const parts = line.split(linkOperator);
+    if (parts.length !== 2) {
+      return [{ content: line, linkProperties: analyzeLinkProperties(line) }];
+    }
+    
+    // Extract source and target nodes
+    const sourceNodes = parts[0].split('&').map(node => node.trim()).filter(Boolean);
+    const targetNodes = parts[1].split('&').map(node => node.trim()).filter(Boolean);
+    
+    // If either side has no valid nodes, return the original line
+    if (sourceNodes.length === 0 || targetNodes.length === 0) {
+      return [{ content: line, linkProperties: analyzeLinkProperties(line) }];
+    }
+    
+    // Create individual links for each combination
+    const individualLinks = [];
+    for (const source of sourceNodes) {
+      for (const target of targetNodes) {
+        if (source && target) {  // Ensure both source and target are non-empty
+          const linkContent = `${source} ${linkOperator} ${target}`;
+          individualLinks.push({
+            content: linkContent,
+            linkProperties: analyzeLinkProperties(linkContent)
+          });
+        }
+      }
+    }
+    
+    // If we couldn't create any valid links, return the original line
+    if (individualLinks.length === 0) {
+      return [{ content: line, linkProperties: analyzeLinkProperties(line) }];
+    }
+    
+    return individualLinks;
+  }
+  
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     const indentation = lines[i].match(/^\s*/)[0].length;
@@ -181,24 +370,61 @@ const parseFlow = (code) => {
     
     // Process nodes and edges
     if (containsLinkSyntax(line)) {
-      // Check for chained links (A --> B --> C)
-      // This is a simplified approach - a more robust parser would be needed
-      const linkProperties = analyzeLinkProperties(line);
-      
-      const edge = {
-        type: 'edge',
-        content: line,
-        raw: lines[i],
-        linkType: linkProperties.type,
-        linkText: linkProperties.text,
-        isBidirectional: linkProperties.isBidirectional
-      };
-      
-      if (subgraphStack.length > 0) {
-        subgraphStack[subgraphStack.length - 1].edges.push(edge);
-        subgraphStack[subgraphStack.length - 1].raw.push(lines[i]);
-      } else {
-        tree.edges.push(edge);
+      try {
+        // Break down chain links and multi-directional links
+        let individualLinks = [];
+        
+        // First break down multi-directional links
+        const multiLinks = breakDownMultiLinks(line);
+        
+        // Then break down chain links for each multi-link
+        for (const multiLink of multiLinks) {
+          const chainLinks = breakDownChainLinks(multiLink.content);
+          individualLinks = individualLinks.concat(chainLinks);
+        }
+        
+        // Add each individual link as a separate edge
+        for (const link of individualLinks) {
+          const edge = {
+            type: 'edge',
+            content: link.content,
+            raw: link.content, // Original raw line is lost, but we have the content
+            linkType: link.linkProperties.type,
+            linkText: link.linkProperties.text,
+            isBidirectional: link.linkProperties.isBidirectional,
+            originalLine: lines[i] // Keep reference to the original line
+          };
+          
+          if (subgraphStack.length > 0) {
+            subgraphStack[subgraphStack.length - 1].edges.push(edge);
+            // Only add the raw line once for the first edge from this line
+            if (individualLinks.indexOf(link) === 0) {
+              subgraphStack[subgraphStack.length - 1].raw.push(lines[i]);
+            }
+          } else {
+            tree.edges.push(edge);
+          }
+        }
+      } catch (error) {
+        // If there's an error breaking down the links, just add the original line as a single edge
+        console.warn('Error breaking down links:', error);
+        
+        const linkProperties = analyzeLinkProperties(line);
+        const edge = {
+          type: 'edge',
+          content: line,
+          raw: lines[i],
+          linkType: linkProperties.type,
+          linkText: linkProperties.text,
+          isBidirectional: linkProperties.isBidirectional
+        };
+        
+        if (subgraphStack.length > 0) {
+          subgraphStack[subgraphStack.length - 1].edges.push(edge);
+          subgraphStack[subgraphStack.length - 1].raw.push(lines[i]);
+        } else {
+          tree.edges.push(edge);
+        }
       }
     } else if (line) { // Only process non-empty lines
       // Check for multiline node content (starts with quote but doesn't end with one)
