@@ -12,6 +12,7 @@ mermaid.initialize({
 const codeEditor = document.getElementById('code-editor');
 const diagram = document.getElementById('diagram');
 const optimizeBtn = document.getElementById('optimize-btn');
+const deOptimizeBtn = document.getElementById('de-optimize-btn');
 const scoreDisplay = document.getElementById('score');
 const edgeEdgeCount = document.getElementById('edge-edge-count');
 const edgeNodeCount = document.getElementById('edge-node-count');
@@ -20,6 +21,7 @@ const iterationsCount = document.getElementById('iterations-count');
 
 // State
 let isOptimizing = false;
+let isDeOptimizing = false;
 let currentIteration = 0;
 let maxIterations = 2000;
 let bestScore = Infinity;
@@ -178,6 +180,11 @@ function markIntersections(svg, edgeIntersections, nodeIntersections) {
   }
 }
 
+function startDeOptimization() {
+  isDeOptimizing = !isDeOptimizing;
+  startOptimization();
+}
+
 function startOptimization() {
   currentCode = codeEditor.value.trim();
   if (!currentCode) {
@@ -190,7 +197,7 @@ function startOptimization() {
   isOptimizing = true;
   currentIteration = 0;
   maxIterations = 2000;
-  bestScore = Infinity;
+  bestScore = isDeOptimizing ? 0 : Infinity;
   improvementsFound = 0;
   
   optimizeBtn.disabled = true;
@@ -267,7 +274,7 @@ function optimizeDiagram() {
         const totalScore = edgeIntersections.length * edgeEdgeWeight + nodeIntersections.length * edgeNodeWeight;
         
         // Check if better than current best
-        if (totalScore < bestScore) {
+        if(isDeOptimizing ? totalScore > bestScore : totalScore < bestScore) {
           bestScore = totalScore;
           currentCode = variation;
           improvementsFound++;
@@ -386,6 +393,7 @@ function init() {
   
   // Setup optimize button
   optimizeBtn.addEventListener('click', startOptimization);
+  deOptimizeBtn.addEventListener('click', startDeOptimization);
   
   // Setup stop button
   const stopBtn = document.getElementById('stop-btn');
