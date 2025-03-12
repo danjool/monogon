@@ -70,6 +70,112 @@ end
 User -->|"Picks"| ExamplesBtn`
   },
   {
+    id: 'syntax-showcase',
+    name: 'Syntax Showcase',
+    description: 'Comprehensive example of all Mermaid flowchart syntax elements',
+    code: `flowchart TD
+    
+    defaultNode[Default Node - Rectangle]
+    roundNode(Round Node)
+    stadiumNode([Stadium Node])
+    subroutineNode[[Subroutine Node]]
+    cylindricalNode[(Cylindrical Node)]
+    circleNode((Circle Node))
+    asymmetricNode>Asymmetric Node]
+    rhombusNode{Rhombus Node}
+    hexagonNode{{Hexagon Node}}
+    parallelogramNode[/Parallelogram Node/]
+    parallelogramAltNode[\\Parallelogram Alt Node\\]
+    trapezoidNode[/Trapezoid Node\\]
+    trapezoidAltNode[\\Trapezoid Alt Node/]
+    doubleCircleNode(((Double Circle Node)))
+    
+    defaultNode --> roundNode
+    roundNode --- stadiumNode
+    stadiumNode -.-> subroutineNode
+    subroutineNode -.- cylindricalNode
+    cylindricalNode ==> circleNode
+    circleNode === asymmetricNode
+    asymmetricNode --o rhombusNode
+    rhombusNode --x hexagonNode
+    hexagonNode o--o parallelogramNode
+    parallelogramNode x--x parallelogramAltNode
+    parallelogramAltNode <--> trapezoidNode
+    trapezoidNode <===> trapezoidAltNode
+    trapezoidAltNode <-.-> doubleCircleNode
+    
+    defaultNode -->|Arrow with text| hexagonNode
+    roundNode ---|Line with text| parallelogramNode
+    stadiumNode -.-|Dotted with text| trapezoidNode
+    cylindricalNode ==|Thick with text|==> doubleCircleNode
+    
+    rhombusNode ~~~ circleNode
+    
+    chainStart --> chainMiddle --> chainEnd
+    multiStart --> multiEnd1 & multiEnd2
+    
+    subgraph mainGraph["Main Graph"]
+        direction LR
+        
+        subgraph subGraph1["Sub-Graph Level 1"]
+            direction RL
+            
+            subgraph subGraph2["Sub-Graph Level 2"]
+                direction TB
+                
+                subgraph subGraph3["Sub-Graph Level 3"]
+                    direction BT
+                    deepNode1[Deep Node 1]
+                    deepNode2[Deep Node 2]
+                    deepNode1 --> deepNode2
+                end
+                
+                midNode1[Mid Node 1]
+                midNode2[Mid Node 2]
+                midNode1 --> subGraph3
+                subGraph3 --> midNode2
+            end
+            
+            highNode1[High Node 1]
+            highNode2[High Node 2]
+            highNode1 --> subGraph2
+            subGraph2 --> highNode2
+        end
+        
+        topNode1[Top Node 1]
+        topNode2[Top Node 2]
+        topNode1 --> subGraph1
+        subGraph1 --> topNode2
+    end
+    
+    entryNode[Entry Node] --> mainGraph
+    mainGraph --> exitNode[Exit Node]
+    
+    subgraph sg1 [Explicit ID Subgraph]
+        idNode1[ID Node 1]
+        idNode2[ID Node 2]
+        idNode1 --> idNode2
+    end
+    
+    multilineNode["This is a multiline
+    node with **bold** and _italic_
+    text formatting"]
+    
+    unicodeNode["Unicode: ❤ 🔍 ⚠️"]
+    
+    specialCharsNode["Node with (special) characters & symbols!"]
+    
+    minLengthStart[Min Length Start] ---->|Long Link| minLengthEnd[Min Length End]
+    
+    multilineNode --> unicodeNode --> specialCharsNode --> sg1
+
+    mainGraph --> sg1
+    exitNode --> minLengthStart
+    minLengthEnd --> chainEnd
+    unicodeNode --> subroutineNode
+`
+  },
+  {
     id: 'mogolom-sub-sub-graphs',
     name: 'MOGOLOM Sub-Sub-Graphs',
     description: 'A diagram showing the relationships between sub-sub-graphs in MOGOLOM',
@@ -130,44 +236,35 @@ User -->|"Picks"| ExamplesBtn`
     name: 'Vector Space Concepts',
     description: 'A diagram showing relationships between vector space concepts',
     code: `flowchart BT
-    %% Core mathematical properties (placing fundamental concepts at top)
     Addition[Addition]
     ScalarMult[Scalar Multiplication]
     Dimension[Dimension n]
     
-    %% Core vector space concepts (reading up the graph)
     Vec[Vectors] -->|belong to| VS[Vector Space]
     VS -->|closed under| Addition
     VS -->|closed under| ScalarMult
     VS -->|has| Dimension
     
-    %% Dual vector space concepts (reading up)
     CoVec[Co-vectors] -->|belong to| DVS[Dual Vector Space]
     DVS -->|isomorphic to| VS
     
-    %% Symmetric bilinear form (reading up)
     Symmetry["B(u,v) = B(v,u)"] -->|property of| SBF[Symmetric Bilinear Form]
     SBF -->|is a| BForm
     
-    %% Bilinearity properties (fundamental property)
     BL1["f(αu₁ + βu₂, v) = αf(u₁, v) + βf(u₂, v)"] -->|property of| BForm[Bilinear Form]
     BL2["f(u, αv₁ + βv₂) = αf(u, v₁) + βf(u, v₂)"] -->|property of| BForm
     
-    %% Inner product (reading up)
     IPNotation["u·v := B(u,v)"] -->|notation for| IP[Inner Product]
     IP -->|defined by| SBF
     
-    %% Norm (reading up)
     NormFormula["‖u‖ := √|u·u|"] -->|formula for| Norm["Norm ‖u‖"]
     Norm -->|defined by| IP
     
-    %% Normed vector space (reading up)
     AngleMeasure[Angle measurement] -->|enabled by| NVS[Normed Vector Space]
     DistMeasure[Distance measurement] -->|enabled by| NVS
     SBF -->|belongs to| NVS
     NVS -->|is a| VS
     
-    %% 3D Geometric interpretation example
     subgraph Example3D[3D Geometric Interpretation]
         Lines[Lines through origin] -->|represented by| Vec
         Planes[Planes through origin] -->|represented by| CoVec
@@ -175,7 +272,6 @@ User -->|"Picks"| ExamplesBtn`
         IncidenceCondition -->|both| Planes
     end
     
-    %% Connection to PGA (reading up)
     PGA[Projective Geometric Algebra] -->|founded on| VS
     PGA -->|founded on| DVS
     PGA -->|uses metrics from| NVS`
@@ -185,20 +281,17 @@ User -->|"Picks"| ExamplesBtn`
     name: 'Software Architecture Patterns',
     description: 'A complex diagram showing relationships between software architecture patterns.  Claude-3.7-sonnet made the whole graph from a light prompt.  Do not judge.  Test cases are a good use case for generative language models.',
     code: `flowchart TD
-    %% Main architectural patterns
     MVC[Model-View-Controller]
     MVVM[Model-View-ViewModel]
     Layered[Layered Architecture]
     Microservices[Microservices]
     EventDriven[Event-Driven Architecture]
     
-    %% Pattern relationships
     MVC -->|evolved into| MVVM
     Layered -->|can be implemented with| MVC
     Monolithic -->|can be decomposed into| Microservices
     Microservices -->|often uses| EventDriven
     
-    %% Components and concepts
     Model[Data Model] -->|part of| MVC
     View[User Interface] -->|part of| MVC
     Controller[Logic Controller] -->|part of| MVC
@@ -219,7 +312,6 @@ User -->|"Picks"| ExamplesBtn`
     Publisher[Event Publisher] -->|component of| EventDriven
     Subscriber[Event Subscriber] -->|component of| EventDriven
     
-    %% Cross-cutting concerns
     Security[Security] -->|concern for| MVC
     Security -->|concern for| MVVM
     Security -->|concern for| Layered
@@ -232,12 +324,10 @@ User -->|"Picks"| ExamplesBtn`
     Complexity[Complexity] -->|challenge for| Microservices
     Complexity -->|challenge for| EventDriven
     
-    %% Additional patterns
     CQRS[Command Query Responsibility Segregation] -->|often used with| EventDriven
     Saga[Saga Pattern] -->|manages transactions in| Microservices
     BFF[Backend For Frontend] -->|pattern for| Microservices
     
-    %% Legacy systems
     Monolithic[Monolithic Architecture] -->|predecessor to| Layered
     SOA[Service Oriented Architecture] -->|predecessor to| Microservices`
   }
