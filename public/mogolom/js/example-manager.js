@@ -4,6 +4,67 @@
 // Collection of example diagrams
 const exampleDiagrams = [
   {
+    id: 'mogolom-architecture',
+    name: 'MOGOLOM Architecture',
+    description: 'Current architecture of the MOGOLOM project',
+    code: `flowchart TD
+    %% User Interface Elements from index.html
+    subgraph Interface["index.html 🖥️"]
+        Editor["Code Editor 📝"]
+        Preview["SVG Preview 🖼️"]
+        Stats["Edge & Node<br>Intersection Stats 📊"]
+        ExampleSelect["Example Selector 📚"]
+        OptimizeBtn["Optimize Button ✨"]
+    end
+
+    %% The actual optimization process
+    subgraph Process["MOGOLOM Optimization"]
+        FlowParser["parse-flow.js<br>Tree Builder 🌳"]
+        FlowScrambler["flow-scrambler.js<br>Edge Shuffler 🎲"]
+        TreeToMmd["flow-tree-to-mmd.js<br>Tree Serializer ✍️"]
+        SVGAnalyzer["svg-analyzer.js<br>Intersection Detection 🔍"]
+    end
+
+    %% Example management
+    ExampleMgr["example-manager.js<br>Template Library 📚"]
+    ExampleSelect --> ExampleMgr
+    ExampleMgr -->|loads| Editor
+
+    %% Main flow - what actually happens
+    MessyDiagram["Hard to Read<br>SVG Diagram 😵"]
+    BetterDiagram["Clearer<br>SVG Diagram 😌"]
+    
+    %% User interactions and outcomes
+    User -->|"Pastes Code"| Editor
+    Editor -->|"Mermaid Code"| FlowParser
+    FlowParser -->|"Tree Structure"| FlowScrambler
+    FlowScrambler -->|"Shuffled Tree"| TreeToMmd
+    TreeToMmd -->|"New Mermaid Code"| Editor
+    
+    Editor --> Preview
+    Preview -->|"SVG"| MessyDiagram
+    MessyDiagram -->|"Analyzed by"| SVGAnalyzer
+    SVGAnalyzer -->|"Crossing Count"| Stats
+    
+    %% Optimization cycle
+    OptimizeBtn -->|"Triggers"| FlowScrambler
+    SVGAnalyzer -->|"Guides"| FlowScrambler
+    
+    %% Outcomes
+    MessyDiagram --> BadOutcome["😱 Confusion &<br>Misunderstanding"]
+    BetterDiagram --> GoodOutcome["😊 Clarity &<br>Better Understanding"]
+    
+    %% The improvement cycle
+    MessyDiagram -->|"Optimized to"| BetterDiagram
+    BadOutcome --> User
+    GoodOutcome --> User
+
+    style Interface fill:#f9f,stroke:#333,stroke-width:2px
+    style Process fill:#bbf,stroke:#333,stroke-width:2px
+    style MessyDiagram fill:#fbb,stroke:#333,stroke-width:2px
+    style BetterDiagram fill:#bfb,stroke:#333,stroke-width:2px`
+  },
+  {
     id: 'mogolom-demo',
     name: 'MOGOLOM Demo',
     description: 'A demo of MOGOLOM',
