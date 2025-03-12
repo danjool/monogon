@@ -6,63 +6,111 @@ const exampleDiagrams = [
   {
     id: 'mogolom-architecture',
     name: 'MOGOLOM Architecture',
-    description: 'Current architecture of the MOGOLOM project',
+    description: 'Actual file structure and relationships in MOGOLOM',
     code: `flowchart TD
-    %% User Interface Elements from index.html
-    subgraph Interface["index.html 🖥️"]
-        Editor["Code Editor 📝"]
-        Preview["SVG Preview 🖼️"]
-        Stats["Edge & Node<br>Intersection Stats 📊"]
-        ExampleSelect["Example Selector 📚"]
-        OptimizeBtn["Optimize Button ✨"]
+    %% Main HTML Entry Point
+    subgraph index["index.html"]
+        direction TB
+        CodeEditor["textarea#code-editor"]
+        DiagramDiv["div#diagram.mermaid"]
+        StatsDiv["div.optimization-stats"]
+        OptimizeBtn["button#optimize-btn"]
+        ExamplesBtn["button.examples-btn"]
     end
 
-    %% The actual optimization process
-    subgraph Process["MOGOLOM Optimization"]
-        FlowParser["parse-flow.js<br>Tree Builder 🌳"]
-        FlowScrambler["flow-scrambler.js<br>Edge Shuffler 🎲"]
-        TreeToMmd["flow-tree-to-mmd.js<br>Tree Serializer ✍️"]
-        SVGAnalyzer["svg-analyzer.js<br>Intersection Detection 🔍"]
+    %% Core Mogolom Logic
+    subgraph mogolom["mogolom.js"]
+        direction LR
+        renderDiagram
+        startOptimization
+        analyzeDiagram
+        stopOptimization
     end
 
-    %% Example management
-    ExampleMgr["example-manager.js<br>Template Library 📚"]
-    ExampleSelect --> ExampleMgr
-    ExampleMgr -->|loads| Editor
+    %% Tree Processing Chain
+    subgraph parser["parse-flow.js"]
+        parseFlow["parse()"]
+    end
 
-    %% Main flow - what actually happens
-    MessyDiagram["Hard to Read<br>SVG Diagram 😵"]
-    BetterDiagram["Clearer<br>SVG Diagram 😌"]
-    
-    %% User interactions and outcomes
-    User -->|"Pastes Code"| Editor
-    Editor -->|"Mermaid Code"| FlowParser
-    FlowParser -->|"Tree Structure"| FlowScrambler
-    FlowScrambler -->|"Shuffled Tree"| TreeToMmd
-    TreeToMmd -->|"New Mermaid Code"| Editor
-    
-    Editor --> Preview
-    Preview -->|"SVG"| MessyDiagram
-    MessyDiagram -->|"Analyzed by"| SVGAnalyzer
-    SVGAnalyzer -->|"Crossing Count"| Stats
-    
-    %% Optimization cycle
-    OptimizeBtn -->|"Triggers"| FlowScrambler
-    SVGAnalyzer -->|"Guides"| FlowScrambler
-    
+    subgraph scrambler["flow-scrambler.js"]
+        scrambleFlow["scramble()"]
+    end
+
+    subgraph converter["flow-tree-to-mmd.js"]
+        treeToMermaid["convert()"]
+    end
+
+    %% SVG Analysis
+    subgraph analyzer["svg-analyzer.js"]
+        calculateScore["calculateDiagramScore()"]
+        findIntersections["findEdgeIntersections()"]
+        findOverlaps["findNodeOverlaps()"]
+    end
+
+    %% Example Management
+    subgraph examples["example-manager.js"]
+        loadExample["loadExampleDiagram()"]
+        Templates["exampleDiagrams[]
+        • Architecture
+        • Vector Space
+        • Software Patterns"]
+    end
+
+    %% Mermaid Rendering
+    subgraph renderer["mermaid-renderer.js"]
+        renderWithMermaid["render()"]
+        markIntersections["markIntersections()"]
+    end
+
+    %% User Flow and Outcomes
+    User -->|"Opens"| index
+    User -->|"Pastes Code"| CodeEditor
+    User -->|"Clicks"| OptimizeBtn
+    User -->|"Picks"| ExamplesBtn
+
+    %% Main Data Flow
+    CodeEditor -->|"Mermaid Code"| parseFlow
+    parseFlow -->|"Tree"| scrambleFlow
+    scrambleFlow -->|"Shuffled Tree"| treeToMermaid
+    treeToMermaid -->|"New Code"| CodeEditor
+
+    %% Rendering Flow
+    CodeEditor --> renderWithMermaid
+    renderWithMermaid -->|"SVG"| DiagramDiv
+
+    %% Analysis Flow
+    DiagramDiv -->|"SVG"| calculateScore
+    calculateScore -->|"Edge Crossings"| findIntersections
+    calculateScore -->|"Node Overlaps"| findOverlaps
+    findIntersections --> markIntersections
+    findOverlaps --> markIntersections
+    markIntersections -->|"Highlighted SVG"| DiagramDiv
+    calculateScore -->|"Stats"| StatsDiv
+
+    %% Control Flow
+    OptimizeBtn --> startOptimization
+    startOptimization -->|"Controls"| scrambleFlow
+    calculateScore -->|"Guides"| scrambleFlow
+
+    %% Example Flow
+    ExamplesBtn --> loadExample
+    loadExample -->|"Loads"| Templates
+    Templates -->|"Sets"| CodeEditor
+
     %% Outcomes
-    MessyDiagram --> BadOutcome["😱 Confusion &<br>Misunderstanding"]
-    BetterDiagram --> GoodOutcome["😊 Clarity &<br>Better Understanding"]
+    MessyDiagram["Hard to Read<br>Diagram 😵"] -->|"Optimized to"| BetterDiagram["Clear<br>Diagram 😊"]
+    MessyDiagram -->|"Leads to"| Confusion["😱 Confusion"]
+    BetterDiagram -->|"Enables"| Understanding["😊 Understanding"]
     
-    %% The improvement cycle
-    MessyDiagram -->|"Optimized to"| BetterDiagram
-    BadOutcome --> User
-    GoodOutcome --> User
+    Confusion --> User
+    Understanding --> User
 
-    style Interface fill:#f9f,stroke:#333,stroke-width:2px
-    style Process fill:#bbf,stroke:#333,stroke-width:2px
-    style MessyDiagram fill:#fbb,stroke:#333,stroke-width:2px
-    style BetterDiagram fill:#bfb,stroke:#333,stroke-width:2px`
+    style index fill:#f9f,stroke:#333,stroke-width:2px
+    style mogolom fill:#bbf,stroke:#333,stroke-width:2px
+    style analyzer fill:#bfb,stroke:#333,stroke-width:2px
+    style examples fill:#fbb,stroke:#333,stroke-width:2px
+    style MessyDiagram fill:#fdd,stroke:#333,stroke-width:2px
+    style BetterDiagram fill:#dfd,stroke:#333,stroke-width:2px`
   },
   {
     id: 'mogolom-demo',
