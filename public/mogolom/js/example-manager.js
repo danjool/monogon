@@ -109,7 +109,7 @@ User -->|"Picks"| ExamplesBtn`
     stadiumNode -.-|Dotted with text| trapezoidNode
     cylindricalNode ==|Thick with text|==> doubleCircleNode
     
-    rhombusNode ~~~ circleNode
+    %% rhombusNode ~~~ circleNode
     
     chainStart --> chainMiddle --> chainEnd
     multiStart --> multiEnd1 & multiEnd2
