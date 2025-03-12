@@ -23,6 +23,7 @@ const iterationsCount = document.getElementById('iterations-count');
 let isOptimizing = false;
 let isDeOptimizing = false;
 let currentIteration = 0;
+let iterationsSinceImprovement = 0;
 let maxIterations = 2000;
 let bestScore = Infinity;
 let currentCode = '';
@@ -228,6 +229,7 @@ function optimizeDiagram() {
   }
   
   currentIteration++;
+  iterationsSinceImprovement++;
   iterationsCount.textContent = currentIteration;
   
   // Get problematic edges from previous iteration if available
@@ -250,7 +252,9 @@ function optimizeDiagram() {
   }
   
   // Generate a variation with problematic edges info
-  const variation = window.SyntaxSwapper.generateVariation(currentCode, problematicEdges);
+  const variation = window.SyntaxSwapper.generateVariation(
+    currentCode, problematicEdges, iterationsSinceImprovement, bestScore
+  );
   
   // Create a temporary container for rendering
   const tempContainer = document.createElement('div');
@@ -278,7 +282,7 @@ function optimizeDiagram() {
           bestScore = totalScore;
           currentCode = variation;
           improvementsFound++;
-          
+          iterationsSinceImprovement = 0;
           // Update editor and render new diagram
           codeEditor.value = variation;
           diagram.textContent = variation;
