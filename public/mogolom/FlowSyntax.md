@@ -1,184 +1,505 @@
-Diagram Syntax
+# Flowcharts - Basic Syntax
 
-Mermaid's syntax is used to create diagrams. You'll find that it is not too tricky and can be learned in a day. The next sections dive deep into the syntax of each diagram type.
+Flowcharts are composed of **nodes** (geometric shapes) and **edges** (arrows or lines). The Mermaid code defines how nodes and edges are made and accommodates different arrow types, multi-directional arrows, and any linking to and from subgraphs.
 
-Syntax, together with Deployment and Configuration constitute the whole of Mermaid.
+> **Warning**
+> If you are using the word "end" in a Flowchart node, capitalize the entire word or any of the letters (e.g., "End" or "END"). Typing "end" in all lowercase letters will break the Flowchart.
 
-Diagram Examples can be found in the Mermaid Live Editor, it is also a great practice area.
-Syntax Structure
+> **Warning**
+> If you are using the letter "o" or "x" as the first letter in a connecting Flowchart node, add a space before the letter or capitalize the letter (e.g., "dev--- ops", "dev---Ops").
+>
+> Typing "A---oB" will create a [circle edge](#circle-edge-example).
+>
+> Typing "A---xB" will create a [cross edge](#cross-edge-example).
 
-One would notice that all Diagrams definitions begin with a declaration of the diagram type, followed by the definitions of the diagram and its contents. This declaration notifies the parser which kind of diagram the code is supposed to generate.
+### A node (default)
 
-Example : The code below is for an Entity Relationship Diagram, specified by the erDiagram declaration. What follows is the definition of the different Entities represented in it.
-Code:
-mermaid
-
-erDiagram
-          CUSTOMER }|..|{ DELIVERY-ADDRESS : has
-          CUSTOMER ||--o{ ORDER : places
-          CUSTOMER ||--o{ INVOICE : "liable for"
-          DELIVERY-ADDRESS ||--o{ ORDER : receives
-          INVOICE ||--|{ ORDER : covers
-          ORDER ||--|{ ORDER-ITEM : includes
-          PRODUCT-CATEGORY ||--|{ PRODUCT : contains
-          PRODUCT ||--o{ ORDER-ITEM : "ordered in"
-
-Ctrl + Enter|
-CUSTOMERDELIVERY-ADDRESSORDERINVOICEORDER-ITEMPRODUCT-CATEGORYPRODUCThasplacesliable forreceivescoversincludescontains
-ordered in
-
-The Getting Started section can also provide some practical examples of mermaid syntax.
-Diagram Breaking
-
-One should beware the use of some words or symbols that can break diagrams. These words or symbols are few and often only affect specific types of diagrams. The table below will continuously be updated.
-Diagram Breakers	Reason	Solution
-Comments		
-%%{``}%%	Similar to Directives confuses the renderer.	In comments using %%, avoid using "{}".
-Flow-Charts		
-'end'	The word "End" can cause Flowcharts and Sequence diagrams to break	Wrap them in quotation marks to prevent breakage.
-Nodes inside Nodes	Mermaid gets confused with nested shapes	wrap them in quotation marks to prevent breaking
-Mermaid Live Editor
-
-Now, that you've seen what you should not add to your diagrams, you can play around with them in the Mermaid Live Editor.
-Configuration
-
-Configuration is the third part of Mermaid, after deployment and syntax. It deals with the different ways that Mermaid can be customized across different deployments.
-
-If you are interested in altering and customizing your Mermaid Diagrams, you will find the methods and values available for Configuration here. It includes themes. This section will introduce the different methods of configuring the behaviors and appearances of Mermaid Diagrams. The following are the most commonly used methods, and they are all tied to Mermaid Deployment methods.
-Configuration Section in the Live Editor.
-
-Here you can edit certain values to change the behavior and appearance of the diagram.
-The initialize() call
-
-Used when Mermaid is called via an API, or through a <script> tag.
-Directives
-
-Allows for the limited reconfiguration of a diagram just before it is rendered. It can alter the font style, color and other aesthetic aspects of the diagram. You can pass a directive alongside your definition inside %%{ }%%. It can be done either above or below your diagram definition.
-Theme Manipulation
-
-An application of using Directives to change Themes. Theme is a value within Mermaid's configuration that dictates the color scheme for diagrams.
-Layout and look
-
-We've restructured how Mermaid renders diagrams, enabling new features like selecting layout and look. Currently, this is supported for flowcharts and state diagrams, with plans to extend support to all diagram types.
-Selecting Diagram Looks
-
-Mermaid offers a variety of styles or “looks” for your diagrams, allowing you to tailor the visual appearance to match your specific needs or preferences. Whether you prefer a hand-drawn or classic style, you can easily customize your diagrams.
-
-Available Looks:
-
-    Hand-Drawn Look: For a more personal, creative touch, the hand-drawn look brings a sketch-like quality to your diagrams. This style is perfect for informal settings or when you want to add a bit of personality to your diagrams.
-    Classic Look: If you prefer the traditional Mermaid style, the classic look maintains the original appearance that many users are familiar with. It’s great for consistency across projects or when you want to keep the familiar aesthetic.
-
-How to Select a Look:
-
-You can select a look by adding the look parameter in the metadata section of your Mermaid diagram code. Here’s an example:
-Code:
-mermaid
-
+```mermaid
 ---
-config:
-  look: handDrawn
-  theme: neutral
+title: Node
 ---
 flowchart LR
-  A[Start] --> B{Decision}
-  B -->|Yes| C[Continue]
-  B -->|No| D[Stop]
+    id
+```
 
-Ctrl + Enter|
+> **Note**
+> The id is what is displayed in the box.
 
-Yes
+> **💡 Tip**
+> Instead of `flowchart` one can also use `graph`.
 
-No
+### A node with text
 
-Start
+It is also possible to set text in the box that differs from the id. If this is done several times, it is the last text
+found for the node that will be used. If you define edges for the node later on, you can omit text definitions, and the text will be taken from the last text definition.
 
-Decision
-
-Continue
-
-Stop
-Selecting Layout Algorithms
-
-In addition to customizing the look of your diagrams, Mermaid Chart now allows you to choose different layout algorithms to better organize and present your diagrams, especially when dealing with more complex structures. The layout algorithm dictates how nodes and edges are arranged on the page.
-Supported Layout Algorithms:
-
-    Dagre (default): This is the classic layout algorithm that has been used in Mermaid for a long time. It provides a good balance of simplicity and visual clarity, making it ideal for most diagrams.
-    ELK: For those who need more sophisticated layout capabilities, especially when working with large or intricate diagrams, the ELK (Eclipse Layout Kernel) layout offers advanced options. It provides a more optimized arrangement, potentially reducing overlapping and improving readability. This is not included out the box but needs to be added when integrating mermaid for sites/applications that want to have elk support.
-
-How to Select a Layout Algorithm:
-
-You can specify the layout algorithm directly in the metadata section of your Mermaid diagram code. Here’s an example:
-Code:
-mermaid
-
+```mermaid
 ---
-config:
-  layout: elk
-  look: handDrawn
-  theme: dark
+title: Node with text
 ---
+flowchart LR
+    id1[This is the text in the box]
+```
+
+#### Unicode text
+
+Use `"` to enclose the unicode text.
+
+```mermaid
+flowchart LR
+    id["This ❤ Unicode"]
+```
+
+#### Markdown formatting
+
+Use double quotes and backticks "\` text \`" to enclose the markdown text.
+
+```mermaid
+%%{init: {"flowchart": {"htmlLabels": false}} }%%
+flowchart LR
+    markdown["`This **is** _Markdown_`"]
+    newLines["`Line1
+    Line 2
+    Line 3`"]
+    markdown --> newLines
+```
+
+### Direction
+
+This statement declares the direction of the Flowchart.
+
+This declares the flowchart is oriented from top to bottom (`TD` or `TB`).
+
+```mermaid
+flowchart TD
+    Start --> Stop
+```
+
+This declares the flowchart is oriented from left to right (`LR`).
+
+```mermaid
+flowchart LR
+    Start --> Stop
+```
+
+Possible FlowChart orientations are:
+
+- TB - Top to bottom
+- TD - Top-down/ same as top to bottom
+- BT - Bottom to top
+- RL - Right to left
+- LR - Left to right
+
+## Node shapes
+
+By default a node is a rectangle, like the [ square brackets ] used to indicate node text.  
+
+### A node with round edges ()
+
+```mermaid
+flowchart LR
+    id1(This is the text in the box)
+```
+
+### A stadium-shaped node, "pill" ([])
+
+```mermaid
+flowchart LR
+    id1([This is the text in the box])
+```
+
+### A node in a subroutine shape
+
+```mermaid
+flowchart LR
+    id1[[This is the text in the box]]
+```
+
+### A node in a cylindrical shape
+
+```mermaid
+flowchart LR
+    id1[(Database)]
+```
+
+### A node in the form of a circle
+
+```mermaid
+flowchart LR
+    id1((This is the text in the circle))
+```
+
+### A node in an asymmetric shape
+
+```mermaid
+flowchart LR
+    id1>This is the text in the box]
+```
+
+Currently only the shape above is possible and not its mirror. _This might change with future releases._
+
+### A node (rhombus)
+
+```mermaid
+flowchart LR
+    id1{This is the text in the box}
+```
+
+### A hexagon node
+
+```mermaid
+flowchart LR
+    id1{{This is the text in the box}}
+```
+
+### Parallelogram
+
+```mermaid
+flowchart TD
+    id1[/This is the text in the box/]
+```
+
+### Parallelogram alt
+
+```mermaid
+flowchart TD
+    id1[\This is the text in the box\]
+```
+
+### Trapezoid
+
+```mermaid
+flowchart TD
+    A[/Christmas\]
+```
+
+### Trapezoid alt
+
+```mermaid
+flowchart TD
+    B[\Go shopping/]
+```
+
+### Double circle
+
+```mermaid
+flowchart TD
+    id1(((This is the text in the circle)))
+```
+
+## Links between nodes
+
+Nodes can be connected with links/edges. It is possible to have different types of links or attach a text string to a link.
+
+### A link with arrow head
+
+```mermaid
+flowchart LR
+    A-->B
+```
+
+### An open link
+
+```mermaid
+flowchart LR
+    A --- B
+```
+
+### Text on links
+
+```mermaid
+flowchart LR
+    A-- This is the text! ---B
+```
+
+or
+
+```mermaid
+flowchart LR
+    A---|This is the text|B
+```
+
+### A link with arrow head and text
+
+```mermaid
+flowchart LR
+    A-->|text|B
+```
+
+or
+
+```mermaid
+flowchart LR
+    A-- text -->B
+```
+
+### Dotted link
+
+```mermaid
+flowchart LR
+   A-.->B;
+```
+
+### Dotted link with text
+
+```mermaid
+flowchart LR
+   A-. text .-> B
+```
+
+### Thick link
+
+```mermaid
+flowchart LR
+   A ==> B
+```
+
+### Thick link with text
+
+```mermaid
+flowchart LR
+   A == text ==> B
+```
+
+### An invisible link
+
+This can be a useful tool in some instances where you want to alter the default positioning of a node.
+
+```mermaid
+flowchart LR
+    A ~~~ B
+```
+
+### Chaining of links
+
+It is possible declare many links in the same line as per below:
+
+```mermaid
+flowchart LR
+   A -- text --> B -- text2 --> C
+```
+
+It is also possible to declare multiple nodes links in the same line as per below:
+
+```mermaid
+flowchart LR
+   a --> b & c--> d
+```
+
+You can then describe dependencies in a very expressive way. Like the one-liner below:
+
+```mermaid
 flowchart TB
-  A[Start] --> B{Decision}
-  B -->|Yes| C[Continue]
-  B -->|No| D[Stop]
+    A & B--> C & D
+```
 
-Ctrl + Enter|
+The above creates four links, equivalen to.
 
-Yes
+```mermaid
+flowchart TB
+    A --> C
+    A --> D
+    B --> C
+    B --> D
+```
 
-No
 
-Start
+## New arrow types
 
-Decision
+There are new types of arrows supported:
 
-Continue
+- circle edge
+- cross edge
 
-Stop
+### Circle edge example
 
-In this example, the layout: elk line configures the diagram to use the ELK layout algorithm, along with the hand drawn look and forest theme.
-Customizing ELK Layout:
-
-When using the ELK layout, you can further refine the diagram’s configuration, such as how nodes are placed and whether parallel edges should be combined:
-
-    To combine parallel edges, use mergeEdges: true | false.
-    To configure node placement, use nodePlacementStrategy with the following options:
-        SIMPLE
-        NETWORK_SIMPLEX
-        LINEAR_SEGMENTS
-        BRANDES_KOEPF (default)
-
-Example configuration:
-
----
-config:
-  layout: elk
-  elk:
-    mergeEdges: true
-    nodePlacementStrategy: LINEAR_SEGMENTS
----
+```mermaid
 flowchart LR
-  A[Start] --> B{Choose Path}
-  B -->|Option 1| C[Path 1]
-  B -->|Option 2| D[Path 2]
+    A --o B
+```
 
-#### Using Dagre Layout with Classic Look:
+### Cross edge example
 
-Another example:
-
----
-config:
-  layout: dagre
-  look: classic
-  theme: default
----
-
+```mermaid
 flowchart LR
-A[Start] --> B{Choose Path}
-B -->|Option 1| C[Path 1]
-B -->|Option 2| D[Path 2]
+    A --x B
+```
 
-These options give you the flexibility to create diagrams that not only look great but are also arranged to best suit your data’s structure and flow.
+## Multi directional arrows
 
-When integrating Mermaid, you can include look and layout configuration with the initialize call. This is also where you add the loading of elk.
+```mermaid
+flowchart LR
+    A o--o B
+    B <--> C
+    C x--x D
+```
+
+### Minimum length of a link
+
+Each node in the flowchart is ultimately assigned to a rank in the rendered
+graph, i.e. to a vertical or horizontal level (depending on the flowchart
+orientation), based on the nodes to which it is linked. By default, links
+can span any number of ranks, but you can ask for any link to be longer
+than the others by adding extra dashes in the link definition.
+
+In the following example, two extra dashes are added in the link from node _B_
+to node _E_, so that it spans two more ranks than regular links:
+
+```mermaid
+flowchart TD
+    A[Start] --> B{Is it?}
+    B -->|Yes| C[OK]
+    C --> D[Rethink]
+    D --> B
+    B ---->|No| E[End]
+```
+
+> **Note** Links may still be made longer than the requested number of ranks
+> by the rendering engine to accommodate other requests.
+
+When the link label is written in the middle of the link, the extra dashes must
+be added on the right side of the link. The following example is equivalent to
+the previous one:
+
+```mermaid
+flowchart TD
+    A[Start] --> B{Is it?}
+    B -- Yes --> C[OK]
+    C --> D[Rethink]
+    D --> B
+    B -- No ----> E[End]
+```
+
+For dotted or thick links, the characters to add are equals signs or dots,
+as summed up in the following table:
+
+| Length            |   1    |    2    |    3     |
+| ----------------- | :----: | :-----: | :------: |
+| Normal            | `---`  | `----`  | `-----`  |
+| Normal with arrow | `-->`  | `--->`  | `---->`  |
+| Thick             | `===`  | `====`  | `=====`  |
+| Thick with arrow  | `==>`  | `===>`  | `====>`  |
+| Dotted            | `-.-`  | `-..-`  | `-...-`  |
+| Dotted with arrow | `-.->` | `-..->` | `-...->` |
+
+## Special characters that break syntax
+
+It is possible to put text within quotes in order to render more troublesome characters. As in the example below:
+
+```mermaid
+flowchart LR
+    id1["This is the (text) in the box"]
+```
+
+### Entity codes to escape characters
+
+It is possible to escape characters using the syntax exemplified here.
+
+```mermaid
+    flowchart LR
+        A["A double quote:#quot;"] --> B["A dec char:#9829;"]
+```
+
+Numbers given are base 10, so `#` can be encoded as `#35;`. It is also supported to use HTML character names.
+
+## Subgraphs
+
+```
+subgraph title
+    graph definition
+end
+```
+
+An example below:
+
+```mermaid
+flowchart TB
+    c1-->a2
+    subgraph one
+    a1-->a2
+    end
+    subgraph two
+    b1-->b2
+    end
+    subgraph three
+    c1-->c2
+    end
+```
+
+You can also set an explicit id for the subgraph.
+
+```mermaid
+flowchart TB
+    c1-->a2
+    subgraph ide1 [one]
+    a1-->a2
+    end
+```
+
+### flowcharts
+
+With the graphtype flowchart it is also possible to set edges to and from subgraphs as in the flowchart below.
+
+```mermaid
+flowchart TB
+    c1-->a2
+    subgraph one
+    a1-->a2
+    end
+    subgraph two
+    b1-->b2
+    end
+    subgraph three
+    c1-->c2
+    end
+    one --> two
+    three --> two
+    two --> c2
+```
+
+### Direction in subgraphs
+
+With the graphtype flowcharts you can use the direction statement to set the direction which the subgraph will render like in this example.
+
+```mermaid
+flowchart LR
+  subgraph TOP
+    direction TB
+    subgraph B1
+        direction RL
+        i1 -->f1
+    end
+    subgraph B2
+        direction BT
+        i2 -->f2
+    end
+  end
+  A --> TOP --> B
+  B1 --> B2
+```
+
+### Comments
+
+Comments can be entered within a flow diagram, which will be ignored by the parser. Comments need to be on their own line, and must be prefaced with `%%` (double percent signs). Any text after the start of the comment to the next newline will be treated as a comment, including any flow syntax
+
+```mermaid
+flowchart LR
+%% this is a comment A -- text --> B{node}
+   A -- text --> B -- text2 --> C
+```
+
+## Graph declarations with spaces between vertices and link and without semicolon
+
+- In graph declarations, the statements also can now end without a semicolon. After release 0.2.16, ending a graph statement with semicolon is just optional. So the below graph declaration is also valid along with the old declarations of the graph.
+
+- A single space is allowed between vertices and the link. However there should not be any space between a vertex and its text and a link and its text. The old syntax of graph declaration will also work and hence this new feature is optional and is introduced to improve readability.
+
+Below is the new declaration of the graph edges which is also valid along with the old declaration of the graph edges.
+
+```mermaid
+flowchart LR
+    A[Hard edge] -->|Link text| B(Round edge)
+    B --> C{Decision}
+    C -->|One| D[Result one]
+    C -->|Two| E[Result two]
+```
