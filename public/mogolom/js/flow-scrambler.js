@@ -1,6 +1,7 @@
 // Handles legal tree manipulations while preserving structure
 const scrambleFlow = (tree, problematicEdges = []) => {
-    console.log('Scrambling flow', tree, problematicEdges);
+    console.log('Scrambling flow:', JSON.stringify(tree, null, 2));
+    console.log('Problematic edges:', problematicEdges);
   // Helper to shuffle array elements
   const shuffle = (arr) => {
     for (let i = arr.length - 1; i > 0; i--) {
