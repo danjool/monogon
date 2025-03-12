@@ -6,10 +6,10 @@ MOGOLOM is an advanced tool for optimizing the visual layout of Mermaid.js diagr
 
 MOGOLOM (Monogon's Optimize Golem of Layouts of Mermaid) is a specialized tool that automatically improves the visual clarity of Mermaid.js flowcharts by:
 
-- Reducing edge-to-edge intersections (where lines cross each other)
-- Minimizing edge-to-node intersections (where lines pass through nodes)
-- Preserving the semantic structure and meaning of your diagrams
-- Providing a modern, user-friendly interface for diagram optimization
+- Reducing where lines cross each other
+- Minimizing where lines pass through nodes
+- Preserving the semantic structure and meaning of diagrams
+- Providing a plain, effective proof-of-concept interface for diagram optimization
 
 ## How It Works
 
@@ -28,18 +28,20 @@ MOGOLOM uses an optimization algorithm to:
 - **One-Click Optimization**: Automatically improve diagram layouts
 - **Stop Optimization**: Ability to stop the optimization process early
 - **Example Library**: Pre-loaded examples to demonstrate capabilities
-- **Detailed Statistics**: Track edge crossings and optimization progress
+- **Statistics**: Track edge crossings and optimization progress
 - **Responsive Design**: Resizable split-pane interface
-- **Visual Feedback**: Progress bar and completion notifications
+- **Visual Feedback**: Diagrams include extra blue and red dots to indicate inappropriate crossings
 
 ## Usage
 
 1. Enter or paste your Mermaid diagram code in the editor
-2. Click "Optimize Layout" to start the optimization process
+2. Click "Optimize" to start the optimization process
 3. Watch as MOGOLOM iteratively improves your diagram
 4. If needed, click "Stop Optimization" to end the process early
-5. When complete, the optimized diagram will be displayed with statistics
-6. Copy the optimized Mermaid code for use in your projects
+5. At all times the optimized diagram will be displayed with statistics
+6. Export via:
+    - **Export to Mermaid live** opens another tab with code in url
+    - Copy the optimized Mermaid code for use in your projects
 
 ## Technical Implementation
 
@@ -47,24 +49,25 @@ MOGOLOM consists of several key components:
 
 - **UI Layer**: Modern interface with split-pane design (mogolom.html, CSS)
 - **Rendering Engine**: Leverages Mermaid.js to render diagrams
-- **SVG Analyzer**: Detects and quantifies diagram intersections
-- **Syntax Swapper**: Generates semantically equivalent diagram variations
-- **Optimization Engine**: Coordinates the optimization process
+- **SVG Analyzer**: Detects and quantifies diagram intersections, keeps track to pass to 
+- **Syntax Swapper**: Generates semantically equivalent diagram variations, partly random, partly informed to weight by 'problematic' links and nodes
+- **mogolom.js Optimization Engine**: Coordinates the optimization process
+    - includes debug DE-optimization feature, which flips the functionality to tangle the graphs
 
 ## Project Structure
-
-```
-├── mogolom.html       # Main application interface
-├── index.html         # Alternative/legacy interface
-├── mogolom.js         # Core optimization logic
+mogolom/
+├── index.html # Main application interface
 ├── css/
-│   └── mogolom.css    # Styling for the application
+│ └── style.css # Application styling
 ├── js/
-│   ├── svg-analyzer.js      # Detects diagram intersections
-│   ├── syntax-swapper.js    # Generates diagram variations
-│   ├── example-manager.js   # Manages example diagrams
-│   └── mermaid-renderer.js  # Handles diagram rendering
-```
+│ ├── mogolom.js # Core optimization engine
+│ ├── parse-flow.js # Mermaid flowchart parser
+│ ├── svg-analyzer.js # SVG intersection detection
+│ └── syntax-swapper.js # Layout variation generator
+├── docs/
+│ ├── FlowSyntax.md # Mermaid flowchart syntax reference
+│ └── mogolom.md # Project documentation
+└── examples/ # Sample diagram configurations
 
 ## Performance
 
@@ -73,5 +76,4 @@ The optimization algorithm is efficient enough to handle complex diagrams with m
 ## Known flaws
 ### Mermaid
 Mermaid doesn't actually support backwards arrows like <---
-<--- renders the same as a --- renders the same as ---> what a terrible default mermaid behavior!
-Because I did not know this at first, I implemented this optimization as if <--- would allow a novel layout, which it does, and maintain semantic integrity, which it doesn't.
+Workaround found in FlowSyntax.md, using invisible ~~~ arrows.
