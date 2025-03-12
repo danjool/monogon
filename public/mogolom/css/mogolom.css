@@ -295,6 +295,7 @@ main {
   min-width: 0;
   min-height: 300px;
   padding: 1rem;
+  position: relative;
 }
 
 .mermaid {
@@ -303,12 +304,48 @@ main {
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
 }
 
-.mermaid svg {
+.mermaid svg.mermaid-svg {
   max-width: 100%;
-  min-width: 80%;
-  height: auto;
+  max-height: 100%;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Intersection marker styles */
+.intersection-markers circle {
+  stroke: none;
+  pointer-events: none;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+.edge-edge-marker {
+  fill: red;
+  opacity: 0.8;
+}
+
+.edge-node-marker {
+  fill: blue;
+  opacity: 0.8;
+}
+
+/* Ensure markers scale properly with zoom */
+.intersection-markers {
+  transform-origin: center;
+  transform-box: fill-box;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Ensure the SVG container preserves aspect ratio */
+.mermaid-container .mermaid {
+  aspect-ratio: auto;
+  min-height: 200px;
 }
 
 .optimization-stats {

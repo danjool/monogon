@@ -10,6 +10,12 @@ const scrambleFlow = (tree, problematicEdges = []) => {
     return arr;
   };
 
+  // Helper to check if a node is safe to shuffle
+  const isSafeToShuffle = (node) => {
+    // Don't shuffle nodes with special characters or multiline content
+    return !node.hasSpecialChars && !node.raw.includes('\n');
+  };
+
   // Deep clone tree to avoid mutations
   const newTree = JSON.parse(JSON.stringify(tree));
   
@@ -48,13 +54,43 @@ const scrambleFlow = (tree, problematicEdges = []) => {
   }
   
   // Shuffle subgraph edges (50% chance per subgraph)
+  // But NEVER move subgraphs between different levels
   const scrambleSubgraph = (subgraph) => {
+    // Shuffle edges within this subgraph
     if (subgraph.edges.length > 1 && Math.random() < 0.5) {
       shuffle(subgraph.edges);
     }
+    
+    // Shuffle nodes within this subgraph (only if safe)
+    if (subgraph.nodes.length > 1 && Math.random() < 0.5) {
+      // Filter out nodes with special characters or multiline content
+      const safeNodes = subgraph.nodes.filter(isSafeToShuffle);
+      const unsafeNodes = subgraph.nodes.filter(node => !isSafeToShuffle(node));
+      
+      if (safeNodes.length > 1) {
+        // Shuffle only the safe nodes
+        shuffle(safeNodes);
+        
+        // Reconstruct the nodes array with shuffled safe nodes and original unsafe nodes
+        subgraph.nodes = [...safeNodes, ...unsafeNodes];
+      }
+    }
+    
+    // Process nested subgraphs (but don't move them between levels)
     subgraph.subgraphs.forEach(scrambleSubgraph);
+    
+    // Optionally shuffle the order of subgraphs at the same level
+    if (subgraph.subgraphs.length > 1 && Math.random() < 0.3) {
+      shuffle(subgraph.subgraphs);
+    }
   };
   
+  // Optionally shuffle the order of top-level subgraphs
+  if (newTree.subgraphs.length > 1 && Math.random() < 0.3) {
+    shuffle(newTree.subgraphs);
+  }
+  
+  // Process each subgraph
   newTree.subgraphs.forEach(scrambleSubgraph);
   
   return newTree;

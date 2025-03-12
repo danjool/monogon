@@ -81,23 +81,28 @@ function renderDiagram() {
       // Ensure SVG is properly sized
       const svgElement = diagram.querySelector('svg');
       if (svgElement) {
+        // Get the original dimensions
+        const originalWidth = svgElement.getAttribute('width') || svgElement.getBBox().width;
+        const originalHeight = svgElement.getAttribute('height') || svgElement.getBBox().height;
+        
+        // Set viewBox to maintain aspect ratio
+        svgElement.setAttribute('viewBox', `0 0 ${originalWidth} ${originalHeight}`);
+        
         // Remove fixed dimensions that might be constraining the SVG
         svgElement.removeAttribute('width');
         svgElement.removeAttribute('height');
         
-        // Set viewBox if it doesn't exist to maintain aspect ratio
-        if (!svgElement.getAttribute('viewBox') && 
-            svgElement.getAttribute('width') && 
-            svgElement.getAttribute('height')) {
-          const width = parseFloat(svgElement.getAttribute('width'));
-          const height = parseFloat(svgElement.getAttribute('height'));
-          svgElement.setAttribute('viewBox', `0 0 ${width} ${height}`);
-        }
-        
         // Add responsive styling
         svgElement.style.width = '100%';
-        svgElement.style.minWidth = '300px';
-        svgElement.style.height = 'auto';
+        svgElement.style.height = '100%';
+        svgElement.style.maxHeight = '100%';
+        svgElement.style.display = 'block';
+        
+        // Add preserveAspectRatio to ensure the diagram fits within the container
+        svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        
+        // Add a class to help with styling
+        svgElement.classList.add('mermaid-svg');
       }
       
       analyzeDiagram();
@@ -148,6 +153,7 @@ function markIntersections(svg, edgeIntersections, nodeIntersections) {
     marker.setAttribute("r", "4");
     marker.setAttribute("fill", "red");
     marker.setAttribute("class", "edge-edge-marker");
+    marker.setAttribute("vector-effect", "non-scaling-stroke");
     intersectionGroup.appendChild(marker);
   });
   
@@ -159,6 +165,7 @@ function markIntersections(svg, edgeIntersections, nodeIntersections) {
     marker.setAttribute("r", "4");
     marker.setAttribute("fill", "blue");
     marker.setAttribute("class", "edge-node-marker");
+    marker.setAttribute("vector-effect", "non-scaling-stroke");
     intersectionGroup.appendChild(marker);
   });
   
@@ -279,15 +286,32 @@ function optimizeDiagram() {
           // Ensure SVG is properly sized
           const displayedSvg = diagram.querySelector('svg');
           if (displayedSvg) {
+            // Get the original dimensions
+            const originalWidth = displayedSvg.getAttribute('width') || displayedSvg.getBBox().width;
+            const originalHeight = displayedSvg.getAttribute('height') || displayedSvg.getBBox().height;
+            
+            // Set viewBox to maintain aspect ratio
+            displayedSvg.setAttribute('viewBox', `0 0 ${originalWidth} ${originalHeight}`);
+            
+            // Remove fixed dimensions that might be constraining the SVG
             displayedSvg.removeAttribute('width');
             displayedSvg.removeAttribute('height');
+            
+            // Add responsive styling
             displayedSvg.style.width = '100%';
-            displayedSvg.style.minWidth = '300px';
-            displayedSvg.style.height = 'auto';
+            displayedSvg.style.height = '100%';
+            displayedSvg.style.maxHeight = '100%';
+            displayedSvg.style.display = 'block';
+            
+            // Add preserveAspectRatio to ensure the diagram fits within the container
+            displayedSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+            
+            // Add a class to help with styling
+            displayedSvg.classList.add('mermaid-svg');
           }
           
           // Mark intersections
-          markIntersections(svgElement, edgeIntersections, nodeIntersections);
+          markIntersections(displayedSvg, edgeIntersections, nodeIntersections);
           
           // Auto-stop if score reaches zero
           if (totalScore === 0) {

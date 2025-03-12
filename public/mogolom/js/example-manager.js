@@ -8,109 +8,79 @@ const exampleDiagrams = [
     name: 'MOGOLOM Architecture',
     description: 'Actual file structure and relationships in MOGOLOM',
     code: `flowchart TD
-    %% Main HTML Entry Point
-    subgraph index["index.html"]
-        direction TB
-        CodeEditor["textarea#code-editor"]
-        DiagramDiv["div#diagram.mermaid"]
-        StatsDiv["div.optimization-stats"]
-        OptimizeBtn["button#optimize-btn"]
-        ExamplesBtn["button.examples-btn"]
-    end
 
-    %% Core Mogolom Logic
-    subgraph mogolom["mogolom.js"]
-        direction LR
-        renderDiagram
-        startOptimization
-        analyzeDiagram
-        stopOptimization
-    end
-
-    %% Tree Processing Chain
-    subgraph parser["parse-flow.js"]
-        parseFlow["parse()"]
-    end
-
-    subgraph scrambler["flow-scrambler.js"]
-        scrambleFlow["scramble()"]
-    end
-
-    subgraph converter["flow-tree-to-mmd.js"]
-        treeToMermaid["convert()"]
-    end
-
-    %% SVG Analysis
-    subgraph analyzer["svg-analyzer.js"]
-        calculateScore["calculateDiagramScore()"]
-        findIntersections["findEdgeIntersections()"]
-        findOverlaps["findNodeOverlaps()"]
-    end
-
-    %% Example Management
-    subgraph examples["example-manager.js"]
-        loadExample["loadExampleDiagram()"]
-        Templates["exampleDiagrams[]
-        • Architecture
-        • Vector Space
-        • Software Patterns"]
-    end
-
-    %% Mermaid Rendering
-    subgraph renderer["mermaid-renderer.js"]
-        renderWithMermaid["render()"]
-        markIntersections["markIntersections()"]
-    end
-
-    %% User Flow and Outcomes
-    User -->|"Opens"| index
-    User -->|"Pastes Code"| CodeEditor
-    User -->|"Clicks"| OptimizeBtn
-    User -->|"Picks"| ExamplesBtn
-
-    %% Main Data Flow
-    CodeEditor -->|"Mermaid Code"| parseFlow
+    
+    parseFlow["parse-flow.js.parse()"]
+    treeToMermaid["flow-tree-to-mmd.js.convert()"]
+    scrambleFlow["flow-scrambler.js.scramble()"]
+    CodeEditor["textarea#code-editor"]
+    DiagramDiv["div#diagram.mermaid"]
+    StatsDiv["div.optimization-stats"]
+    OptimizeBtn["button#optimize-btn"]
+    ExamplesBtn["button.examples-btn"]
+    DiagramDiv --> BetterDiagram
+    MessyDiagram -->|"Leads to"| Confusion["😱 Confusion"]
     parseFlow -->|"Tree"| scrambleFlow
-    scrambleFlow -->|"Shuffled Tree"| treeToMermaid
-    treeToMermaid -->|"New Code"| CodeEditor
-
-    %% Rendering Flow
-    CodeEditor --> renderWithMermaid
-    renderWithMermaid -->|"SVG"| DiagramDiv
-
-    %% Analysis Flow
-    DiagramDiv -->|"SVG"| calculateScore
     calculateScore -->|"Edge Crossings"| findIntersections
-    calculateScore -->|"Node Overlaps"| findOverlaps
-    findIntersections --> markIntersections
-    findOverlaps --> markIntersections
     markIntersections -->|"Highlighted SVG"| DiagramDiv
+    findIntersections --> markIntersections
+    treeToMermaid -->|"New Code"| tempContainer
+    CodeEditor --> renderWithMermaid
+    DiagramDiv -->|"SVG"| calculateScore
+    scrambleFlow -->|"Shuffled Tree"| treeToMermaid
+    calculateScore -->|"Node Overlaps"| findOverlaps
+    Templates -->|"Sets"| CodeEditor
+    findOverlaps --> markIntersections
+    DiagramDiv --> MessyDiagram
+    CodeEditor -->|"Mermaid Code"| parseFlow
     calculateScore -->|"Stats"| StatsDiv
-
-    %% Control Flow
     OptimizeBtn --> startOptimization
     startOptimization -->|"Controls"| scrambleFlow
     calculateScore -->|"Guides"| scrambleFlow
-
-    %% Example Flow
     ExamplesBtn --> loadExample
     loadExample -->|"Loads"| Templates
-    Templates -->|"Sets"| CodeEditor
-
-    %% Outcomes
-    MessyDiagram["Hard to Read<br>Diagram 😵"] -->|"Optimized to"| BetterDiagram["Clear<br>Diagram 😊"]
-    MessyDiagram -->|"Leads to"| Confusion["😱 Confusion"]
+    User -->|"Pastes Code"| CodeEditor
+    renderWithMermaid -->|"SVG"| DiagramDiv
     BetterDiagram -->|"Enables"| Understanding["😊 Understanding"]
-    
     Confusion --> User
     Understanding --> User
-
-    style index fill:#f9f,stroke:#333,stroke-width:2px
-    style mogolom fill:#bbf,stroke:#333,stroke-width:2px
-    style analyzer fill:#bfb,stroke:#333,stroke-width:2px
-    style examples fill:#fbb,stroke:#333,stroke-width:2px
-    style MessyDiagram fill:#fdd,stroke:#333,stroke-width:2px
-    style BetterDiagram fill:#dfd,stroke:#333,stroke-width:2px`
+    User -->|"Clicks"| OptimizeBtn
+subgraph renderer["mermaid-renderer.js"]
+    renderWithMermaid["render()"]
+    markIntersections["markIntersections()"]
+end
+subgraph mogolom["mogolom.js"]
+    direction LR
+    startOptimization
+    stopOptimization
+    analyzeDiagram
+end
+subgraph examples["example-manager.js"]
+    loadExample["loadExampleDiagram()"]
+    Templates["exampleDiagrams[]
+                            • Architecture
+                            • Vector Space
+                            • Software Patterns"]
+end
+subgraph analyzer["svg-analyzer.js"]
+    calculateScore["calculateDiagramScore()"]
+    findOverlaps["findNodeOverlaps()"]
+    findIntersections["findEdgeIntersections()"]
+end
+User -->|"Picks"| ExamplesBtn`
+  },
+  {
+    id: 'mogolom-sub-sub-graphs',
+    name: 'MOGOLOM Sub-Sub-Graphs',
+    description: 'A diagram showing the relationships between sub-sub-graphs in MOGOLOM',
+    code: `flowchart TD
+    subgraph biggest 
+    subgraph bigger
+    subgraph adequete
+    end
+    end
+    end
+    `
   },
   {
     id: 'mogolom-demo',
