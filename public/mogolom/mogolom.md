@@ -13,13 +13,19 @@ MOGOLOM (Monogon's Optimize Golem of Layouts of Mermaid) is a specialized tool t
 
 ## How It Works
 
-MOGOLOM uses an optimization algorithm to:
+MOGOLOM uses an adaptive optimization algorithm to:
 
-1. Parse your Mermaid diagram code
-2. Generate variations of the layout while preserving semantics
+1. Parse your Mermaid diagram code into a manipulatable tree structure
+2. Generate variations of the layout while preserving semantics using multiple scrambling strategies:
+   - Node position scrambling (prioritizing nodes involved in problematic crossings)
+   - Edge order scrambling (with focus on problematic edges)
+   - Strategic invisible edge manipulation (both random and targeted)
 3. Render each variation and analyze the SVG output for intersections
 4. Score layouts based on crossing counts and other metrics
-5. Iteratively improve the layout to find the optimal arrangement
+5. Adaptively adjust scrambling tactics based on:
+   - Number of iterations without improvement
+   - Current score of the layout
+   - crossings detected
 6. Present the optimized diagram with improved readability
 
 ## Features
@@ -47,27 +53,39 @@ MOGOLOM uses an optimization algorithm to:
 
 MOGOLOM consists of several key components:
 
-- **UI Layer**: Modern interface with split-pane design (mogolom.html, CSS)
+- **UI Layer**: Modern interface with split-pane design (index.html, CSS)
 - **Rendering Engine**: Leverages Mermaid.js to render diagrams
-- **SVG Analyzer**: Detects and quantifies diagram intersections, keeps track to pass to 
-- **Syntax Swapper**: Generates semantically equivalent diagram variations, partly random, partly informed to weight by 'problematic' links and nodes
-- **mogolom.js Optimization Engine**: Coordinates the optimization process
-    - includes debug DE-optimization feature, which flips the functionality to tangle the graphs
+- **SVG Analyzer**: Detects and quantifies diagram intersections
+- **Syntax Manipulation**:
+  - Tree Parser: Converts Mermaid syntax to manipulatable structure
+  - Modular Scramblers:
+    - `node-scrambler.js`: Handles node position changes
+    - `edge-scrambler.js`: Manages edge order manipulation
+    - `invisible-edge-scrambler.js`: Strategic invisible edge placement
+  - Tree to Mermaid: Converts back to valid Mermaid syntax
+- **Adaptive Optimization**: Adjusts scrambling tactics based on progress
 
 ## Project Structure
+```
 mogolom/
-├── index.html # Main application interface
+├── index.html           # Main application interface
 ├── css/
-│ └── style.css # Application styling
+│   └── mogolom.css     # Application styling
 ├── js/
-│ ├── mogolom.js # Core optimization engine
-│ ├── parse-flow.js # Mermaid flowchart parser
-│ ├── svg-analyzer.js # SVG intersection detection
-│ └── syntax-swapper.js # Layout variation generator
+│   ├── parse-flow.js   # Mermaid flowchart parser
+│   ├── scramblers/     # Modular scrambling strategies
+│   │   ├── node-scrambler.js
+│   │   ├── edge-scrambler.js
+│   │   └── invisible-edge-scrambler.js
+│   ├── flow-tree-to-mmd.js  # Tree to Mermaid converter
+│   ├── svg-analyzer.js      # SVG intersection detection
+│   ├── syntax-swapper.js    # Orchestrates scrambling strategies
+│   └── example-manager.js   # Sample diagram management
 ├── docs/
-│ ├── FlowSyntax.md # Mermaid flowchart syntax reference
-│ └── mogolom.md # Project documentation
-└── examples/ # Sample diagram configurations
+│   ├── FlowSyntax.md       # Mermaid flowchart syntax reference
+│   └── mogolom.md          # Project documentation
+└── examples/               # Sample diagram configurations
+```
 
 ## Performance
 
