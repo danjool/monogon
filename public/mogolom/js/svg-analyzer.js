@@ -490,19 +490,58 @@ function isPointInRect(point, rect) {
          point.y <= rect.y + rect.height;
 }
 
-// Calculate the score for a diagram based on intersections
+// Calculate the score for a diagram based on multiple factors
 function calculateDiagramScore(svg) {
-  if (!svg) return { edgeIntersections: [], nodeIntersections: [], totalScore: Infinity };
+  if (!svg) return { metrics: null, edgeIntersections: [], nodeIntersections: [], totalScore: Infinity };
   
+  // Collect all metrics including intersections
   const edgeIntersections = findEdgeEdgeIntersections(svg);
   const nodeIntersections = findEdgeNodeIntersections(svg);
-  const edgeEdgeWeight = parseFloat(document.getElementById('edge-edge-weight')?.value) || 10;
-  const edgeNodeWeight = parseFloat(document.getElementById('edge-node-weight')?.value) || 1;
+  const metrics = collectDiagramMetrics(svg);
   
-  const totalScore = edgeIntersections.length * edgeEdgeWeight + 
-    nodeIntersections.length * edgeNodeWeight;
+  // Get weights from UI or use defaults
+  const weights = {
+    edgeEdge: parseFloat(document.getElementById('edge-edge-weight')?.value) || 10,
+    edgeNode: parseFloat(document.getElementById('edge-node-weight')?.value) || 5,
+    diagramArea: parseFloat(document.getElementById('area-weight')?.value) || 0.0001,
+    edgeLength: parseFloat(document.getElementById('edge-length-weight')?.value) || 0.05,
+    maxEdgeLength: parseFloat(document.getElementById('max-edge-weight')?.value) || 0.1
+  };
+  
+  // Calculate component scores
+  const scores = {
+    edgeEdge: edgeIntersections.length * weights.edgeEdge,
+    edgeNode: nodeIntersections.length * weights.edgeNode,
+    diagramArea: metrics.dimensions.area * weights.diagramArea,
+    edgeLength: metrics.pathLengths.total * weights.edgeLength,
+    maxEdgeLength: (metrics.pathLengths.longest[0]?.length || 0) * weights.maxEdgeLength
+  };
+  
+  // Calculate total score
+  const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0);
+  
+  // Add intersection and score data to metrics
+  metrics.intersections = {
+    edgeEdge: {
+      count: edgeIntersections.length,
+      items: edgeIntersections,
+      weight: weights.edgeEdge,
+      score: scores.edgeEdge
+    },
+    edgeNode: {
+      count: nodeIntersections.length,
+      items: nodeIntersections,
+      weight: weights.edgeNode,
+      score: scores.edgeNode
+    }
+  };
+  
+  metrics.scores = scores;
+  metrics.weights = weights;
+  metrics.totalScore = totalScore;
   
   return {
+    metrics,
     edgeIntersections,
     nodeIntersections,
     totalScore

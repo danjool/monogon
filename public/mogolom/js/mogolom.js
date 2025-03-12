@@ -123,27 +123,19 @@ function analyzeDiagram() {
   const svg = diagram.querySelector('svg');
   if (!svg) return;
   
-  const edgeIntersections = window.SVGAnalyzer.findEdgeEdgeIntersections(svg);
-  const nodeIntersections = window.SVGAnalyzer.findEdgeNodeIntersections(svg);
-  const edgeEdgeWeight = 10;
-  const edgeNodeWeight = 1;
-  const totalScore = edgeIntersections.length * edgeEdgeWeight + nodeIntersections.length * edgeNodeWeight;
-  
-  // Collect additional metrics
-  const metrics = window.SVGAnalyzer.collectDiagramMetrics(svg);
+  // Use the new comprehensive scoring system
+  const result = window.SVGAnalyzer.calculateDiagramScore(svg);
   
   // Update UI with metrics
-  scoreDisplay.textContent = totalScore;
-  edgeEdgeCount.textContent = edgeIntersections.length;
-  edgeNodeCount.textContent = nodeIntersections.length;
+  updateMetricsUI(result);
   
   // Store metrics for use in optimization
-  window.currentDiagramMetrics = metrics;
+  window.currentDiagramMetrics = result.metrics;
   
   // Mark intersections on the SVG
-  markIntersections(svg, edgeIntersections, nodeIntersections);
+  markIntersections(svg, result.edgeIntersections, result.nodeIntersections);
   
-  bestScore = totalScore;
+  bestScore = result.totalScore;
 }
 
 function markIntersections(svg, edgeIntersections, nodeIntersections) {
@@ -247,20 +239,20 @@ function optimizeDiagram() {
   if (currentIteration > 1) {
     const svgElement = diagram.querySelector('svg');
     if (svgElement) {
-      const edgeIntersections = window.SVGAnalyzer.findEdgeEdgeIntersections(svgElement);
-      const nodeIntersections = window.SVGAnalyzer.findEdgeNodeIntersections(svgElement);
+      // Use the new comprehensive scoring system
+      const result = window.SVGAnalyzer.calculateDiagramScore(svgElement);
       
       // Extract edge identifiers from intersections
       problematicEdges = [
-        ...edgeIntersections.flatMap(int => {
+        ...result.edgeIntersections.flatMap(int => {
           const paths = int.paths || [];
           return paths.map(p => p.id || '').filter(id => id);
         }),
-        ...nodeIntersections.map(int => int.path?.id || '').filter(id => id)
+        ...result.nodeIntersections.map(int => int.path?.id || '').filter(id => id)
       ];
       
       // Get complete metrics
-      metrics = window.SVGAnalyzer.collectDiagramMetrics(svgElement);
+      metrics = result.metrics;
       
       // Extract longest paths
       if (metrics && metrics.pathLengths && metrics.pathLengths.longest) {
@@ -293,12 +285,9 @@ function optimizeDiagram() {
       const svgElement = tempContainer.querySelector('svg');
       
       if (svgElement) {
-        // Calculate score
-        const edgeIntersections = window.SVGAnalyzer.findEdgeEdgeIntersections(svgElement);
-        const nodeIntersections = window.SVGAnalyzer.findEdgeNodeIntersections(svgElement);
-        const edgeEdgeWeight = 10;
-        const edgeNodeWeight = 1;
-        const totalScore = edgeIntersections.length * edgeEdgeWeight + nodeIntersections.length * edgeNodeWeight;
+        // Use the new comprehensive scoring system
+        const result = window.SVGAnalyzer.calculateDiagramScore(svgElement);
+        const totalScore = result.totalScore;
         
         // Check if better than current best
         if(isDeOptimizing ? totalScore > bestScore : totalScore < bestScore) {
@@ -312,9 +301,7 @@ function optimizeDiagram() {
           diagram.innerHTML = svg;
           
           // Update stats
-          scoreDisplay.textContent = totalScore;
-          edgeEdgeCount.textContent = edgeIntersections.length;
-          edgeNodeCount.textContent = nodeIntersections.length;
+          updateMetricsUI(result);
           improvementsCount.textContent = improvementsFound;
           
           // Ensure SVG is properly sized
@@ -345,7 +332,7 @@ function optimizeDiagram() {
           }
           
           // Mark intersections
-          markIntersections(displayedSvg, edgeIntersections, nodeIntersections);
+          markIntersections(displayedSvg, result.edgeIntersections, result.nodeIntersections);
           
           // Auto-stop if score reaches zero
           if (totalScore === 0) {
@@ -403,6 +390,44 @@ function stopOptimization() {
   stopBtn.disabled = true;
 }
 
+// Update the UI with the latest metrics and scores
+function updateMetricsUI(result) {
+  const metrics = result.metrics;
+  if (!metrics) return;
+  
+  // Helper function to safely update an element if it exists
+  const safelyUpdateElement = (id, value) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  };
+  
+  // Update score displays
+  safelyUpdateElement('total-score', metrics.totalScore.toFixed(2));
+  safelyUpdateElement('edge-edge-score', metrics.scores.edgeEdge.toFixed(2));
+  safelyUpdateElement('edge-node-score', metrics.scores.edgeNode.toFixed(2));
+  safelyUpdateElement('area-score', metrics.scores.diagramArea.toFixed(2));
+  safelyUpdateElement('edge-length-score', 
+    (metrics.scores.edgeLength + metrics.scores.maxEdgeLength).toFixed(2));
+  
+  // Update intersection counts
+  safelyUpdateElement('edge-edge-count', metrics.intersections.edgeEdge.count);
+  safelyUpdateElement('edge-node-count', metrics.intersections.edgeNode.count);
+  
+  // Update diagram size metrics
+  safelyUpdateElement('diagram-area', metrics.dimensions.area.toFixed(0));
+  safelyUpdateElement('node-count', metrics.nodes);
+  safelyUpdateElement('edge-count', metrics.edges.total);
+  
+  // Update edge metrics
+  safelyUpdateElement('total-edge-length', metrics.pathLengths.total.toFixed(0));
+  safelyUpdateElement('longest-edge', 
+    (metrics.pathLengths.longest[0]?.length || 0).toFixed(0));
+  safelyUpdateElement('avg-edge-length', metrics.pathLengths.average.toFixed(0));
+  
+  // Legacy score update for backward compatibility
+  safelyUpdateElement('score', metrics.totalScore.toFixed(2));
+}
+
 // Initialize the application
 function init() {
   // Set initial pane sizes
@@ -432,6 +457,9 @@ function init() {
   if (examples && examples.length > 0) {
     loadExample(examples[0]);
   }
+  
+  // Setup weight controls
+  setupWeightControls();
 }
 
 // Initialize when DOM is loaded
@@ -440,4 +468,24 @@ document.addEventListener('DOMContentLoaded', init);
 // Initialize right away since DOM might already be loaded
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
   init();
+}
+
+// Add event listeners for the weight inputs to update scores in real-time
+function setupWeightControls() {
+  const weightInputs = [
+    'edge-edge-weight',
+    'edge-node-weight',
+    'area-weight',
+    'edge-length-weight',
+    'max-edge-weight'
+  ];
+  
+  weightInputs.forEach(id => {
+    document.getElementById(id).addEventListener('change', () => {
+      // Re-analyze the current diagram with new weights
+      const svg = document.querySelector('#diagram svg');
+      const result = SVGAnalyzer.calculateDiagramScore(svg);
+      updateMetricsUI(result);
+    });
+  });
 } 
