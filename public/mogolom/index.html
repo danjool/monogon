@@ -67,6 +67,14 @@
                 <span class="score-label">Edge Length:</span>
                 <span id="edge-length-score">0</span>
               </div>
+              <div class="score-item">
+                <span class="score-label">Curves:</span>
+                <span id="curve-score">0</span>
+              </div>
+              <div class="score-item">
+                <span class="score-label">Rect Area:</span>
+                <span id="rect-area-score">0</span>
+              </div>
             </div>
           </div>
           
@@ -97,6 +105,15 @@
           </div>
           
           <div class="stat-card">
+            <h3>Node Geometry</h3>
+            <div class="stat-details">
+              <span>Curve Count: <span id="curve-count">0</span></span>
+              <span>Total Rect Area: <span id="total-rect-area">0</span>px²</span>
+              <span>Avg Rect Area: <span id="avg-rect-area">0</span>px²</span>
+            </div>
+          </div>
+          
+          <div class="stat-card">
             <h3>Optimization</h3>
             <div class="stat-details">
               <span>Improvements: <span id="improvements-count">0</span></span>
@@ -121,11 +138,19 @@
               </div>
               <div class="weight-item">
                 <label for="edge-length-weight">Edge Length:</label>
-                <input type="number" id="edge-length-weight" value="0.0005" min="0" step="0.01">
+                <input type="number" id="edge-length-weight" value="0.0005" min="0" step="0.0001">
               </div>
               <div class="weight-item">
                 <label for="max-edge-weight">Max Edge:</label>
-                <input type="number" id="max-edge-weight" value="0.01" min="0" step="0.01">
+                <input type="number" id="max-edge-weight" value="0.01" min="0" step="0.001">
+              </div>
+              <div class="weight-item">
+                <label for="curve-weight">Curves:</label>
+                <input type="number" id="curve-weight" value="0.5" min="0" step="0.1">
+              </div>
+              <div class="weight-item">
+                <label for="rect-area-weight">Rect Area:</label>
+                <input type="number" id="rect-area-weight" value="0.0002" min="0" step="0.0001">
               </div>
             </div>
           </div>

@@ -501,11 +501,13 @@ function calculateDiagramScore(svg) {
   
   // Get weights from UI or use defaults
   const weights = {
-    edgeEdge: parseFloat(document.getElementById('edge-edge-weight')?.value) || 10,
-    edgeNode: parseFloat(document.getElementById('edge-node-weight')?.value) || 5,
+    edgeEdge: parseFloat(document.getElementById('edge-edge-weight')?.value) || 32,
+    edgeNode: parseFloat(document.getElementById('edge-node-weight')?.value) || 8,
     diagramArea: parseFloat(document.getElementById('area-weight')?.value) || 0.0001,
-    edgeLength: parseFloat(document.getElementById('edge-length-weight')?.value) || 0.05,
-    maxEdgeLength: parseFloat(document.getElementById('max-edge-weight')?.value) || 0.1
+    edgeLength: parseFloat(document.getElementById('edge-length-weight')?.value) || 0.0005,
+    maxEdgeLength: parseFloat(document.getElementById('max-edge-weight')?.value) || 0.01,
+    curveCount: parseFloat(document.getElementById('curve-weight')?.value) || 0.5,
+    rectArea: parseFloat(document.getElementById('rect-area-weight')?.value) || 0.0002
   };
   
   // Calculate component scores
@@ -514,7 +516,9 @@ function calculateDiagramScore(svg) {
     edgeNode: nodeIntersections.length * weights.edgeNode,
     diagramArea: metrics.dimensions.area * weights.diagramArea,
     edgeLength: metrics.pathLengths.total * weights.edgeLength,
-    maxEdgeLength: (metrics.pathLengths.longest[0]?.length || 0) * weights.maxEdgeLength
+    maxEdgeLength: (metrics.pathLengths.longest[0]?.length || 0) * weights.maxEdgeLength,
+    curveCount: metrics.edges.curves * weights.curveCount,
+    rectArea: metrics.rectArea * weights.rectArea
   };
   
   // Calculate total score
@@ -560,6 +564,15 @@ function collectDiagramMetrics(svg) {
   const nodes = svg.querySelectorAll('rect, circle, ellipse, polygon, path.node');
   const nodeCount = nodes.length;
   
+  // Calculate sum area of all rects
+  const rects = svg.querySelectorAll('rect');
+  let totalRectArea = 0;
+  rects.forEach(rect => {
+    const rectWidth = parseFloat(rect.getAttribute('width') || 0);
+    const rectHeight = parseFloat(rect.getAttribute('height') || 0);
+    totalRectArea += rectWidth * rectHeight;
+  });
+  
   // Get all paths that represent edges
   const allPaths = Array.from(svg.querySelectorAll('path')).filter(path => {
     // Filter out paths that are part of markers or nodes
@@ -579,6 +592,17 @@ function collectDiagramMetrics(svg) {
   const invisibleEdges = allPaths.filter(path => {
     return path.getAttribute('stroke-dasharray') && 
            path.getAttribute('stroke-dasharray').includes('0');
+  });
+  
+  // Count curves in paths
+  let curveCount = 0;
+  allPaths.forEach(path => {
+    const pathData = path.getAttribute('d') || '';
+    // Count C, c, S, s, Q, q, T, t, A, a commands which represent curves
+    const curveMatches = pathData.match(/[CcSsQqTtAa]/g);
+    if (curveMatches) {
+      curveCount += curveMatches.length;
+    }
   });
   
   // Calculate total length of all edge paths
@@ -607,10 +631,12 @@ function collectDiagramMetrics(svg) {
   return {
     dimensions: { width, height, area: width * height },
     nodes: nodeCount,
+    rectArea: totalRectArea,
     edges: {
       total: allPaths.length,
       visible: visibleEdges.length,
-      invisible: invisibleEdges.length
+      invisible: invisibleEdges.length,
+      curves: curveCount
     },
     pathLengths: {
       total: totalPathLength,

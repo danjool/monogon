@@ -408,6 +408,8 @@ function updateMetricsUI(result) {
   safelyUpdateElement('area-score', metrics.scores.diagramArea.toFixed(2));
   safelyUpdateElement('edge-length-score', 
     (metrics.scores.edgeLength + metrics.scores.maxEdgeLength).toFixed(2));
+  safelyUpdateElement('curve-score', metrics.scores.curveCount.toFixed(2));
+  safelyUpdateElement('rect-area-score', metrics.scores.rectArea.toFixed(2));
   
   // Update intersection counts
   safelyUpdateElement('edge-edge-count', metrics.intersections.edgeEdge.count);
@@ -423,6 +425,12 @@ function updateMetricsUI(result) {
   safelyUpdateElement('longest-edge', 
     (metrics.pathLengths.longest[0]?.length || 0).toFixed(0));
   safelyUpdateElement('avg-edge-length', metrics.pathLengths.average.toFixed(0));
+  
+  // Update node geometry metrics
+  safelyUpdateElement('curve-count', metrics.edges.curves);
+  safelyUpdateElement('total-rect-area', metrics.rectArea.toFixed(0));
+  safelyUpdateElement('avg-rect-area', 
+    (metrics.nodes > 0 ? metrics.rectArea / metrics.nodes : 0).toFixed(0));
   
   // Legacy score update for backward compatibility
   safelyUpdateElement('score', metrics.totalScore.toFixed(2));
@@ -477,7 +485,9 @@ function setupWeightControls() {
     'edge-node-weight',
     'area-weight',
     'edge-length-weight',
-    'max-edge-weight'
+    'max-edge-weight',
+    'curve-weight',
+    'rect-area-weight'
   ];
   
   weightInputs.forEach(id => {
