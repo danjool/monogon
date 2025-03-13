@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // State
   let isOptimizing = false;
   let currentIteration = 0;
+  let iterationsSinceImprovement = 0;
   let maxIterations = 2000;
   let bestScore = Infinity;
   let currentCode = '';
@@ -162,7 +163,9 @@ document.addEventListener('DOMContentLoaded', () => {
     progressBar.style.width = `${(currentIteration / maxIterations) * 100}%`;
     
     // Generate a variation
-    const variation = window.SyntaxSwapper.generateVariation(currentCode);
+    const variation = window.SyntaxSwapper.generateVariation(
+      currentCode, problematicEdges, iterationsSinceImprovement, bestScore
+    );
     
     // Create a temporary container for rendering
     const tempContainer = document.createElement('div');
@@ -186,6 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bestScore = totalScore;
             currentCode = variation;
             improvementsFound++;
+            iterationsSinceImprovement = 0;
             
             // Update editor and render new diagram
             codeEditor.value = variation;
