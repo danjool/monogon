@@ -388,15 +388,15 @@ function completeOptimization() {
   stopBtn.disabled = true;
   
   // Add success styling to stat cards
-  const statCards = document.querySelectorAll('.stat-card');
-  statCards.forEach(card => {
-    card.classList.add('success');
+  const statCard = document.querySelector('.primary-score');
+  if (statCard) {
+    statCard.classList.add('success');
     
     // Remove success class after 5 seconds
     setTimeout(() => {
-      card.classList.remove('success');
+      statCard.classList.remove('success');
     }, 5000);
-  });
+  }
 }
 
 function stopOptimization() {

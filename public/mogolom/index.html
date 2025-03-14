@@ -49,70 +49,77 @@
         <div class="optimization-stats">
           <div class="stat-card primary-score">
             <h3>Total Score</h3>
-            <p id="score">N/A</p>
+            <div class="score-meta">
+              <p id="score">N/A</p>
+              <div class="score-counters">
+                <span>Iterations: <span id="iteration-count">0</span></span>
+                <span>Improvements: <span id="improvements-count">0</span></span>
+              </div>
+            </div>
             <div class="score-breakdown">
               <div class="score-item">
                 <div class="score-header">
-                  <span class="score-label">Edge-Edge:</span>
-                  <span id="edge-edge-score">0</span>
+                  <span class="score-label">Intersections:</span>
+                  <span><span id="edge-edge-score">0</span><span class="score-plus">+</span><span id="edge-node-score">0</span></span>
                 </div>
                 <div class="score-details">
-                  <span>Count: <span id="edge-edge-count">0</span></span>
-                  <div class="weight-control">
-                    <label for="edge-edge-weight">Weight:</label>
-                    <input type="number" id="edge-edge-weight" value="32" min="0" step="1">
+                  <div class="detail-row">
+                    <span>Edge-Edge: <span id="edge-edge-count">0</span></span>
+                    <div class="weight-control">
+                      <label for="edge-edge-weight">Weight:</label>
+                      <input type="number" id="edge-edge-weight" value="32" min="0" step="1">
+                    </div>
+                  </div>
+                  <div class="detail-row">
+                    <span>Edge-Node: <span id="edge-node-count">0</span></span>
+                    <div class="weight-control">
+                      <label for="edge-node-weight">Weight:</label>
+                      <input type="number" id="edge-node-weight" value="8" min="0" step="1">
+                    </div>
                   </div>
                 </div>
               </div>
               <div class="score-item">
                 <div class="score-header">
-                  <span class="score-label">Edge-Node:</span>
-                  <span id="edge-node-score">0</span>
+                  <span class="score-label">Area Metrics:</span>
+                  <span><span id="area-score">0</span><span class="score-plus">+</span><span id="rect-area-score">0</span></span>
                 </div>
                 <div class="score-details">
-                  <span>Count: <span id="edge-node-count">0</span></span>
-                  <div class="weight-control">
-                    <label for="edge-node-weight">Weight:</label>
-                    <input type="number" id="edge-node-weight" value="8" min="0" step="1">
+                  <div class="detail-row">
+                    <span>Diagram: <span id="diagram-area">0</span>px²</span>
+                    <div class="weight-control">
+                      <label for="area-weight">Weight:</label>
+                      <input type="number" id="area-weight" value="0.0001" min="0" step="0.0001">
+                    </div>
+                  </div>
+                  <div class="detail-row">
+                    <span>Rect Area: <span id="total-rect-area">0</span>px²</span>
+                    <div class="weight-control">
+                      <label for="rect-area-weight">Weight:</label>
+                      <input type="number" id="rect-area-weight" value="0.0002" min="0" step="0.0001">
+                    </div>
                   </div>
                 </div>
               </div>
               <div class="score-item">
                 <div class="score-header">
-                  <span class="score-label">Area:</span>
-                  <span id="area-score">0</span>
+                  <span class="score-label">Edge Metrics:</span>
+                  <span><span id="edge-length-score">0</span><span class="score-plus">+</span><span id="max-edge-score">0</span></span>
                 </div>
                 <div class="score-details">
-                  <span>Size: <span id="diagram-area">0</span>px²</span>
-                  <div class="weight-control">
-                    <label for="area-weight">Weight:</label>
-                    <input type="number" id="area-weight" value="0.0001" min="0" step="0.0001">
+                  <div class="detail-row">
+                    <span>Total Length: <span id="total-edge-length">0</span>px</span>
+                    <div class="weight-control">
+                      <label for="edge-length-weight">Weight:</label>
+                      <input type="number" id="edge-length-weight" value="0.0005" min="0" step="0.0001">
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div class="score-item">
-                <div class="score-header">
-                  <span class="score-label">Edge Length:</span>
-                  <span id="edge-length-score">0</span>
-                </div>
-                <div class="score-details">
-                  <span>Total: <span id="total-edge-length">0</span>px</span>
-                  <div class="weight-control">
-                    <label for="edge-length-weight">Weight:</label>
-                    <input type="number" id="edge-length-weight" value="0.0005" min="0" step="0.0001">
-                  </div>
-                </div>
-              </div>
-              <div class="score-item">
-                <div class="score-header">
-                  <span class="score-label">Max Edge:</span>
-                  <span id="max-edge-score">0</span>
-                </div>
-                <div class="score-details">
-                  <span>Length: <span id="longest-edge">0</span>px</span>
-                  <div class="weight-control">
-                    <label for="max-edge-weight">Weight:</label>
-                    <input type="number" id="max-edge-weight" value="0.01" min="0" step="0.001">
+                  <div class="detail-row">
+                    <span>Max Length: <span id="longest-edge">0</span>px</span>
+                    <div class="weight-control">
+                      <label for="max-edge-weight">Weight:</label>
+                      <input type="number" id="max-edge-weight" value="0.01" min="0" step="0.001">
+                    </div>
                   </div>
                 </div>
               </div>
@@ -122,38 +129,19 @@
                   <span id="curve-score">0</span>
                 </div>
                 <div class="score-details">
-                  <span>Count: <span id="curve-count">0</span></span>
-                  <div class="weight-control">
-                    <label for="curve-weight">Weight:</label>
-                    <input type="number" id="curve-weight" value="0.5" min="0" step="0.1">
+                  <div class="detail-row">
+                    <span>Count: <span id="curve-count">0</span></span>
+                    <div class="weight-control">
+                      <label for="curve-weight">Weight:</label>
+                      <input type="number" id="curve-weight" value="0.5" min="0" step="0.1">
+                    </div>
+                  </div>
+                  <div class="detail-row">
+                    <span>Nodes: <span id="node-count">0</span></span>
+                    <span>Edges: <span id="edge-count">0</span></span>
                   </div>
                 </div>
               </div>
-              <div class="score-item">
-                <div class="score-header">
-                  <span class="score-label">Rect Area:</span>
-                  <span id="rect-area-score">0</span>
-                </div>
-                <div class="score-details">
-                  <span>Total: <span id="total-rect-area">0</span>px²</span>
-                  <div class="weight-control">
-                    <label for="rect-area-weight">Weight:</label>
-                    <input type="number" id="rect-area-weight" value="0.0002" min="0" step="0.0001">
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="stat-card optimization-progress">
-            <h3>Optimization Progress</h3>
-            <div class="stat-details">
-              <span>Improvements: <span id="improvements-count">0</span></span>
-              <span>Iterations: <span id="iteration-count">0</span></span>
-              <span>Nodes: <span id="node-count">0</span></span>
-              <span>Edges: <span id="edge-count">0</span></span>
-              <span>Avg Edge Length: <span id="avg-edge-length">0</span>px</span>
-              <span>Avg Rect Area: <span id="avg-rect-area">0</span>px²</span>
             </div>
           </div>
         </div>
