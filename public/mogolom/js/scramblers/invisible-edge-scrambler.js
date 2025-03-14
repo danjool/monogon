@@ -1,6 +1,25 @@
 // Functions for managing invisible edges
-function removeInvisibleEdges(edges) {
-  return edges.filter(e => !e.raw.includes('~~~'));
+function removeInvisibleEdges(edges, n=1) {
+  // Filter out invisible edges
+  const invisibleEdges = edges.filter(edge => edge.type === 'invisible');
+  
+  // If no invisible edges, return original edges
+  if (!invisibleEdges.length) return edges;
+  
+  // Remove n random invisible edges
+  const numToRemove = Math.min(n, invisibleEdges.length);
+  const removedIndices = new Set();
+  
+  for (let i = 0; i < numToRemove; i++) {
+    let index;
+    do {
+      index = Math.floor(Math.random() * edges.length);
+    } while (!edges[index].type === 'invisible' || removedIndices.has(index));
+    removedIndices.add(index);
+  }
+  
+  // Return edges with selected invisible ones removed
+  return edges.filter((_, i) => !removedIndices.has(i));
 }
 
 function collectAllNodes(tree, allNodes = []) {
