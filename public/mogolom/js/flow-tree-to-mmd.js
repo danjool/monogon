@@ -11,7 +11,7 @@ const treeToMermaid = (tree) => {
   // Add main graph nodes
   tree.nodes.forEach(node => {
     // Use the raw content to preserve exact formatting
-    lines.push(node.raw);
+    lines.push(node.raw.trim());
   });
   
   // Add main graph edges
@@ -23,13 +23,14 @@ const treeToMermaid = (tree) => {
   // Helper to stringify subgraph
   const stringifySubgraph = (subgraph, indent = '') => {
     const subLines = [];
+    indent = ''; // circumventing to avoid extra parse complexity
     
     // Add subgraph declaration
     subLines.push(`${indent}subgraph ${subgraph.name}`);
     
     // Add direction if present
     if (subgraph.direction) {
-      subLines.push(`${indent}    ${subgraph.direction}`);
+      subLines.push(`${indent}${subgraph.direction}`);
     }
     
     // Add nodes and edges
@@ -39,11 +40,11 @@ const treeToMermaid = (tree) => {
       const rawLines = node.raw.split('\n');
       for (let i = 0; i < rawLines.length; i++) {
         if (i === 0) {
-          subLines.push(`${indent}    ${rawLines[i].trim()}`);
+          subLines.push(`${indent}${rawLines[i].trim()}`);
         } else {
           // Preserve indentation for multiline content
-          const lineIndent = rawLines[i].match(/^\s*/)[0];
-          subLines.push(`${indent}    ${lineIndent}${rawLines[i].trim()}`);
+          const lineIndent = ''; //rawLines[i].match(/^\s*/)[0];
+          subLines.push(`${indent}${lineIndent}${rawLines[i].trim()}`);
         }
       }
     });
@@ -53,18 +54,18 @@ const treeToMermaid = (tree) => {
       const rawLines = edge.raw.split('\n');
       for (let i = 0; i < rawLines.length; i++) {
         if (i === 0) {
-          subLines.push(`${indent}    ${rawLines[i].trim()}`);
+          subLines.push(`${indent}${rawLines[i].trim()}`);
         } else {
           // Preserve indentation for multiline content
           const lineIndent = rawLines[i].match(/^\s*/)[0];
-          subLines.push(`${indent}    ${lineIndent}${rawLines[i].trim()}`);
+          subLines.push(`${indent}${lineIndent}${rawLines[i].trim()}`);
         }
       }
     });
     
     // Add nested subgraphs (recursively)
     subgraph.subgraphs.forEach(sub => {
-      subLines.push(...stringifySubgraph(sub, `${indent}    `));
+      subLines.push(...stringifySubgraph(sub, `${indent}`));
     });
     
     // Add end
