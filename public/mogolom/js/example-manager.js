@@ -4,6 +4,42 @@
 // Collection of example diagrams
 const exampleDiagrams = [
   {
+    id: 'failing-test-case',
+    name: 'Failing Test Case',
+    description: 'A test case that fails to render correctly',
+    code: `
+    flowchart TD
+    defaultNode[Default Node - Rectangle]
+    roundNode(Round Node)
+    stadiumNode([Stadium Node])
+    subroutineNode[[Subroutine Node]]
+subgraph wat
+direction LR
+    cylindricalNode[(Cylindrical Node)]
+    circleNode((Circle Node))
+end
+    hexagonNode{{Hexagon Node}}
+
+    doubleCircleNode(((Double Circle Node)))
+    
+    defaultNode --> roundNode
+    roundNode --- stadiumNode
+    stadiumNode -.-> subroutineNode
+    subroutineNode -.- cylindricalNode
+    cylindricalNode ==> circleNode
+    
+    defaultNode -->|Arrow with text| hexagonNode
+    roundNode ---|Line with text| parallelogramNode
+    stadiumNode -.-|Dotted with text| trapezoidNode
+    cylindricalNode ==|Thick with text|==> doubleCircleNode
+    
+ 
+
+    unicodeNode --> subroutineNode
+
+    `
+  },
+  {
     id: 'mogolom-architecture',
     name: 'MOGOLOM Architecture',
     description: 'Actual file structure and relationships in MOGOLOM',

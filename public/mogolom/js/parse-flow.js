@@ -78,7 +78,7 @@ const parseFlow = (code) => {
       if (textMatch) result.text = textMatch[1];
     }
     
-    // Similar patterns would be needed for other link types
+    // TODO: Similar patterns would be needed for other link types
     
     return result;
   }
@@ -370,61 +370,21 @@ const parseFlow = (code) => {
     
     // Process nodes and edges
     if (containsLinkSyntax(line)) {
-      try {
-        // Break down chain links and multi-directional links
-        let individualLinks = [];
-        
-        // First break down multi-directional links
-        const multiLinks = breakDownMultiLinks(line);
-        
-        // Then break down chain links for each multi-link
-        for (const multiLink of multiLinks) {
-          const chainLinks = breakDownChainLinks(multiLink.content);
-          individualLinks = individualLinks.concat(chainLinks);
-        }
-        
-        // Add each individual link as a separate edge
-        for (const link of individualLinks) {
-          const edge = {
-            type: 'edge',
-            content: link.content,
-            raw: link.content, // Original raw line is lost, but we have the content
-            linkType: link.linkProperties.type,
-            linkText: link.linkProperties.text,
-            isBidirectional: link.linkProperties.isBidirectional,
-            originalLine: lines[i] // Keep reference to the original line
-          };
-          
-          if (subgraphStack.length > 0) {
-            subgraphStack[subgraphStack.length - 1].edges.push(edge);
-            // Only add the raw line once for the first edge from this line
-            if (individualLinks.indexOf(link) === 0) {
-              subgraphStack[subgraphStack.length - 1].raw.push(lines[i]);
-            }
-          } else {
-            tree.edges.push(edge);
-          }
-        }
-      } catch (error) {
-        // If there's an error breaking down the links, just add the original line as a single edge
-        console.warn('Error breaking down links:', error);
-        
-        const linkProperties = analyzeLinkProperties(line);
-        const edge = {
-          type: 'edge',
-          content: line,
-          raw: lines[i],
-          linkType: linkProperties.type,
-          linkText: linkProperties.text,
-          isBidirectional: linkProperties.isBidirectional
-        };
-        
-        if (subgraphStack.length > 0) {
-          subgraphStack[subgraphStack.length - 1].edges.push(edge);
-          subgraphStack[subgraphStack.length - 1].raw.push(lines[i]);
-        } else {
-          tree.edges.push(edge);
-        }
+      const linkProperties = analyzeLinkProperties(line);
+      const edge = {
+        type: 'edge',  
+        content: line,
+        raw: lines[i],
+        linkType: linkProperties.type,
+        linkText: linkProperties.text,
+        isBidirectional: linkProperties.isBidirectional
+      };
+
+      if (subgraphStack.length > 0) {
+        subgraphStack[subgraphStack.length - 1].edges.push(edge);
+        subgraphStack[subgraphStack.length - 1].raw.push(lines[i]); 
+      } else {
+        tree.edges.push(edge);
       }
     } else if (line) { // Only process non-empty lines
       // Check for multiline node content (starts with quote but doesn't end with one)
@@ -446,6 +406,10 @@ const parseFlow = (code) => {
       
       if (inMultilineNode) {
         currentMultilineNode = node;
+      }
+
+      if (node.shape === 'stadium') {
+        console.log('node', node.content, node);
       }
       
       if (subgraphStack.length > 0) {

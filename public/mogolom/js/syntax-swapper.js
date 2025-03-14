@@ -73,8 +73,9 @@ function generateVariation(code, problematicEdges = [], iterationsWithoutImprove
   // Apply scrambling strategies with adaptive probabilities
   if (Math.random() < probs.node) scrambledTree = window.NodeScrambler.scrambleNodes(scrambledTree, problematicEdges);
   if (Math.random() < probs.edge) scrambledTree = window.EdgeScrambler.scrambleEdges(scrambledTree, problematicEdges, longestPaths);
-  if (Math.random() < probs.removeInvisible) scrambledTree.edges = window.InvisibleEdgeScrambler.removeInvisibleEdges(scrambledTree.edges, 1);
-  if (Math.random() < probs.addInvisible) scrambledTree = window.InvisibleEdgeScrambler.addInvisibleEdges(scrambledTree, problematicEdges, longestPaths);
+  // disabled these to verify that issues with test case disappeared, it is the manipulation of invisible links that is problem
+  // if (Math.random() < probs.removeInvisible) scrambledTree.edges = window.InvisibleEdgeScrambler.removeInvisibleEdges(scrambledTree.edges, 1);
+  // if (Math.random() < probs.addInvisible) scrambledTree = window.InvisibleEdgeScrambler.addInvisibleEdges(scrambledTree, problematicEdges, longestPaths);
   
   // Convert back to Mermaid syntax
   return window.FlowToMermaid.convert(scrambledTree);
