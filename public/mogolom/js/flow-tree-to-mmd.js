@@ -30,7 +30,7 @@ const treeToMermaid = (tree) => {
     
     // Add direction if present
     if (subgraph.direction) {
-      subLines.push(`${indent}${subgraph.direction}`);
+      subLines.push(`direction ${subgraph.direction}`);
     }
     
     // Add nodes and edges
@@ -79,6 +79,7 @@ const treeToMermaid = (tree) => {
     lines.push(...stringifySubgraph(subgraph));
   });
   
+  console.log('lines', lines.join('\n'));
   return lines.join('\n');
 };
 
