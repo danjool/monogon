@@ -12,6 +12,7 @@ mermaid.initialize({
 const codeEditor = document.getElementById('code-editor');
 const diagram = document.getElementById('diagram');
 const optimizeBtn = document.getElementById('optimize-btn');
+const exportBtn = document.getElementById('export-btn');
 const deOptimizeBtn = document.getElementById('de-optimize-btn');
 const scoreDisplay = document.getElementById('score');
 const edgeEdgeCount = document.getElementById('edge-edge-count');
@@ -454,6 +455,7 @@ function init() {
   // Setup optimize button
   optimizeBtn.addEventListener('click', startOptimization);
   deOptimizeBtn.addEventListener('click', startDeOptimization);
+  exportBtn.addEventListener('click', exportToMermaidLive)
   
   // Setup stop button
   const stopBtn = document.getElementById('stop-btn');
@@ -468,6 +470,40 @@ function init() {
   
   // Setup weight controls
   setupWeightControls();
+}
+
+function exportToMermaidLive() {
+  const mermaidCode = codeEditor.value.trim();
+  if (!mermaidCode) {
+    alert('No diagram code to export');
+    return;
+  }
+  
+  // Create the JSON object according to mermaid.live's expected format
+  const mermaidData = {
+    code: mermaidCode,
+    mermaid: JSON.stringify({
+      theme: "default"
+    }),
+    autoSync: true,
+    updateDiagram: false,
+    editorMode: "code"
+  };
+  
+  // Convert to JSON string
+  const jsonString = JSON.stringify(mermaidData);
+  
+  // Base64 encode
+  const base64EncodedCode = btoa(jsonString);
+  
+  // Make URL-safe
+  const urlSafeBase64 = base64EncodedCode.replace(/\//g, '_').replace(/\+/g, '-');
+  
+  // Construct the mermaid.live URL
+  const mermaidLiveUrl = `https://mermaid.live/edit#base64:${urlSafeBase64}`;
+  
+  // Open in a new tab
+  window.open(mermaidLiveUrl, '_blank');
 }
 
 // Initialize when DOM is loaded
@@ -498,4 +534,4 @@ function setupWeightControls() {
       updateMetricsUI(result);
     });
   });
-} 
+}
