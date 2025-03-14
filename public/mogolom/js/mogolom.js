@@ -17,7 +17,7 @@ const scoreDisplay = document.getElementById('score');
 const edgeEdgeCount = document.getElementById('edge-edge-count');
 const edgeNodeCount = document.getElementById('edge-node-count');
 const improvementsCount = document.getElementById('improvements-count');
-const iterationsCount = document.getElementById('iterations-count');
+const iterationsCount = document.getElementById('iteration-count');
 
 // State
 let isOptimizing = false;
