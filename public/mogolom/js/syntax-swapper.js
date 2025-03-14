@@ -68,7 +68,7 @@ function generateVariation(code, problematicEdges = [], iterationsWithoutImprove
     longestPaths
   );
 
-  console.log('Scramble probabilities:', probs, 'from', iterationsWithoutImprovement, currentScore, metrics, problematicEdges.length, longestPaths.length);
+  // console.log('Scramble probabilities:', probs, 'from', iterationsWithoutImprovement, currentScore, metrics, problematicEdges.length, longestPaths.length);
   
   // Apply scrambling strategies with adaptive probabilities
   if (Math.random() < probs.node) scrambledTree = window.NodeScrambler.scrambleNodes(scrambledTree, problematicEdges);

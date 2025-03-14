@@ -258,7 +258,7 @@ end
     VS -->|has| Dimension
     
     CoVec[Co-vectors] -->|belong to| DVS[Dual Vector Space]
-    DVS -->|isomorphic to| VS
+    DVS <-->|isomorphic to| VS
     
     Symmetry["B(u,v) = B(v,u)"] -->|property of| SBF[Symmetric Bilinear Form]
     SBF -->|is a| BForm

@@ -2,6 +2,9 @@
 const treeToMermaid = (tree) => {
   const lines = [];
   
+  // remove all lines from header that are blank or just whitespace or tabs
+  tree.header = tree.header.filter(line => line.trim() !== '' && line.trim() !== '\t');
+
   // Add header (comments, flowchart type, etc)
   lines.push(...tree.header);
   
