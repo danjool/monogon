@@ -493,17 +493,24 @@ function exportToMermaidLive() {
   // Convert to JSON string
   const jsonString = JSON.stringify(mermaidData);
   
-  // Base64 encode
-  const base64EncodedCode = btoa(jsonString);
-  
-  // Make URL-safe
-  const urlSafeBase64 = base64EncodedCode.replace(/\//g, '_').replace(/\+/g, '-');
-  
-  // Construct the mermaid.live URL
-  const mermaidLiveUrl = `https://mermaid.live/edit#base64:${urlSafeBase64}`;
-  
-  // Open in a new tab
-  window.open(mermaidLiveUrl, '_blank');
+  try {
+    // Base64 encode with Unicode support
+    const base64EncodedCode = btoa(encodeURIComponent(jsonString).replace(/%([0-9A-F]{2})/g, 
+      (match, p1) => String.fromCharCode('0x' + p1)
+    ));
+    
+    // Make URL-safe
+    const urlSafeBase64 = base64EncodedCode.replace(/\//g, '_').replace(/\+/g, '-');
+    
+    // Construct the mermaid.live URL
+    const mermaidLiveUrl = `https://mermaid.live/edit#base64:${urlSafeBase64}`;
+    
+    // Open in a new tab
+    window.open(mermaidLiveUrl, '_blank');
+  } catch (error) {
+    console.error('Error exporting to Mermaid Live:', error);
+    alert('Error exporting to Mermaid Live. Please check the console for details.');
+  }
 }
 
 // Initialize when DOM is loaded
