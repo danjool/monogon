@@ -50,35 +50,113 @@ const parseFlow = (code) => {
     };
     
     // Check for bidirectional links
-    if (line.includes('<-->') || line.includes('<===') || line.includes('<-.->')) {
+    if (line.includes('<-->') || line.includes('<===') || line.includes('<-.->') || 
+        line.includes('o--o') || line.includes('x--x')) {
       result.isBidirectional = true;
     }
     
-    // Determine link type
-    if (line.includes('-.->')) result.type = 'dottedArrow';
+    // Determine link type - order matters, check more specific patterns first
+    if (line.includes('<-.->')) result.type = 'bidirectionalDottedArrow';
+    else if (line.includes('-.->')) result.type = 'dottedArrow';
     else if (line.includes('-.-')) result.type = 'dotted';
+    else if (line.includes('<===')) result.type = 'bidirectionalThick';
     else if (line.includes('==>')) result.type = 'thickArrow';
     else if (line.includes('===')) result.type = 'thick';
+    else if (line.includes('<-->')) result.type = 'bidirectionalArrow';
     else if (line.includes('-->')) result.type = 'arrow';
     else if (line.includes('---')) result.type = 'line';
     else if (line.includes('~~~')) result.type = 'invisible';
-    else if (line.includes('--o')) result.type = 'circleEnd';
-    else if (line.includes('--x')) result.type = 'crossEnd';
     else if (line.includes('o--o')) result.type = 'circleBoth';
+    else if (line.includes('--o')) result.type = 'circleEnd';
     else if (line.includes('x--x')) result.type = 'crossBoth';
+    else if (line.includes('--x')) result.type = 'crossEnd';
     
-    // Extract link text - this is simplified and would need more robust patterns
-    // Check for |text| format
-    let textMatch = line.match(/-->\|(.*?)\|/);
-    if (textMatch) result.text = textMatch[1];
+    // Extract link text for all link types
+    // Create a map of link types to their regex patterns for text extraction
+    const textPatterns = {
+      // Arrow links
+      arrow: [
+        /-->\|(.*?)\|/, // -->|text|
+        /--\s+(.*?)\s+-->/, // -- text -->
+      ],
+      bidirectionalArrow: [
+        /<-->\|(.*?)\|/, // <-->|text|
+        /--\s+(.*?)\s+<-->/, // -- text <-->
+      ],
+      // Dotted links
+      dottedArrow: [
+        /-\.->\|(.*?)\|/, // -.->|text|
+        /-\.\s+(.*?)\s+-\.->/, // -. text -.->
+      ],
+      bidirectionalDottedArrow: [
+        /<-\.->\|(.*?)\|/, // <-.->|text|
+        /-\.\s+(.*?)\s+<-\.->/, // -. text <-.->
+      ],
+      dotted: [
+        /-\.-\|(.*?)\|/, // -.-|text|
+        /-\.\s+(.*?)\s+-\.-/, // -. text -.-
+      ],
+      // Thick links
+      thickArrow: [
+        /==>\|(.*?)\|/, // ==>|text|
+        /==\s+(.*?)\s+==>/, // == text ==>
+      ],
+      bidirectionalThick: [
+        /<===>\|(.*?)\|/, // <===>|text|
+        /==\s+(.*?)\s+<===>/, // == text <==>
+      ],
+      thick: [
+        /===\|(.*?)\|/, // ===|text|
+        /==\s+(.*?)\s+===/, // == text ===
+      ],
+      // Special end links
+      circleEnd: [
+        /--o\|(.*?)\|/, // --o|text|
+        /--\s+(.*?)\s+--o/, // -- text --o
+      ],
+      crossEnd: [
+        /--x\|(.*?)\|/, // --x|text|
+        /--\s+(.*?)\s+--x/, // -- text --x
+      ],
+      circleBoth: [
+        /o--o\|(.*?)\|/, // o--o|text|
+        /o--\s+(.*?)\s+--o/, // o-- text --o
+      ],
+      crossBoth: [
+        /x--x\|(.*?)\|/, // x--x|text|
+        /x--\s+(.*?)\s+--x/, // x-- text --x
+      ],
+      // Line links
+      line: [
+        /---\|(.*?)\|/, // ---|text|
+        /--\s+(.*?)\s+---/, // -- text ---
+      ],
+      // Invisible links
+      invisible: [
+        /~~~\|(.*?)\|/, // ~~~|text|
+        /~~\s+(.*?)\s+~~~/, // ~~ text ~~~
+      ]
+    };
     
-    // Check for -- text --> format
-    if (!result.text) {
-      textMatch = line.match(/--\s+(.*?)\s+-->/);
-      if (textMatch) result.text = textMatch[1];
+    // Try to extract text using the patterns for the detected link type
+    if (result.type !== 'unknown' && textPatterns[result.type]) {
+      for (const pattern of textPatterns[result.type]) {
+        const match = line.match(pattern);
+        if (match) {
+          result.text = match[1];
+          break;
+        }
+      }
     }
     
-    // TODO: Similar patterns would be needed for other link types
+    // If no text was found with specific patterns, try generic patterns
+    if (!result.text) {
+      // Generic pattern for |text| format that works with any link type
+      const genericPipeMatch = line.match(/\|(.*?)\|/);
+      if (genericPipeMatch) {
+        result.text = genericPipeMatch[1];
+      }
+    }
     
     return result;
   }
@@ -90,20 +168,28 @@ const parseFlow = (code) => {
            line.includes('===') || line.includes('~~~') ||
            line.includes('--o') || line.includes('--x') ||
            line.includes('<-->') || line.includes('o--o') || 
-           line.includes('x--x');
+           line.includes('x--x') || line.includes('<-.->') ||
+           line.includes('<===');
   }
   
   // Helper function to break down chain links (A --> B --> C) into individual links (A --> B, B --> C)
   function breakDownChainLinks(line) {
     // Regular expressions to match different link types
     const linkPatterns = [
+      // Bidirectional links
+      { regex: /<-->/g, type: 'bidirectionalArrow' },
+      { regex: /<-\.->/g, type: 'bidirectionalDottedArrow' },
+      { regex: /<===/g, type: 'bidirectionalThick' },
+      // Directional links
       { regex: /-->/g, type: 'arrow' },
-      { regex: /---/g, type: 'line' },
       { regex: /-\.->/g, type: 'dottedArrow' },
-      { regex: /-\.-/g, type: 'dotted' },
       { regex: /==>/g, type: 'thickArrow' },
+      // Non-directional links
+      { regex: /---/g, type: 'line' },
+      { regex: /-\.-/g, type: 'dotted' },
       { regex: /===/g, type: 'thick' },
       { regex: /~~~/g, type: 'invisible' },
+      // Special end links
       { regex: /--o/g, type: 'circleEnd' },
       { regex: /--x/g, type: 'crossEnd' },
       { regex: /o--o/g, type: 'circleBoth' },
@@ -434,4 +520,4 @@ const parseFlow = (code) => {
 };
 
 // Export for use in other modules
-window.FlowParser = { parse: parseFlow }; 
+window.FlowParser = { parse: parseFlow };
