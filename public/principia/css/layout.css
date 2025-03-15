@@ -1,0 +1,125 @@
+/* Layout styles for Principia */
+
+/* Grid container */
+.grid-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-gap: 1rem;
+  height: calc(100vh - 120px);
+  max-height: 900px;
+}
+
+/* Text panels */
+#original-text, #updated-text {
+  padding: 1.5rem;
+  overflow-y: auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#original-text {
+  background-color: #f9e1b5;
+  grid-column: 1 / 2;
+}
+
+#updated-text {
+  background-color: #d1ecf1;
+  grid-column: 2 / 3;
+}
+
+/* Visualization panel */
+#visuals {
+  grid-column: 3 / 4;
+  position: relative;
+  background-color: #222;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Canvas */
+#canvas {
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  display: block;
+}
+
+/* Controls */
+#controls {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+.control-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+#controls button {
+  background-color: #444;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background-color 0.2s;
+}
+
+#controls button:hover {
+  background-color: #666;
+}
+
+/* Responsive layout */
+@media (max-width: 1200px) {
+  .grid-container {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+  
+  #original-text {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+  }
+  
+  #updated-text {
+    grid-column: 2 / 3;
+    grid-row: 1 / 2;
+  }
+  
+  #visuals {
+    grid-column: 1 / 3;
+    grid-row: 2 / 3;
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+  
+  #original-text {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+  }
+  
+  #updated-text {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+  }
+  
+  #visuals {
+    grid-column: 1 / 2;
+    grid-row: 3 / 4;
+    height: 50vh;
+  }
+}

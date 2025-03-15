@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	</head>
+
+	<style>
+		body{
+			display:flex;
+			justify-content: center;
+			background-color: #222;
+		}
+
+		.grid-container {
+			width: 100%;
+			overflow: hidden;
+  			display: grid;
+  			grid-gap: 10px 10px;
+  			grid-template-columns: 1fr 1fr 1fr;
+  			grid-template-rows: auto;
+		}
+
+		#original-text {
+			/*fcf0c0*/
+			background-color: #f9e1b5; 
+			padding: 10px;
+			grid-column: 1 / 2;
+			grid-row: 1;
+		}
+		#updated-text {
+			background-color:lightblue;
+			padding: 10px;
+			grid-column: 2 / 3;
+			grid-row: 1;
+		}
+		#visuals {
+			background-color:#222;
+			grid-column: 3 / 4;
+			grid-row: 1;
+		}
+
+		#canvas{
+		  	background-color:black;
+		  	width: 100%;
+			height: 100%;
+			position: fixed;
+			top:5px;
+		}
+		/* shrinking this because it interferes with the canvas mouse events otherwise */
+		.offscreen{
+			width:1px;
+			height:1px;
+		}
+		p{
+			font-size:20px;
+		}
+		#original-text p,h3{
+			filter: url('#squiggly');
+		}
+		/*for some reason if the normal text doesn't get a pointless filter, 
+			the highlighting shadow doesn't do*/
+		#updated-text p,h3{
+			filter:brightness(200%); 
+		}
+		p.italics{
+			font-style: italic;
+		}
+
+	</style>
+	<body>
+		<!-- definition of the displacement filter used to make the old looking text,
+			ref'd by id in the css for the original text -->
+		<div class="offscreen">
+			<svg xmlns="http://www.w3.org/2000/svg" version="1.1"><defs><filter id="squiggly">
+  				<feTurbulence id="turbulence" baseFrequency="0.005" numOctaves="20" result="noise" seed="3"/>
+  				<feGaussianBlur in="SourceGraphic" stdDeviation="5" />
+  				<feDisplacementMap id="displacement" in="SourceGraphic" in2="noise" scale="2.5" />
+			</filter></defs></svg>
+		</div>
+
+		<div class="grid-container">
+			<div id='original-text'>
+				<h3>COROLLARY II.</h3>
+				<p class="italics">And hence is explained the composition of any one direct force <span class="AD">AD</span>, out of any two oblique forces <span class="AC">AC</span> and <span class="CD">CD</span>; and, on the contrary, the resolution of any one direct force <span class="AD">AD</span> into two oblique forces <span class="AC">AC</span> and <span class="CD">CD</span> : which composition and resolution are abundantly confirmed from, mechanics.</p>
+
+				<p>As if the unequal radii <span class="OM">OM</span> and <span class="ON">ON</span> drawn from the centre <span class="O">O</span> of any wheel, should sustain the weights <span class="A">A</span> and <span class="P">P</span> by the cords <span class="MA">MA</span> and NP; and the forces of those weights to move the wheel were required. Through the centre <span class="O">O</span> draw the right line <span class="KL">KOL</span>, meeting the cords perpendicularly in <span class="K">K</span> and <span class="L">L</span>; and from the centre <span class="O">O</span>, with <span class="OL">OL</span> the greater of the distances</p>
+
+				<p><span class="OK">OK</span> and <span class="OL">OL</span>, describe a circle, meeting the cord <span class="MA">MA</span> in <span class="D">D</span> : and drawing <span class="OD">OD</span>, make <span class="AC">AC</span> parallel and <span class="DC">DC</span> perpendicular thereto. Now, it being indifferent whether the points <span class="K">K</span>, <span class="L">L</span>, <span class="D">D</span>, of the cords be fixed to the plane of the wheel or not, the weights will have the same effect whether they are suspended from the points <span class="K">K</span> and <span class="L">L</span>, or from <span class="D">D</span> and <span class="L">L</span>. Let the whole force of the weight <span class="A">A</span> be represented by the line <span class="AD">AD</span>, and let it be resolved into the forces <span class="AC">AC</span> and <span class="CD">CD</span> ; of which the force <span class="AC">AC</span>, drawing the radius <span class="OD">OD</span> directly from the centre, will have no effect to move the wheel : but the other force <span class="DC">DC</span>, drawing the radius <span class="DO">DO</span> perpendicularly, will have the same effect as if it drew perpendicularly the radius <span class="OL">OL</span> equal to <span class="OD">OD</span> ; that is, it w ill have the same effect as the weight <span class="P">P</span>, if that weight is to the weight <span class="A">A</span> as the force <span class="DC">DC</span> is to the force <span class="DA">DA</span> ; that is (because of the similar triangles <span class="ADC">ADC</span>, <span class="DOK">DOK</span>), as <span class="OK">OK</span> to <span class="OD">OD</span> or <span class="OL">OL</span>. Therefore the weights <span class="A">A</span> and <span class="P">P</span>, which are reciprocally as the radii <span class="OK">OK</span> and <span class="OL">OL</span> that lie in the same right line, will be equipollent, and so remain in equilibrio ; which is the well known property of the balance, the lever, and the wheel. If either weight is greater than in this ratio, its force to move the wheel will be so much greater.</p>
+
+				<p>If the weight <span class="p">p</span>, equal to the weight <span class="P">P</span>, is partly suspended by the cord <span class="pN">pN</span>, partly sustained by the oblique plane <span class="pG">pG</span> ; draw <span class="pH">pH</span>, <span class="NH">NH</span>, the former perpendicular to the horizon, the latter to the plane <span class="pG">pG</span> ; and if the force of the weight <span class="p">p</span> tending downwards is represented by the line <span class="pH">pH</span>, it may be resolved into the forces <span class="pN">pN</span>, <span class="HN">HN</span>. If there was any plane <span class="pQ">pQ</span>, perpendicular to the cord <span class="pN">pN</span>, cutting the other plane <span class="pG">pG</span> in a line parallel to the horizon, and the weight <span class="p">p</span> was supported only by those planes <span class="pQ">pQ</span>, <span class="pG">pG</span>, it would press those planes perpendicularly with the forces <span class="pN">pN</span>, <span class="HN">HN</span>; to wit, the plane <span class="pQ">pQ</span>, with the force <span class="pN">pN</span>, and the plane <span class="pG">pG</span> with the force <span class="HN">HN</span>. And therefore if the plane <span class="pQ">pQ</span> was taken away, so that the weight might stretch the cord, because the cord, now sustaining the weight, supplies the place of the plane that was removed, it will be strained by the same force joN which pressed upon the plane before. Therefore, the tension of this oblique cord <span class="pN">pN</span> will be to that of the other perpendic ularcord <span class="PN">PN</span> as <span class="pN">pN</span> to <span class="pH">pH</span>. And therefore if the weight <span class="p">p</span> is to the weight <span class="A">A</span> in a ratio compounded of the reciprocal ratio of the least distances of the cords <span class="PN">PN</span>, <span class="AM">AM</span>, from the centre of the wheel, and of the direct ratio of <span class="pH">pH</span> to <span class="pN">pN</span>, the weights will have the same effect towards moving the wheel, and will therefore sustain each other : as any one may find by experiment.</p>
+
+				<p>But the weight <span class="p">p</span> pressing upon those two oblique planes, may be considered as a wedge between the two internal surfaces of a body split by it; and hence the forces of the edge and the mallet may be determined ; for because the force with which the weight <span class="p">p</span> presses the plane <span class="pQ">pQ</span> is to the force with which the same, whether by its own gravity, or by the blow of a mallet, is impelled in the direction of the line <span class="pH">pH</span> towards both the planes, as <span class="pN">pN</span> to <span class="pH">pH</span> ; and to the force with which it presses the other plane <span class="pG">pG</span>, as <span class="pN">pN</span> to <span class="NH">NH</span>. And thus the force of the screw may be deduced from a like resolution of forces ; it being no other than a wedge impelled with the force of a lever. Therefore the use of this Corollary spreads far and wide, and by that diffusive extent the truth thereof is farther confirmed. For on what has been said depends the whole doctrine of mechanics variously demonstrated by different authors. For from hence are easily deduced the forces of machines, which are compounded of wheels, pullies, levers, cords, and weights, ascending directly or obliquely, and other mechanical powers ; as also the force of the tendons to move the bones of animals.</p>
+				
+			</div>
+			<div id='updated-text'>
+				<p>This is how two forces <span class="AC">AC</span> and <span class="CD">CD</span> may be composed into one force <span class="AD">AD</span>, or one force decomposed into two forces. We can justify this with a simple physical experiment.</p>
+
+<p>Imagine an elevated, round table seen from the side in the horizontal line <span class="KL">KL</span> with center at <span class="O">O</span>.</p>
+
+<p>From the center <span class="O">O</span>, two unequal radii <span class="OM">OM</span> and <span class="ON">ON</span> extend outward. At the ends of these radii, weights <span class="A">A</span> and <span class="P">P</span> are suspended by cords <span class="MA">MA</span> and <span class="NP">NP</span>.</p>
+
+<p>If we draw a perpendicular line <span class="KL">KOL</span> through the center, it intersects the cords at points <span class="K">K</span> and <span class="L">L</span>. Using the greater distance <span class="OL">OL</span>, we can draw a circle centered at <span class="O">O</span> that intersects cord <span class="MA">MA</span> at point <span class="D">D</span>.</p>
+
+<p>When we draw line <span class="OD">OD</span> and construct lines <span class="AC">AC</span> (parallel to <span class="OD">OD</span>) and <span class="DC">DC</span> (perpendicular to <span class="OD">OD</span>), we can analyze the forces at work.</p>
+
+<p>The total force of weight <span class="A">A</span> is represented by line <span class="AD">AD</span>. This force can be broken down into two components: <span class="AC">AC</span> and <span class="CD">CD</span>. The force <span class="AC">AC</span> pulls directly toward the center and doesn't cause rotation. The force <span class="CD">CD</span> pulls perpendicular to the radius and creates rotational force.</p>
+
+<p>This perpendicular force <span class="CD">CD</span> has the same effect as if it were pulling at radius <span class="OL">OL</span>. The weights <span class="A">A</span> and <span class="P">P</span> will balance each other when they are inversely proportional to their distances from the center line—specifically, when weight <span class="A">A</span> is to weight <span class="P">P</span> as distance <span class="OL">OL</span> is to distance <span class="OK">OK</span>.</p>
+
+<p>This principle explains how forces work in common mechanical devices like levers, balances, and wheels.</p>
+
+<p>The same principle applies to inclined planes. If weight <span class="p">p</span> (equal to weight <span class="P">P</span>) is partly suspended by cord <span class="Np">Np</span> and partly supported by inclined plane <span class="pG">pG</span>, we can analyze the forces by drawing lines <span class="pH">pH</span> (vertical) and <span class="NH">NH</span> (perpendicular to the plane).</p>
+
+<p>The downward force of weight <span class="p">p</span> (shown by line <span class="pH">pH</span>) can be resolved into forces <span class="pN">pN</span> and <span class="HN">HN</span>. These forces represent how the weight presses against perpendicular surfaces.</p>
+
+<p>This same principle explains how wedges, screws, and other mechanical devices work by redirecting and transforming forces.</p>
+			</div>
+			<div id='visuals'>
+				<canvas id="canvas" style="width:200px; height:200px" width="200px" height="200px"></canvas>			
+			</div>
+		</div>
+		
+		<script src="main.js" type="module"></script>
+		
+	</body>
+</html>
