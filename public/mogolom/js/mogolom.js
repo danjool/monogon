@@ -426,6 +426,7 @@ function updateMetricsUI(result) {
   safelyUpdateElement('longest-edge', 
     (metrics.pathLengths.longest[0]?.length || 0).toFixed(0));
   safelyUpdateElement('avg-edge-length', metrics.pathLengths.average.toFixed(0));
+  safelyUpdateElement('max-edge-score', metrics.scores.maxEdgeLength.toFixed(2));
   
   // Update node geometry metrics
   safelyUpdateElement('curve-count', metrics.edges.curves);
