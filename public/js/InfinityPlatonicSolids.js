@@ -18,8 +18,8 @@ class InfinityPlatonicSolid {
         
         // Set rotation speeds (optional with defaults)
         this.rotationSpeed = {
-            x: options.rotationSpeedX || 0.0025,
-            y: options.rotationSpeedY || 0.005
+            x: options.rotationSpeedX || 0.,
+            y: options.rotationSpeedY || 0.
         };
         
         // Initialize solid transforms - same as in original implementation

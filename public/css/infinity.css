@@ -64,11 +64,13 @@ canvas {
     margin: 0;
     letter-spacing: 0.5rem;
     text-transform: uppercase;
-    background: linear-gradient(120deg, var(--neon-blue), var(--neon-purple));
+    /* background: linear-gradient(120deg, var(--neon-blue), var(--neon-purple));
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    -webkit-text-fill-color: transparent; */
     position: relative;
     animation: flicker 4s infinite;
+    /* invert color from background */
+    color: var(--dark-bg);
 }
 
 .header h1::after {
