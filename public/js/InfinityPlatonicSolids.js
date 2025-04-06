@@ -28,7 +28,7 @@ class InfinityPlatonicSolid {
                 rotation: { x: Math.PI, y: 0, z: 0 },
                 flip: { x: true, y: false, z: false },
                 swap: { xy: false, xz: false, yz: false },
-                scale: 0.33
+                scale: 1./3.
             },
             cube: {
                 rotation: { x: 0, y: 0, z: 0 },

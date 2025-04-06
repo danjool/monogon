@@ -12,6 +12,7 @@ let solids = [], solidGroup;
 let clock;
 let gridPlane;
 let canvas;
+let mouseX = 0, mouseY = 0, timeSinceMouseMove = 0;
 
 // Initialize everything
 init();
@@ -27,7 +28,7 @@ function init() {
     // Create scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000511);
-    scene.fog = new THREE.FogExp2(0x000511, 0.025);
+    scene.fog = new THREE.FogExp2(0x000511, 0.0205);
     
     // Create camera
     const aspect = window.innerWidth / window.innerHeight;
@@ -63,22 +64,37 @@ function createGrid() {
     // Create multiple terrain lines
     const numVertices = 64;      // Points per line
     const numLines = 20;         // Number of parallel lines
-    const width = 256;           // Width of terrain (x-axis)
-    const depth = 64;          // Depth of terrain (z-axis)
-    const maxHeight = 3;        // Maximum height variation
+    const width = 512;           // Width of terrain (x-axis)
+    const depth = 128;            // Depth of terrain (z-axis)
+    const maxHeight = 3;         // Maximum height variation
+    const sheetDepth = 100;       // Depth of the sheets extending downward
+    
+    // Create a group to hold both lines and sheets
+    const terrainGroup = new THREE.Group();
+    
+    // Store all vertices for later use with sheets
+    const allVertices = [];
+    
+    // Create different colors for depth perception
+    const lineColors = [];
+    for (let i = 0; i < numLines; i++) {
+        // Calculate color based on line index - further lines are slightly darker
+        const intensity = 0.5 + (0.5 * (1 - i / numLines));
+        const color = new THREE.Color(0x11a3aa);
+        color.multiplyScalar(intensity);
+        lineColors.push(color);
+    }
+    
+    // 1. First create and add the lines (keeping the original appearance)
     
     // Create geometry for terrain lines
     const terrainGeometry = new THREE.BufferGeometry();
     const vertices = new Float32Array(numVertices * numLines * 3);
     const colors = new Float32Array(numVertices * numLines * 3);
     
-    // Create different colors for depth perception
+    // Set colors for the lines
     for (let i = 0; i < numLines; i++) {
-        // Calculate color based on line index - further lines are slightly darker
-        const intensity = 0.5 + (0.5 * (1 - i / numLines));
-        const color = new THREE.Color(0x00f3ff);
-        color.multiplyScalar(intensity);
-        
+        const color = lineColors[i];
         for (let j = 0; j < numVertices; j++) {
             colors.set([color.r, color.g, color.b], (i * numVertices + j) * 3);
         }
@@ -87,6 +103,7 @@ function createGrid() {
     // Create terrain vertices with varying heights
     for (let i = 0; i < numLines; i++) {
         const zPos = (i / (numLines - 1)) * depth - depth / 2;
+        const lineVertices = [];
         
         for (let j = 0; j < numVertices; j++) {
             const xPos = (j / (numVertices - 1)) * width - width / 2;
@@ -105,7 +122,7 @@ function createGrid() {
             height += Math.sin(i * 0.3) * maxHeight * 0.4;
 
             // find distance from diagonal line with 'slop' 2/3 through center of terrain, anything above that is 0
-            const slope = 1/3;
+            const slope = 1/2;
             const distanceFromDiagonal = Math.abs(xPos * slope - zPos);
             const whatSide = Math.sign(xPos * slope - zPos);
             if (distanceFromDiagonal > .5 && whatSide < 0) {
@@ -121,10 +138,12 @@ function createGrid() {
             if (distanceToHill < hillRadius) {
                 height += hillHeight * (1 - distanceToHill / hillRadius);
             }
-
             
             vertices.set([xPos, height, zPos], (i * numVertices + j) * 3);
+            lineVertices.push({ x: xPos, y: height, z: zPos });
         }
+        
+        allVertices.push(lineVertices);
     }
     
     terrainGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
@@ -146,13 +165,72 @@ function createGrid() {
         vertexColors: true,
         linewidth: 1,
         opacity: 0.8,
-        transparent: true
+        transparent: false
     });
     
     const terrainLines = new THREE.LineSegments(terrainGeometry, terrainMaterial);
-    terrainLines.position.y = -10; // Move terrain down a bit
-    terrainLines.position.z = -30; // Move terrain back a bit
-    scene.add(terrainLines);
+    
+    // 2. Now create the sheet meshes below each line
+    
+    // Create a sheet for each terrain line
+    for (let i = 0; i < numLines; i++) {
+        const lineVertices = allVertices[i];
+        const color = lineColors[i];
+        
+        // Create sheet geometry
+        const sheetGeometry = new THREE.BufferGeometry();
+        const sheetVertices = [];
+        const sheetIndices = [];
+        
+        // Create vertices for the sheet - two for each original vertex (top and bottom)
+        for (let j = 0; j < lineVertices.length; j++) {
+            const vertex = lineVertices[j];
+            
+            // Top vertex (same as the line)
+            sheetVertices.push(vertex.x, vertex.y, vertex.z);
+            
+            // Bottom vertex (extends down by sheetDepth)
+            sheetVertices.push(vertex.x, vertex.y - sheetDepth, vertex.z);
+        }
+        
+        // Create triangles for the sheet
+        for (let j = 0; j < lineVertices.length - 1; j++) {
+            const topLeft = j * 2;
+            const bottomLeft = j * 2 + 1;
+            const topRight = (j + 1) * 2;
+            const bottomRight = (j + 1) * 2 + 1;
+            
+            // First triangle (top-left, bottom-left, top-right)
+            sheetIndices.push(topLeft, bottomLeft, topRight);
+            
+            // Second triangle (bottom-left, bottom-right, top-right)
+            sheetIndices.push(bottomLeft, bottomRight, topRight);
+        }
+        
+        // Create the sheet mesh
+        sheetGeometry.setAttribute('position', new THREE.Float32BufferAttribute(sheetVertices, 3));
+        sheetGeometry.setIndex(sheetIndices);
+        sheetGeometry.computeVertexNormals();
+        
+        const sheetMaterial = new THREE.MeshBasicMaterial({
+            color: color,
+            side: THREE.FrontSide,
+            transparent: false,
+            opacity: 1.0,
+            depthWrite: true
+        });
+        
+        const sheetMesh = new THREE.Mesh(sheetGeometry, sheetMaterial);
+        terrainGroup.add(sheetMesh);
+    }
+    
+    // Add the lines on top of the sheets
+    // terrainGroup.add(terrainLines);
+    
+    // Position the entire terrain group
+    terrainGroup.position.y = -10; // Move terrain down a bit
+    terrainGroup.position.z = -50; // Move terrain back a bit
+    scene.add(terrainGroup);
 }
 
 function createPlatonicSolids() {
@@ -191,7 +269,7 @@ function createPlatonicSolids() {
 
     // create one of each of the remaining solids: cube, octahedron, dodecahedron, icosahedron
     // place each one at a different distance from the center, at angles aligned with the vertices of the main solid
-    const distanceFromCenter = 6;
+    const distanceFromCenter = 5.5;
     const sqrt2 = Math.sqrt(2);
     
 // in 3d all the offsets are in the directions of the vertices of the main solid
@@ -251,8 +329,9 @@ function onWindowResize() {
 
 function onMouseMove(event) {
     // Get normalized mouse coordinates (-1 to 1)
-    const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-    const mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+    mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+    mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+    timeSinceMouseMove = 0;
     
     // Subtle camera movement based on mouse position
     gsap.to(camera.position, {
@@ -270,21 +349,43 @@ function animate() {
     const delta = clock.getDelta();
     
     // spin the solid group
-    solidGroup.rotation.y += delta * 0.02;
-    solidGroup.rotation.x += delta * 0.01;
-    solidGroup.rotation.z += delta * 0.012847;
+    // solidGroup.rotation.y += delta * 0.2;
+    // solidGroup.rotation.x += delta * 0.1;
+    // solidGroup.rotation.z += delta * 0.12847;
+
+    // subtly base rotation based on slerping to mouse position
+    const targetRotationX = mouseY * Math.PI / 1;
+    const targetRotationY = -mouseX * Math.PI / 2;
+    const rotationSpeed = 0.8;
+    solidGroup.rotation.x += (targetRotationX - solidGroup.rotation.x) * rotationSpeed;
+    solidGroup.rotation.y += (targetRotationY - solidGroup.rotation.y) * rotationSpeed;
+    solidGroup.rotation.z += (mouseX * Math.PI / 4 - solidGroup.rotation.z) * rotationSpeed;
+    // if timeSinceMouseMove is greater than 4 seconds, passively slerp around slowly
+    if (timeSinceMouseMove > 4) {
+        console.log('slerping around slowly')
+        solidGroup.rotation.x += (Math.sin(clock.getElapsedTime() * 0.2) ) * rotationSpeed * 0.2;
+        solidGroup.rotation.y += (Math.cos(clock.getElapsedTime() * 0.1) ) * rotationSpeed * 0.2;
+        solidGroup.rotation.z += (Math.sin(clock.getElapsedTime() * 0.14) ) * rotationSpeed * 0.2;
+    }
+
+    const cameraDistanceFromCenter = Math.sqrt(camera.position.x * camera.position.x + camera.position.y * camera.position.y + camera.position.z * camera.position.z);
+    // vibrate rotate the solidGroup inversely proportional to the distance from the center of the camera
+    const vibrationAmount = 0.02 / cameraDistanceFromCenter;
+    solidGroup.rotation.x += (Math.random() - 0.5) * vibrationAmount;
+    
 
     // Animate all solids
     solids.forEach(solid => solid.update(delta));
     
     // Subtle camera movement
-    camera.position.z = 5 + Math.sin(clock.getElapsedTime() * 0.1) * 2.5;
+    camera.position.z = 5 + Math.sin(clock.getElapsedTime() * 0.2) * 2.5;
     
     // Update camera to always look at the center of the scene
     camera.lookAt(0, 0, -15);
     
     // Render the scene
     renderer.render(scene, camera);
+    timeSinceMouseMove += delta;
 }
 
 // Add some GSAP-like tweening functionality if GSAP isn't available
