@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Infinity Platonic Solids</title>
+  <style>
+    body { margin: 0; overflow: hidden; background-color: #000; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <!-- Import libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.146.0/three.min.js"></script>
+  
+  <!-- Main script -->
+  <script type="module">
+    import InfinityPlatonicSolid from './js/InfinityPlatonicSolids.js';
+
+    // Globals
+    let scene, camera, renderer;
+    let solids = [];
+    
+    // Initialize the scene
+    function init() {
+      // Create scene
+      scene = new THREE.Scene();
+      
+      // Create camera
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+      camera.position.set(0, 0, 8);
+      
+      // Create renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      document.body.appendChild(renderer.domElement);
+      
+
+      // Create all solids in a circular arrangement
+      createSolids();
+      
+      // Handle window resize
+      window.addEventListener('resize', onWindowResize);
+      
+      // Start animation loop
+      animate();
+    }
+    
+    // Create all platonic solids
+    function createSolids() {
+      const solidTypes = ['tetrahedron', 'cube', 'octahedron', 'dodecahedron', 'icosahedron'];
+      const radius = 4.; // Size of each solid
+      const distance = 9; // Distance from center
+      
+      solidTypes.forEach((type, index) => {
+        // Calculate position in a circle
+        const angle = (index / solidTypes.length) * Math.PI * 2;
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance;
+        
+        // Create the solid
+        const solid = new InfinityPlatonicSolid({
+          solidType: type,
+          radius: radius,
+          position: new THREE.Vector3(x, y, 0),
+          // Set slightly different rotation speeds for variety
+          rotationSpeedX: 0.0002 + (index * 0.0005),
+          rotationSpeedY: 0.0004 + (index * 0.0005)
+        });
+        
+        // Add to scene and store reference
+        solid.addToScene(scene);
+        solids.push(solid);
+      });
+    }
+    
+    // Handle window resize
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      // Update all solids
+      const delta = 0.016; // Approx 60fps
+      solids.forEach(solid => solid.update(delta));
+      
+      // Very slow camera rotation for added visual effect
+      camera.position.x = Math.sin(Date.now() * 0.0001) * 18;
+      camera.position.y = Math.cos(Date.now() * 0.0001) * 18;
+      camera.lookAt(0, 0, 0);
+      
+      // Render
+      renderer.render(scene, camera);
+    }
+    
+    // Initialize when the page loads
+    init();
+  </script>
+</body>
+</html>

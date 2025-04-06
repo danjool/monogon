@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Monogon Cyberspace</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <link href="css/infinity.css" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Three.js dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Canvas for background -->
+    <canvas id="bg-canvas"></canvas>
+    
+    <!-- Grid overlay -->
+    <div class="grid-overlay"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1 data-text="Monogon">Monogon</h1>
+        </div>
+        
+        <div class="content-container">
+            <!-- Project 1: A Graph of Influence -->
+            <div class="project">
+                <div class="project-image">
+                    <img src="images/tiles/concepts-graph.png" alt="directed acyclic graph of influence">
+                </div>
+                <div class="project-content">
+                    <h3 class="glitch-text" data-text="A Graph of Influence">A Graph of Influence</h3>
+                    <p>Perhaps a generator of anxiety, this partly force-directed, directed acyclic graph (DAG) depicts a filtered list of people and works, presented such that the past is down and the future up.</p>
+                    <a href="concepts/" class="btn">Enter the Graph</a>
+                </div>
+            </div>
+            
+            <!-- Project 2: Wat -->
+            <div class="project">
+                <div class="project-image">
+                    <img src="images/tiles/wattilebig.png" alt="a multi-user, cyberpunkscape">
+                </div>
+                <div class="project-content">
+                    <h3 class="glitch-text" data-text="Wat">Wat</h3>
+                    <p>A multi-user virtual hangout place reminiscent of Neuromancer, Snow Crash, Tron and pretty much any other 80's to 90's rendition of what computers are all about. Anachronism at its finest.</p>
+                    <p>WASD for movement, SHIFT for runs, SPACE to jump, mousedrag to look around, ' to yell a bit, and " to leave a permanent post. User beware!</p>
+                    <p>Built to run on <strike>Mongo</strike>SQLite3, Socket.io, Express, Node. This old project has lived on some services, but now resides on GCP.</p>
+                    <a href="wat/" class="btn">Jack In</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script type="module" src="js/infinity.js"></script>
+</body>
+</html>
