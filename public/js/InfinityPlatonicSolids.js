@@ -13,7 +13,8 @@ class InfinityPlatonicSolid {
             radius: options.radius || 1,
             position: options.position || new THREE.Vector3(0, 0, 0),
             rotation: options.rotation || new THREE.Euler(0, 0, 0),
-            autoRotate: options.autoRotate !== undefined ? options.autoRotate : true
+            autoRotate: options.autoRotate !== undefined ? options.autoRotate : true,
+            color: options.color || new THREE.Color(0.2, 0.8, 1.0) // Default blue color (like previous dodecahedron)
         };
         
         // Set rotation speeds (optional with defaults)
@@ -84,7 +85,12 @@ class InfinityPlatonicSolid {
                 modelMatrix: { value: new THREE.Matrix4() },
                 modelMatrixInverse: { value: new THREE.Matrix4() },
                 planeEquations: { value: [] },
-                totalPlane: { value: this.getPlaneCount(this.options.solidType) }
+                totalPlane: { value: this.getPlaneCount(this.options.solidType) },
+                edgeColor: { value: new THREE.Vector3(
+                    this.options.color.r, 
+                    this.options.color.g, 
+                    this.options.color.b
+                )}
             },
             radius: { value: this.options.radius },
             transparent: true,
@@ -430,6 +436,7 @@ class InfinityPlatonicSolid {
             uniform vec4 planeEquations[20]; // Max 20 planes for icosahedron
             uniform float radius;           // Radius of the solid
             uniform int totalPlane;          // Dynamic face count
+            uniform vec3 edgeColor;          // Color parameter for the edges
             
             varying vec3 vWorldPosition;
             varying vec3 vNormal;
@@ -518,21 +525,9 @@ class InfinityPlatonicSolid {
                 // Set dark nearly transparent face color
                 vec3 faceColor = vec3(0.01, 0.01, 0.03);
                 
-                // Define bright edge colors - different colors for different solids
-                vec3 edgeColor;
-                
-                // Edge colors based on solid type (total number of faces)
-                if(totalPlane == 4) { // tetrahedron
-                    edgeColor = vec3(1.0, 0.4, 0.1) * (0.8 + 0.4 * sin(iTime * 2.0)); // Orange-red
-                } else if(totalPlane == 6) { // cube
-                    edgeColor = vec3(0.9, 0.9, 0.2) * (0.8 + 0.4 * sin(iTime * 2.0)); // Yellow
-                } else if(totalPlane == 8) { // octahedron
-                    edgeColor = vec3(0.0, 0.9, 0.2) * (0.8 + 0.4 * sin(iTime * 2.0)); // Green
-                } else if(totalPlane == 12) { // dodecahedron
-                    edgeColor = vec3(0.2, 0.8, 1.0) * (0.8 + 0.4 * sin(iTime * 2.0)); // Blue
-                } else { // icosahedron
-                    edgeColor = vec3(0.8, 0.2, 0.8) * (0.8 + 0.4 * sin(iTime * 2.0)); // Purple
-                }
+                // Use the provided edge color with animation effect
+                // No need to declare separate variable, use the uniform directly
+                vec3 edgeColor = edgeColor * (0.8 + 0.4 * sin(iTime * 2.0));
                 
                 // Stack to track our reflection path
                 vec3 positions[maxRef + 1];

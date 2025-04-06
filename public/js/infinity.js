@@ -6,6 +6,9 @@
 
 import InfinityPlatonicSolid from './InfinityPlatonicSolids.js';
 
+// Golden ratio (phi) for our color calculations
+const PHI = (1 + Math.sqrt(5)) / 2; // ~1.618033988749895
+
 // Scene variables
 let scene, camera, renderer;
 let solids = [], solidGroup;
@@ -233,6 +236,37 @@ function createGrid() {
     scene.add(terrainGroup);
 }
 
+/**
+ * Generate a palette of colors based on phi (golden ratio) offsets around the color wheel
+ * This creates aesthetically pleasing color combinations
+ * @param {number} baseHue - Starting hue (0-1)
+ * @param {number} count - Number of colors to generate
+ * @param {number} saturation - Color saturation (0-1)
+ * @param {number} lightness - Color lightness/value (0-1) 
+ * @returns {Array} - Array of THREE.Color objects
+ */
+function generatePhiColorPalette(baseHue = 0.61, count = 5, saturation = 0.9, lightness = 0.7) {
+    const colors = [];
+    
+    // Normalize the base hue to 0-1 range if needed
+    baseHue = baseHue % 1;
+    if (baseHue < 0) baseHue += 1;
+    
+    for (let i = 0; i < count; i++) {
+        // Calculate new hue by adding phi-based offset
+        // This creates aesthetically pleasing distribution around the color wheel
+        const hue = (baseHue + (i * (1 / PHI))) % 1;
+        
+        // Convert HSL to RGB
+        const color = new THREE.Color();
+        color.setHSL(hue, saturation, lightness);
+        
+        colors.push(color);
+    }
+    
+    return colors;
+}
+
 function createPlatonicSolids() {
     const solidTypes = [
         'tetrahedron', 
@@ -251,13 +285,18 @@ function createPlatonicSolids() {
     
     const radius = 2.5; // Size of each solid
     
+    // Generate phi-based color palette for our solids
+    // First color is for the main tetrahedron, the rest for the sub-solids
+    const colorPalette = generatePhiColorPalette(0.333161, 5, 0.99, 0.68);
+    
     // Create a primary large dodecahedron in the center
     const mainSolid = new InfinityPlatonicSolid({
         solidType: 'tetrahedron',
         radius: radius * 2,
         position: new THREE.Vector3(0, 0, 0),
         rotationSpeedX: 0.0,
-        rotationSpeedY: 0.0
+        rotationSpeedY: 0.0,
+        color: colorPalette[0] // First color from our palette
     });
     
     // mainSolid.addToScene(scene);
@@ -269,7 +308,7 @@ function createPlatonicSolids() {
 
     // create one of each of the remaining solids: cube, octahedron, dodecahedron, icosahedron
     // place each one at a different distance from the center, at angles aligned with the vertices of the main solid
-    const distanceFromCenter = 5.5;
+    const distanceFromCenter = 6.5;
     const sqrt2 = Math.sqrt(2);
     
 // in 3d all the offsets are in the directions of the vertices of the main solid
@@ -300,14 +339,15 @@ function createPlatonicSolids() {
             radius: radius,
             position: position,
             rotationSpeedX: rotationSpeedX,
-            rotationSpeedY: rotationSpeedY
+            rotationSpeedY: rotationSpeedY,
+            color: colorPalette[i + 1] // Use the next color from our palette
         });
         // Set the solid's position and rotation speeds
         solid.mesh.position.copy(position);
         solid.rotationSpeedX = rotationSpeedX;
         solid.rotationSpeedY = rotationSpeedY;
         // Set the solid's scale
-        solid.mesh.scale.set(.3, .3, .3);
+        solid.mesh.scale.set(.6, .6, .6);
 
         
         // Add the solid to the scene and the solids array
