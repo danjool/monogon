@@ -1198,9 +1198,24 @@
 	{"id": "Ryūnosuke Akutagawa", "type": "author", "time": 1892},
     {"id": "In a Grove", "type": "short story", "time": 1922},
     {"id": "Akira Kurosawa", "type": "director", "time": 1910},
-    {"id": "Rashomon (film)", "type": "film", "time": 1950}
+    {"id": "Rashomon (film)", "type": "film", "time": 1950},
+	{"id": "Pantheon", "type": "tv show", "time":2022},
+	{"id": "The Master and His Emissary", "type": "book", "time": 2009},
+	{"id": "Ian McGilchrist", "type": "author", "time": 1950},
+	{"id": "The Flower of Coleridge", "time": 1952, "type": "essay"},
+	{"id": "The Matter of Things", "time": 2019, "type": "book"},
+	{"id": "Juan Muraña", "time": 1975, "type": "short story"},
+	{"id": "Stand on Zanzibar", "time": 1968, "type": "novel"}
 
 ],"links":[
+	{"source": "Ian McGilchrist", "target": "The Matter of Things", "relation": "wrote"},
+	{"source": "The Matter of Things", "target": "Kafka and His Precursors", "relation": "quotes"},
+	{"source": "The Matter of Things", "target": "The Flower of Coleridge", "relation": "quotes"},
+	{"source": "The Matter of Things", "target": "Juan Muraña", "relation": "quotes"},
+	{"source": "The Matter of Things", "target": "A New Refutation of Time", "relation": "quotes"},
+	{"source": "Ian McGilchrist", "target": "The Master and His Emissary", "relation": "wrote"},
+	{"source": "The Master and His Emissary", "target": "Borges and I", "relation": "quotes"},
+	{"source": "The Master and His Emissary", "target": "On Exactitude in Science", "relation": "quotes"},
 	{"source": "Edgar Allan Poe", "target": "Ryūnosuke Akutagawa", "relation": "influenced"},
 	{"source": "Ryūnosuke Akutagawa", "target": "In a Grove", "relation": "wrote"},
     {"source": "Akira Kurosawa", "target": "Rashomon (film)", "relation": "directed"},
@@ -1454,6 +1469,7 @@
     {"source": "Charles Stross", "target": "Palimpsest", "relation": "wrote"},
     {"source": "Palimpsest", "target": "The End of Eternity", "relation": "mimics"},
     {"source": "John Brunner", "target": "Times Without Number", "relation": "wrote"},
+	{"source": "John Brunner", "target": "Stand on Zanzibar", "relation": "wrote"},
     {"source": "Times Without Number", "target": "The End of Eternity", "relation": "mimics"},
     {"source": "John Brunner", "target": "The Squares of the City", "relation": "wrote"},
     {"source": "The Squares of the City", "target": "Chess", "relation": "similar to"},
