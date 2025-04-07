@@ -208,29 +208,94 @@ function findEdgeNodeIntersections(svg) {
         continue;
       }
       
-      // Get node bounding box
-      const nodeBox = node.getBBox ? node.getBBox() : 
-                    {x: parseFloat(node.getAttribute('x') || 0),
-                     y: parseFloat(node.getAttribute('y') || 0),
-                     width: parseFloat(node.getAttribute('width') || 0),
-                     height: parseFloat(node.getAttribute('height') || 0)};
+      // Get node bounding box with improved transform handling
+      let nodeRect;
       
-      // Handle transform if it exists
-      let transform = {x: 0, y: 0};
-      if (node.getAttribute('transform')) {
-        const transformMatch = node.getAttribute('transform').match(/translate\(([^,]+),\s*([^)]+)\)/);
-        if (transformMatch && transformMatch.length >= 3) {
-          transform.x = parseFloat(transformMatch[1]);
-          transform.y = parseFloat(transformMatch[2]);
+      // Try to use getBBox first for most accurate results
+      if (node.getBBox) {
+        const bbox = node.getBBox();
+        nodeRect = {
+          x: bbox.x,
+          y: bbox.y,
+          width: bbox.width,
+          height: bbox.height
+        };
+        
+        // Handle transform if it exists
+        if (node.getAttribute('transform')) {
+          // First try to get the transform from the node directly
+          const transformStr = node.getAttribute('transform');
+          
+          // Handle translate transform
+          const translateMatch = transformStr.match(/translate\(([^,]+),\s*([^)]+)\)/);
+          if (translateMatch && translateMatch.length >= 3) {
+            nodeRect.x += parseFloat(translateMatch[1]);
+            nodeRect.y += parseFloat(translateMatch[2]);
+          }
+          
+          // Handle matrix transform (more complex)
+          const matrixMatch = transformStr.match(/matrix\(([\d\.\-]+),\s*([\d\.\-]+),\s*([\d\.\-]+),\s*([\d\.\-]+),\s*([\d\.\-]+),\s*([\d\.\-]+)\)/);
+          if (matrixMatch && matrixMatch.length >= 7) {
+            // Extract matrix values
+            const a = parseFloat(matrixMatch[1]);
+            const b = parseFloat(matrixMatch[2]);
+            const c = parseFloat(matrixMatch[3]);
+            const d = parseFloat(matrixMatch[4]);
+            const e = parseFloat(matrixMatch[5]);
+            const f = parseFloat(matrixMatch[6]);
+            
+            // Apply matrix transform to the bounding box
+            // This is a simplified approach - for complex transforms, 
+            // we'd need to transform all corners and recalculate the bounding box
+            nodeRect.x += e;
+            nodeRect.y += f;
+            
+            // Scale the width and height if there's scaling in the matrix
+            if (a !== 1 || d !== 1) {
+              // Approximate scaling - this is simplified
+              nodeRect.width *= Math.abs(a);
+              nodeRect.height *= Math.abs(d);
+            }
+          }
         }
+      } else {
+        // Fallback to attribute-based calculation
+        const x = parseFloat(node.getAttribute('x') || 0);
+        const y = parseFloat(node.getAttribute('y') || 0);
+        const width = parseFloat(node.getAttribute('width') || 0);
+        const height = parseFloat(node.getAttribute('height') || 0);
+        
+        nodeRect = { x, y, width, height };
+        
+        // Check for transform on parent elements
+        let parent = node.parentElement;
+        let parentTransform = { x: 0, y: 0 };
+        
+        while (parent && parent !== svg) {
+          if (parent.getAttribute('transform')) {
+            const transformStr = parent.getAttribute('transform');
+            const translateMatch = transformStr.match(/translate\(([^,]+),\s*([^)]+)\)/);
+            
+            if (translateMatch && translateMatch.length >= 3) {
+              parentTransform.x += parseFloat(translateMatch[1]);
+              parentTransform.y += parseFloat(translateMatch[2]);
+            }
+          }
+          parent = parent.parentElement;
+        }
+        
+        // Apply parent transforms
+        nodeRect.x += parentTransform.x;
+        nodeRect.y += parentTransform.y;
       }
       
-      const nodeRect = {
-        x: nodeBox.x + transform.x,
-        y: nodeBox.y + transform.y,
-        width: nodeBox.width,
-        height: nodeBox.height
-      };
+      // Add a small buffer to the rectangle to catch near-misses
+      // This helps with edges that might just barely miss the rectangle
+      const buffer = 1; // 1px buffer
+      nodeRect.x -= buffer;
+      nodeRect.y -= buffer;
+      nodeRect.width += buffer * 2;
+      nodeRect.height += buffer * 2;
       
       // Check if any segment intersects with the node
       for (const segment of segments) {
@@ -454,11 +519,8 @@ function findIntersection(x1, y1, x2, y2, x3, y3, x4, y4) {
 
 // Check if a line segment intersects with a rectangle
 function checkLineRectIntersection(x1, y1, x2, y2, rx, ry, rw, rh) {
-  // First, check if either endpoint is inside the rectangle
-  if (isPointInRect({ x: x1, y: y1 }, { x: rx, y: ry, width: rw, height: rh }) ||
-      isPointInRect({ x: x2, y: y2 }, { x: rx, y: ry, width: rw, height: rh })) {
-    return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 }; // Return midpoint as intersection
-  }
+  // Create an array to store all intersection points
+  const intersections = [];
   
   // Check intersection with each edge of the rectangle
   const edges = [
@@ -475,8 +537,95 @@ function checkLineRectIntersection(x1, y1, x2, y2, rx, ry, rw, rh) {
     );
     
     if (intersection) {
-      return intersection;
+      intersections.push(intersection);
     }
+  }
+  
+  // If we found any intersections, return the one closest to the first point of the line segment
+  if (intersections.length > 0) {
+    if (intersections.length === 1) {
+      return intersections[0];
+    }
+    
+    // Find the closest intersection to the first point
+    let closestDist = Infinity;
+    let closestIntersection = null;
+    
+    for (const intersection of intersections) {
+      const dist = Math.sqrt(
+        Math.pow(intersection.x - x1, 2) + 
+        Math.pow(intersection.y - y1, 2)
+      );
+      
+      if (dist < closestDist) {
+        closestDist = dist;
+        closestIntersection = intersection;
+      }
+    }
+    
+    return closestIntersection;
+  }
+  
+  // If no edge intersections, check if either endpoint is inside the rectangle
+  // This handles the case where a line segment is completely inside the rectangle
+  if (isPointInRect({ x: x1, y: y1 }, { x: rx, y: ry, width: rw, height: rh })) {
+    // Find the closest edge to this point
+    let closestEdge = null;
+    let minDist = Infinity;
+    
+    const distToTop = Math.abs(y1 - ry);
+    const distToBottom = Math.abs(y1 - (ry + rh));
+    const distToLeft = Math.abs(x1 - rx);
+    const distToRight = Math.abs(x1 - (rx + rw));
+    
+    if (distToTop < minDist) {
+      minDist = distToTop;
+      closestEdge = { x: x1, y: ry };
+    }
+    if (distToBottom < minDist) {
+      minDist = distToBottom;
+      closestEdge = { x: x1, y: ry + rh };
+    }
+    if (distToLeft < minDist) {
+      minDist = distToLeft;
+      closestEdge = { x: rx, y: y1 };
+    }
+    if (distToRight < minDist) {
+      minDist = distToRight;
+      closestEdge = { x: rx + rw, y: y1 };
+    }
+    
+    return closestEdge;
+  }
+  
+  if (isPointInRect({ x: x2, y: y2 }, { x: rx, y: ry, width: rw, height: rh })) {
+    // Find the closest edge to this point
+    let closestEdge = null;
+    let minDist = Infinity;
+    
+    const distToTop = Math.abs(y2 - ry);
+    const distToBottom = Math.abs(y2 - (ry + rh));
+    const distToLeft = Math.abs(x2 - rx);
+    const distToRight = Math.abs(x2 - (rx + rw));
+    
+    if (distToTop < minDist) {
+      minDist = distToTop;
+      closestEdge = { x: x2, y: ry };
+    }
+    if (distToBottom < minDist) {
+      minDist = distToBottom;
+      closestEdge = { x: x2, y: ry + rh };
+    }
+    if (distToLeft < minDist) {
+      minDist = distToLeft;
+      closestEdge = { x: rx, y: y2 };
+    }
+    if (distToRight < minDist) {
+      minDist = distToRight;
+      closestEdge = { x: rx + rw, y: y2 };
+    }
+    
+    return closestEdge;
   }
   
   return null;
@@ -652,4 +801,4 @@ window.SVGAnalyzer = {
   findEdgeNodeIntersections,
   calculateDiagramScore,
   collectDiagramMetrics
-}; 
+};
