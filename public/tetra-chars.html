@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jitterbug Matrix</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.146.0/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        let mouseDown = false, mouseX = 0, mouseY = 0;
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(.1, .3, 3);
+        camera.lookAt(0, 0, 0);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000);
+        document.body.appendChild(renderer.domElement);
+        
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        const directionalLight = new THREE.DirectionalLight(0x00ff00, .05);
+        directionalLight.position.set(0, 1, 0);
+        scene.add(directionalLight);
+
+        // Create a tetrahedron geometry
+        function createTetrahedron(color, position, rotation, scale = 1) {
+            const vertices = [
+                new THREE.Vector3(1, 1, 1),
+                new THREE.Vector3(1, -1, -1),
+                new THREE.Vector3(-1, 1, -1),
+                new THREE.Vector3(-1, -1, 1)
+            ];
+
+            // Normalize vertices to make a regular tetrahedron
+            vertices.forEach(v => v.normalize().multiplyScalar(scale));
+
+            const geometry = new THREE.BufferGeometry();
+            const indices = [
+                0, 1, 2,
+                0, 3, 1,
+                0, 2, 3,
+                1, 3, 2
+            ];
+
+            // Create the faces
+            const positions = [];
+            for (let i = 0; i < indices.length; i++) {
+                const vertex = vertices[indices[i]];
+                positions.push(vertex.x, vertex.y, vertex.z);
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.computeVertexNormals();
+
+            // Create wireframe geometry for edges
+            const wireframeGeometry = new THREE.WireframeGeometry(geometry);
+            const wireframeMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+            const wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
+
+            // Create a material with opacity for visualization
+            const material = new THREE.MeshPhongMaterial({
+                color: color,
+                transparent: true,
+                opacity: 1.0,
+                side: THREE.DoubleSide,
+                specular: 0x00ff00,
+                shininess: 30,
+                wireframe: false
+            });
+
+            const tetrahedron = new THREE.Mesh(geometry, material);
+            tetrahedron.position.copy(position);
+            
+            if (rotation) {
+                tetrahedron.rotation.x = rotation.x;
+                tetrahedron.rotation.y = rotation.y;
+                tetrahedron.rotation.z = rotation.z;
+            }
+
+            // Add wireframe as a child of the tetrahedron
+            tetrahedron.add(wireframe);
+
+            return tetrahedron;
+        }
+
+        // Create 8 tetrahedra - 4 pointing up and 4 pointing down
+        const tetrahedra = [];
+        const scale = 1.0;
+        const offset = scale * Math.sqrt(3)/3;
+
+        // Common positions for all 8 tetrahedra
+        const positions = [
+            new THREE.Vector3(offset, 0, offset),     // Front right
+            new THREE.Vector3(offset, 0, -offset),    // Back right
+            new THREE.Vector3(-offset, 0, -offset),   // Back left
+            new THREE.Vector3(-offset, 0, offset),    // Front left
+        ];
+
+        // First 4 tetrahedra pointing up (positive y)
+        for (let i = 0; i < 4; i++) {
+            const color = i % 2 === 1 ? 0x00ff77 : 0x00aaff; // Green for even, cyan for odd
+            const position = positions[i].clone();
+            position.y = -offset;  // Position below the center
+            const tetra = createTetrahedron(color, position, null, scale);
+            tetra.originalPosition = position.clone(); // Store original position for animation
+            scene.add(tetra);
+            tetrahedra.push(tetra);
+        }
+
+        // Next 4 tetrahedra pointing down (negative y)
+        for (let i = 0; i < 4; i++) {
+            const color = i % 2 === 0 ? 0x00ff77 : 0x00aaff; // Green for even, cyan for odd
+            const position = positions[i].clone();
+            position.y = offset;  // Position above the center
+            // For tetrahedra pointing down, we rotate 180 degrees around X axis
+            const rotation = new THREE.Vector3(Math.PI, 0, 0);
+            const tetra = createTetrahedron(color, position, rotation, scale);
+            tetra.originalPosition = position.clone(); // Store original position for animation
+            scene.add(tetra);
+            tetrahedra.push(tetra);
+        }
+        
+        // Create edges for visualization
+        function createEdge(start, end) {
+            const points = [];
+            points.push(new THREE.Vector3(start.x, start.y, start.z));
+            points.push(new THREE.Vector3(end.x, end.y, end.z));
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ 
+                color: 0xff0000,
+                transparent: true,
+                opacity: 1.0
+            });
+            
+            return new THREE.Line(geometry, material);
+        }
+
+        // Add a group to control all tetrahedra together
+        const tetraGroup = new THREE.Group();
+        tetrahedra.forEach(tetra => tetraGroup.add(tetra));
+        scene.add(tetraGroup);
+        tetraGroup.rotation.z = Math.PI / 4; // Rotate the group to see the tetrahedra better
+
+        // Load the atlas texture with matrix characters
+        const atlasTexture = new THREE.TextureLoader().load('images/atlas.png');
+        atlasTexture.minFilter = THREE.LinearFilter;
+        atlasTexture.magFilter = THREE.LinearFilter;
+        atlasTexture.generateMipmaps = false;
+
+        const edgeLength = scale * Math.sqrt(2/3)*2;
+        const quadGeometry = new THREE.PlaneGeometry(edgeLength, edgeLength);
+        const quadMaterial = new THREE.ShaderMaterial({
+            transparent: true,
+            uniforms: {
+                time: { value: 0.0 },
+                resolution: { value: new THREE.Vector2(20., 20.) }, 
+                opacity: { value: 1.0 },
+                cameraPosition: { value: new THREE.Vector3() },
+                cameraWorldMatrix: { value: new THREE.Matrix4() },
+                atlasTexture: { value: atlasTexture }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                varying vec3 vWorldPosition;
+                varying vec3 vCameraPosition;
+                
+                void main() {
+                    vUv = uv;
+                    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                    vWorldPosition = worldPosition.xyz;
+                    vCameraPosition = cameraPosition;
+                    
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float time;
+                uniform vec2 resolution;
+                uniform float opacity;
+                uniform mat4 cameraWorldMatrix;
+                uniform sampler2D atlasTexture;
+                
+                varying vec2 vUv;
+                varying vec3 vWorldPosition;
+                varying vec3 vCameraPosition;
+                
+                const float PI = radians(180.0);
+                const float Radius1 = 15.0;
+                const float Radius2 = 5.0;
+                const float Speed1 = 1000.0 / 50.0;
+                const float Speed2 = 200.0;
+                const float ATLAS_SIZE = 8.0;
+                
+                // Torus SDF function
+                float sdTorus(vec3 p, vec2 t) {
+                    vec2 q = vec2(length(p.xz) - t.x, p.y);
+                    return length(q) - t.y;
+                }
+                
+                // Distance function for the torus
+                float map(in vec3 pos) {
+                    vec3 q = pos;
+                    float d = -sdTorus(q.xzy, vec2(Radius1, Radius2));
+                    return d;
+                }
+                
+                // Calculate normal at a point
+                vec3 calcNormal(in vec3 pos) {
+                    const float ep = 0.0001;
+                    vec2 e = vec2(1.0, -1.0) * 0.5773;
+                    return normalize(
+                        e.xyy * map(pos + e.xyy * ep) + 
+                        e.yyx * map(pos + e.yyx * ep) + 
+                        e.yxy * map(pos + e.yxy * ep) + 
+                        e.xxx * map(pos + e.xxx * ep)
+                    );
+                }
+                
+                // Apply fog effect
+                vec3 applyFog(in vec3 rgb, in float distance, in float strength) {
+                    float fogAmount = 1.0 - exp(-distance * strength);
+                    vec3 fogColor = vec3(0.0);
+                    return mix(rgb, fogColor, fogAmount);
+                }
+                
+                // Sample a character from the atlas texture
+                vec3 sampleCharacter(float charIndex, vec2 charCoord) {
+                    // Calculate character position in the atlas
+                    float charCol = mod(charIndex, ATLAS_SIZE);
+                    float charRow = floor(charIndex / ATLAS_SIZE);
+                    
+                    // Calculate UV coordinates for this character
+                    float charWidth = 1.0 / ATLAS_SIZE;
+                    float charHeight = 1.0 / ATLAS_SIZE;
+                    
+                    vec2 uv = vec2(
+                        charCol * charWidth + charCoord.x * charWidth,
+                        1.0 - ((charRow + 1.0) * charHeight - charCoord.y * charHeight)
+                    );
+                    
+                    // Sample the texture
+                    vec4 texColor = texture2D(atlasTexture, uv);
+                    
+                    // SDF rendering
+                    float sdfValue = texColor.r;
+                    float distance = sdfValue - 0.667;
+                    float edgeWidth = 0.07;
+                    float alpha = 1.0 - smoothstep(-edgeWidth, edgeWidth, distance);
+                    
+                    // Matrix-style green color
+                    return vec3(0.33, 0.99, 0.46) * alpha;
+                }
+                
+                void main() {
+                    // Generate ray from camera through the quad point
+                    vec3 ro = vCameraPosition + vec3(5.0, -3.0, 0.0);
+                    vec3 rd = normalize(vWorldPosition - vCameraPosition);
+                    
+                    ro += vec3(0.0, Radius1, 0.0);
+                    rd = rd.zxy;
+                    
+                    float t = time * Speed1;
+                    
+                    // Rotation matrix for animation
+                    // mat3 m = mat3(
+                    //     1.0, 0.0, 0.0,
+                    //     0.0, cos(t), sin(t),
+                    //     0.0, -sin(t), cos(t)
+                    // );
+                    
+                    // rd = m * rd;
+                    
+                    // Ray marching
+                    float dist = 0.5;
+                    for (int i = 0; i < 64; i++) {
+                        vec3 p = ro + dist * rd;
+                        float h = map(p);
+                        if (abs(h) < 0.001) break;
+                        dist += h;
+                    }
+                    
+                    // Surface point and coordinates calculation
+                    vec3 p = ro + dist * rd;
+                    
+                    // Convert to torus coordinates (theta around the ring, phi around the tube)
+                    float theta = (atan(p.x, p.y) / PI + 1.0) * 150.0 - time * Speed2;
+                    int thetaInt = int(theta);
+                    float phi = (atan(length(p.xy) - Radius1, p.z) / PI + 1.0) * 30.0; // + incPhi;
+                    
+                    // Calculate grid coordinates
+                    float itheta = floor(theta);
+                    float iphi = floor(phi);
+                    float ftheta = theta - itheta;
+                    float fphi = phi - iphi;
+                    
+                    // Adjust for character scale
+                    ftheta = clamp(ftheta * 0.6 + 0.2, 0.0, 1.0);
+                    fphi = clamp(fphi * 0.8 + 0.1, 0.0, 1.0);
+                    
+                    // Pseudo-random character selection based on position
+                    float charSeed = fract(sin(dot(vec2(iphi, itheta), vec2(12.9898, 78.233))) * 43758.5453);
+                    float characterIndex = floor(charSeed * 64.0); // 64 characters in 8x8 grid
+                    
+                    // Time-based character change for some characters
+                    if (fract(sin(dot(vec2(iphi, itheta), vec2(39.346, 11.135))) * 32.4893) > 0.8) {
+                        characterIndex = floor(fract(characterIndex + time * 0.2) * 64.0);
+                    }
+                    
+                    // Sample the character
+                    vec3 color = sampleCharacter(characterIndex, vec2(ftheta, fphi));
+                    
+                    // Apply lighting and fog effects
+                    vec3 norm = calcNormal(p);
+                    color = applyFog(color, dist, 0.2 * ((norm.z * norm.z) / 3.0 + 0.1 + clamp(norm.y * 0.4, 0.0, 1.0)));
+                    
+                    // Final color with opacity
+                    gl_FragColor = vec4(color, opacity);
+                }
+            `
+        });
+
+        const quad = new THREE.Mesh(quadGeometry, quadMaterial);
+        quad.position.set(0, 0, Math.sqrt(1.3333)); // Position it in front of the camera
+        scene.add(quad);
+
+        // Animation parameters
+        let animationActive = true;
+        let animationTime = Math.PI*1.5/12;
+        let animationSpeed = 0.1;
+        let animationDirection = 1;
+
+        // Function to update tetrahedra positions based on animation time
+        function updateTetrahedraPositions(time) {
+            // Normalize time between 0 and 1 for a full cycle
+            const t = Math.max(Math.min(
+                (
+                    Math.sin(time)  // -1 to 1
+                ) +.5 // -.5, to 1.5
+                , 1)   // -.5 to 1, stalling at 1 when time is from pi/6 to 5pi/6
+                , 0.   // 0 to 1, stalling at 0 and 1 when time is from pi/6 to 5pi/6
+            );
+
+            tetrahedra.forEach((tetra, index) => {
+                const angle = t * Math.PI * 1 + 
+                    (index % 2 === 0 ? Math.PI / 2 : 0) +   // even/odd tetras offset 
+                    (index > 3 ? Math.PI*3./2 : 0)          // up/down tetras offset
+                    - Math.PI * .5;
+                tetra.rotation.y = angle;
+            });
+            // push the tetras outwards a little during rotating animation
+            const d = 1. + (.5-Math.abs( .5 - t ))
+            tetrahedra.forEach((tetra, index) => {
+                const offset = tetra.originalPosition.clone().multiplyScalar(d);
+                tetra.position.copy(offset);
+            });
+        }
+
+        function updateQuadMaterial(time) {
+            const t = Math.max(Math.min(
+                (
+                    Math.sin(time)  // -1 to 1
+                ) +.5 // -.5, to 1.5
+                , 1)   // -.5 to 1, stalling at 1 when time is from pi/6 to 5pi/6
+                , 0.
+            );
+            quad.material.uniforms.time.value = time; // Update time uniform for animation
+            quad.material.uniforms.opacity.value = (Math.abs(t-.5) - .45)*20.
+            quadMaterial.uniforms.cameraPosition.value.copy(camera.position);
+            quad.material.uniforms.needsUpdate = true;
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        document.addEventListener('mousedown', function(event) {
+            mouseDown = true;
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        });
+
+        document.addEventListener('mouseup', function() { mouseDown = false;} );
+
+        document.addEventListener('mousemove', function(event) {
+            if (mouseDown) {
+                const deltaX = event.clientX - mouseX;
+                const deltaY = event.clientY - mouseY;
+                mouseX = event.clientX;
+                mouseY = event.clientY;
+            }
+        });
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+       
+            controls.update();
+
+            animationTime += 0.02 * animationSpeed * animationDirection;
+            updateTetrahedraPositions(animationTime);
+            updateQuadMaterial(animationTime);
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
