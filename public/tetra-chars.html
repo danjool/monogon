@@ -193,10 +193,10 @@
                 varying vec3 vCameraPosition;
                 
                 const float PI = radians(180.0);
-                const float Radius1 = 15.0;
-                const float Radius2 = 5.0;
-                const float Speed1 = 1000.0 / 50.0;
-                const float Speed2 = 200.0;
+                const float Radius1 = 300.0;
+                const float Radius2 = 25.0;
+                const float Speed1 = 100.0 / 50.0;
+                const float Speed2 = 20.0;
                 const float ATLAS_SIZE = 8.0;
                 
                 // Torus SDF function
@@ -208,7 +208,10 @@
                 // Distance function for the torus
                 float map(in vec3 pos) {
                     vec3 q = pos;
-                    float d = -sdTorus(q.xzy, vec2(Radius1, Radius2));
+                    // float d = -sdTorus(q.xzy, vec2(Radius1, Radius2));
+                    // make d be two toruses, new one is radius2 + 20
+                    float d = -sdTorus(q.xzy, vec2(Radius1, Radius2 + 20.0));
+                    d = min(d, -sdTorus(q.xzy, vec2(Radius1, Radius2)));
                     return d;
                 }
                 
@@ -232,7 +235,7 @@
                 }
                 
                 // Sample a character from the atlas texture
-                vec3 sampleCharacter(float charIndex, vec2 charCoord) {
+                vec4 sampleCharacter(float charIndex, vec2 charCoord) {
                     // Calculate character position in the atlas
                     float charCol = mod(charIndex, ATLAS_SIZE);
                     float charRow = floor(charIndex / ATLAS_SIZE);
@@ -251,12 +254,12 @@
                     
                     // SDF rendering
                     float sdfValue = texColor.r;
-                    float distance = sdfValue - 0.667;
+                    float distance = sdfValue - 0.7667;
                     float edgeWidth = 0.07;
                     float alpha = 1.0 - smoothstep(-edgeWidth, edgeWidth, distance);
                     
                     // Matrix-style green color
-                    return vec3(0.33, 0.99, 0.46) * alpha;
+                    return vec4(vec3(0.33, 0.99, 0.46) * (1.-alpha), (1.-alpha));
                 }
                 
                 void main() {
@@ -291,9 +294,10 @@
                     vec3 p = ro + dist * rd;
                     
                     // Convert to torus coordinates (theta around the ring, phi around the tube)
-                    float theta = (atan(p.x, p.y) / PI + 1.0) * 150.0 - time * Speed2;
-                    int thetaInt = int(theta);
                     float phi = (atan(length(p.xy) - Radius1, p.z) / PI + 1.0) * 30.0; // + incPhi;
+                    int phiInt = int(floor(phi));
+                    float theta = (atan(p.x, p.y) / PI + 1.0) * 150.0 - time * Speed2 * mod(float(phiInt), 2.39398); // + incTheta;
+                    int thetaInt = int(theta);
                     
                     // Calculate grid coordinates
                     float itheta = floor(theta);
@@ -315,14 +319,14 @@
                     }
                     
                     // Sample the character
-                    vec3 color = sampleCharacter(characterIndex, vec2(ftheta, fphi));
+                    vec4 color = sampleCharacter(characterIndex, vec2(ftheta, fphi));
                     
                     // Apply lighting and fog effects
                     vec3 norm = calcNormal(p);
-                    color = applyFog(color, dist, 0.2 * ((norm.z * norm.z) / 3.0 + 0.1 + clamp(norm.y * 0.4, 0.0, 1.0)));
+                    vec3 colorFogged = applyFog(color.xyz, dist, .012);
                     
                     // Final color with opacity
-                    gl_FragColor = vec4(color, opacity);
+                    gl_FragColor = vec4(colorFogged.xyz, opacity);
                 }
             `
         });
