@@ -294,9 +294,9 @@
                     vec3 p = ro + dist * rd;
                     
                     // Convert to torus coordinates (theta around the ring, phi around the tube)
-                    float phi = (atan(length(p.xy) - Radius1, p.z) / PI + 1.0) * 30.0; // + incPhi;
+                    float phi = (atan(length(p.xy) - Radius1, p.z) / PI + 1.0) * 60.0; 
                     int phiInt = int(floor(phi));
-                    float theta = (atan(p.x, p.y) / PI + 1.0) * 150.0 - time * Speed2 * mod(float(phiInt), 2.39398); // + incTheta;
+                    float theta = (atan(p.x, p.y) / PI + 1.0) * 600.0 - time * Speed2 * mod(float(phiInt), 2.39398)*4.; // + incTheta;
                     int thetaInt = int(theta);
                     
                     // Calculate grid coordinates

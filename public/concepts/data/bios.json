@@ -1205,7 +1205,8 @@
 	{"id": "The Flower of Coleridge", "time": 1952, "type": "essay"},
 	{"id": "The Matter of Things", "time": 2019, "type": "book"},
 	{"id": "Juan Muraña", "time": 1975, "type": "short story"},
-	{"id": "Stand on Zanzibar", "time": 1968, "type": "novel"}
+	{"id": "Stand on Zanzibar", "time": 1968, "type": "novel"},
+	{"id": "Edgar Allan Poe", "time": 1809, "type": "author"}
 
 ],"links":[
 	{"source": "Ian McGilchrist", "target": "The Matter of Things", "relation": "wrote"},
