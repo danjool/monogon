@@ -25,7 +25,7 @@ app.use((req, res, next) => {
 
 let pool, credentials
 
-app.use((req, res, next) => { // expanded cert with  sudo certbot certonly --standalone -d monogon.net -d wat.monogon.net, added to wat. cname to Route 53, value is monogon.net
+app.use((req, res, next) => { // expanded cert with>   sudo certbot certonly --expand --standalone -d monogon.net -d www.monogon.net -d wat.monogon.net -d noir.monogon.net -d bridge.monogon.net -d resume.monogon.net -d infinity.monogon.net
 	const host = req.get('host');
 	if (host.startsWith('wat.')) {
 	  	express.static(path.join(__dirname, 'public/wat'))(req, res, next);
@@ -47,6 +47,12 @@ app.use((req, res, next) => { // expanded cert with  sudo certbot certonly --sta
 		}
 	} else if (host.startsWith('resume.')) {
 		res.sendFile(path.join(__dirname, 'public/resume/index.html'));
+	} else if (host.startsWith('infinity.')) {
+		if (req.url === '/index.html' || req.url === '/') {
+			res.sendFile(path.join(__dirname, 'public/infinity.html'));
+		} else {
+			next();
+		}
 	} else {
 	  next();
 	}
@@ -172,7 +178,7 @@ const httpsServer = https.createServer(credentials, app);
 // Configure Socket.IO with security options
 const io = socketio({
   cors: {
-    origin: ["https://monogon.net", "https://wat.monogon.net", "https://noir.monogon.net"],
+    origin: ["https://monogon.net", "https://wat.monogon.net", "https://noir.monogon.net", "https://infinity.monogon.net"],
     methods: ["GET", "POST"],
     credentials: true
   },
