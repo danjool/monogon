@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>3D Voxel Minesweeper</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000304; }
+        canvas { display: block; }
+        #info {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            color: #00AAFF;
+            font-family: monospace;
+            font-size: 14px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">Click to reveal cells. Find all safe cells without hitting mines.</div>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Main Three.js setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050A10);
+        
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(20, 20, 20);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0x404040, 12); // Reduced intensity
+        scene.add(ambientLight);
+
+        // Main directional light
+        const directionalLight = new THREE.DirectionalLight(0x00FFFF, 1.5);
+        directionalLight.position.set(5, 10, 7);
+        scene.add(directionalLight);
+        
+        // Add moving point light
+        let movingLights = [];
+        for (let i = 0; i < 5; i++) {
+            const light = new THREE.PointLight(0xFFFFFF, 10, 500);
+            light.position.set(Math.random() * 20 - 10, Math.random() * 20 - 10, Math.random() * 20 - 10);
+            scene.add(light);
+            movingLights.push(light);
+        }
+        const movingLight = new THREE.PointLight(0xFFFFFF, 10, 500);
+        movingLight.position.set(0, 0, 0);
+        scene.add(movingLight);
+        
+        // Light helper (optional - uncomment if you want to see the light position)
+        // const lightHelper = new THREE.PointLightHelper(movingLight, 1);
+        // scene.add(lightHelper);
+
+        // Add camera controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // Raycaster for interaction with improved settings for transparency
+        const raycaster = new THREE.Raycaster();
+        raycaster.params.Line.threshold = 0.1;
+        const mouse = new THREE.Vector2();
+
+        // VoxelMinesweeper class
+        class VoxelMinesweeper {
+            constructor() {
+                // Game settings
+                this.gridSize = 20; // Size of the 3D grid
+                this.voxelSize = 1; // Size of each voxel cube
+                this.mineCount = 400; // Number of mines
+                this.activationDelay = 300; // Delay in milliseconds
+                this.dissipationDelay = 1000; // Delay before mines can dissipate
+                
+                // Visual settings
+                this.colors = {
+                    unrevealed: 0x0C2137,
+                    hover: 0x163C5C,
+                    revealed: 0x061525,
+                    mine: 0xFF0055,
+                    resolvedMine: 0x990033,
+                    wireframe: 0x00AAFF,
+                    dots: [0xffffff, 0x00AAFF, 0x00FFAA, 0xFFAA00, 0xFF5500, 0xFF0055, 0xAA00FF, 0x5500FF, 0x0055FF]
+                };
+                
+                // Materials
+                this.unrevealedMaterial = null;
+                this.revealedMaterial = null;
+                this.wireframeMaterial = null;
+                
+                // Game state
+                this.voxels = new Map(); // Map of voxel positions to voxel objects
+                this.gameOver = false;
+                this.gameWon = false;
+                this.firstClick = true;
+                this.pendingActivations = [];
+                this.pendingDissipations = [];
+                this.pendingRemoval = new Set(); // Set of voxels to be removed
+                
+                // Meshes
+                this.voxelGroup = new THREE.Group(); // Group to hold all voxel meshes
+                scene.add(this.voxelGroup);
+                
+                // Create the game
+                this.initialize();
+            }
+            
+            // Initialize the game
+            initialize() {
+                // Clear previous game
+                this.voxels.clear();
+                while(this.voxelGroup.children.length > 0) {
+                    const child = this.voxelGroup.children[0];
+                    this.voxelGroup.remove(child);
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) child.material.dispose();
+                }
+                
+                // Reset game state
+                this.gameOver = false;
+                this.gameWon = false;
+                this.firstClick = true;
+                this.pendingActivations = [];
+                this.pendingDissipations = [];
+                this.pendingRemoval = new Set();
+                
+                // Generate 3D shape using signed distance fields
+                this.generateShape();
+                
+                // Create voxel geometries and materials
+                this.createVoxelInstances();
+            }
+            
+            // Signed Distance Field functions
+            sdfSphere(pos, center, radius) {
+                return Math.sqrt(
+                    Math.pow(pos.x - center.x, 2) + 
+                    Math.pow(pos.y - center.y, 2) + 
+                    Math.pow(pos.z - center.z, 2)
+                ) - radius;
+            }
+            
+            sdfBox(pos, center, size) {
+                const dx = Math.abs(pos.x - center.x) - size.x / 2;
+                const dy = Math.abs(pos.y - center.y) - size.y / 2;
+                const dz = Math.abs(pos.z - center.z) - size.z / 2;
+                
+                const insideDistance = Math.min(Math.max(dx, Math.max(dy, dz)), 0);
+                const outsideDistance = Math.sqrt(
+                    Math.max(dx, 0) * Math.max(dx, 0) + 
+                    Math.max(dy, 0) * Math.max(dy, 0) + 
+                    Math.max(dz, 0) * Math.max(dz, 0)
+                );
+                
+                return insideDistance + outsideDistance;
+            }
+            
+            sdfTorus(pos, center, radius, thickness) {
+                const x = Math.sqrt(
+                    Math.pow(pos.x - center.x, 2) + 
+                    Math.pow(pos.z - center.z, 2)
+                ) - radius;
+                const y = pos.y - center.y;
+                
+                return Math.sqrt(x*x + y*y) - thickness;
+            }
+            
+            sdfUnion(d1, d2) {
+                return Math.min(d1, d2);
+            }
+            
+            sdfSubtract(d1, d2) {
+                return Math.max(d1, -d2);
+            }
+            
+            sdfIntersect(d1, d2) {
+                return Math.max(d1, d2);
+            }
+            
+            // Combined SDF for our game shape
+            complexSDF(pos) {
+                // Base shapes
+                const sphere1 = this.sdfSphere(pos, {x: 0, y: 0, z: 0}, 6);
+                const box1 = this.sdfBox(pos, {x: 0, y: 0, z: 0}, {x: 6, y: 6, z: 5});
+                const torus1 = this.sdfTorus(pos, {x: 0, y: 0, z: 0}, 4, 3);
+                
+                // Additional shapes for complexity
+                const sphere2 = this.sdfSphere(pos, {x: 0, y: 4, z: 0}, 4);
+                // const box2 = this.sdfBox(pos, {x: -7, y: -7, z: 7}, {x: 10, y: 10, z: 10});
+                const torus2 = this.sdfTorus(pos, {x: 0, y: 4, z: 0}, 5, 2);
+                
+                // Complex combinations using different operations
+                const shape1 = this.sdfUnion(sphere1, box1);
+                const shape2 = this.sdfSubtract(shape1, sphere2);
+                const shape3 = this.sdfUnion(shape2, torus1);
+                const shape4 = shape3; //this.sdfIntersect(box2, shape3);
+                
+                return this.sdfUnion(shape4, torus2);
+            }
+            
+            // Generate voxels for our shape
+            generateShape() {
+                const halfGrid = this.gridSize / 2;
+                const thickness = 2; // Thickness of the "skin" layer
+                
+                // Generate voxels within the "skin" layer of our SDF shape
+                for (let x = -halfGrid; x < halfGrid; x++) {
+                    for (let y = -halfGrid; y < halfGrid; y++) {
+                        for (let z = -halfGrid; z < halfGrid; z++) {
+                            const pos = {x, y, z};
+                            const distance = this.complexSDF(pos);
+                            
+                            // If the point is within the "skin" layer of the shape
+                            if (distance > -thickness && distance < 0) {
+                                const key = `${x},${y},${z}`;
+                                this.voxels.set(key, {
+                                    position: {x, y, z},
+                                    hasMine: false,
+                                    isRevealed: false,
+                                    isResolved: false,
+                                    adjacentMines: 0,
+                                    isHovered: false,
+                                    isDisappearing: false,
+                                    dots: [],
+                                    targetMines: [],
+                                    activeDotCount: 0,
+                                    mesh: null,
+                                    dotGroup: null
+                                });
+                            }
+                        }
+                    }
+                }
+                // Set mine count to be proportional to the grid size
+                this.mineCount = Math.floor(this.voxels.size * 0.08);
+            }
+            
+            // Create Three.js instances for voxels
+            createVoxelInstances() {
+                // Create a single geometry for all voxels
+                const geometry = new THREE.BoxGeometry(this.voxelSize * 0.95, this.voxelSize * 0.95, this.voxelSize * 0.95);
+                
+                // Create materials - now using PhongMaterial for better lighting
+                this.unrevealedMaterial = new THREE.MeshPhongMaterial({
+                    color: this.colors.unrevealed,
+                    specular: 0x222222,
+                    shininess: 30
+                });
+                
+                // Revealed material with transparency
+                this.revealedMaterial = new THREE.MeshPhongMaterial({
+                    color: this.colors.revealed,
+                    transparent: true,
+                    opacity: 0.0,
+                    specular: 0x000000,
+                    shininess: 0
+                });
+                
+                // Wireframe material for empty cells
+                this.wireframeMaterial = new THREE.MeshPhongMaterial({
+                    color: this.colors.wireframe,
+                    wireframe: true,
+                    specular: 0x555555,
+                    shininess: 70,
+                    transparent: true,
+                    opacity: 0.0
+                });
+                
+                // Create instances for each voxel
+                for (const [key, voxel] of this.voxels) {
+                    const mesh = new THREE.Mesh(geometry, this.unrevealedMaterial.clone());
+                    mesh.position.set(
+                        voxel.position.x * this.voxelSize,
+                        voxel.position.y * this.voxelSize,
+                        voxel.position.z * this.voxelSize
+                    );
+                    mesh.userData.voxelKey = key;
+                    this.voxelGroup.add(mesh);
+                    voxel.mesh = mesh;
+                    
+                    // Create a group to hold dots for this voxel
+                    const dotGroup = new THREE.Group();
+                    dotGroup.position.copy(mesh.position);
+                    this.voxelGroup.add(dotGroup);
+                    voxel.dotGroup = dotGroup;
+                }
+            }
+            
+            // Get the key for a voxel position
+            getVoxelKey(x, y, z) {
+                return `${x},${y},${z}`;
+            }
+            
+            // Get a voxel at a specific position
+            getVoxel(x, y, z) {
+                return this.voxels.get(this.getVoxelKey(x, y, z));
+            }
+            
+            // Get neighbors of a voxel in 3D (26 neighbors)
+            getNeighbors(voxel) {
+                const neighbors = [];
+                const {x, y, z} = voxel.position;
+                
+                // Check all 26 possible neighbors
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dz = -1; dz <= 1; dz++) {
+                            // Skip the voxel itself
+                            if (dx === 0 && dy === 0 && dz === 0) continue;
+                            
+                            const neighbor = this.getVoxel(x + dx, y + dy, z + dz);
+                            if (neighbor) {
+                                neighbors.push(neighbor);
+                            }
+                        }
+                    }
+                }
+                
+                return neighbors;
+            }
+            
+            // Place mines randomly, avoiding the first clicked voxel and its neighbors
+            placeMines(safeVoxel) {
+                // Get the safe area (clicked voxel and its neighbors)
+                const safeVoxels = [safeVoxel, ...this.getNeighbors(safeVoxel)];
+                
+                // Create a list of voxels that can contain mines
+                const candidates = Array.from(this.voxels.values()).filter(v => 
+                    !safeVoxels.includes(v)
+                );
+                
+                // Place mines randomly
+                let minesToPlace = Math.min(this.mineCount, candidates.length);
+                const mineIndices = new Set();
+                
+                while (mineIndices.size < minesToPlace) {
+                    const index = Math.floor(Math.random() * candidates.length);
+                    mineIndices.add(index);
+                }
+                
+                // Set mines
+                for (const index of mineIndices) {
+                    candidates[index].hasMine = true;
+                }
+                
+                // Count adjacent mines for each voxel and pre-assign dots to mines
+                for (const voxel of this.voxels.values()) {
+                    if (!voxel.hasMine) {
+                        const neighbors = this.getNeighbors(voxel);
+                        const mineNeighbors = neighbors.filter(n => n.hasMine);
+                        
+                        voxel.adjacentMines = mineNeighbors.length;
+                        voxel.targetMines = mineNeighbors;
+                    }
+                }
+            }
+            
+            // Initialize dots for a numbered voxel
+            initializeDots(voxel) {
+                // Clear existing dots
+                while (voxel.dotGroup.children.length > 0) {
+                    const dot = voxel.dotGroup.children[0];
+                    voxel.dotGroup.remove(dot);
+                    if (dot.geometry) dot.geometry.dispose();
+                    if (dot.material) dot.material.dispose();
+                }
+                
+                voxel.dots = [];
+                voxel.activeDotCount = 0;
+                const numDots = voxel.adjacentMines;
+                
+                // Create dot geometry and material
+                const dotGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                const dotMaterial = new THREE.MeshPhongMaterial({
+                    color: this.colors.dots[numDots] || this.colors.dots[0],
+                    specular: 0xffffff,
+                    shininess: 100,
+                    emissive: this.colors.dots[numDots] || this.colors.dots[0],
+                    emissiveIntensity: 0.3
+                });
+                
+                // Create dots
+                for (let i = 0; i < numDots; i++) {
+                    // Random position within the voxel
+                    const pos = new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.6,
+                        (Math.random() - 0.5) * 0.6,
+                        (Math.random() - 0.5) * 0.6
+                    );
+                    
+                    const dot = new THREE.Mesh(dotGeometry, dotMaterial.clone());
+                    dot.position.copy(pos);
+                    voxel.dotGroup.add(dot);
+                    
+                    // Add dot data
+                    voxel.dots.push({
+                        mesh: dot,
+                        targetPos: new THREE.Vector3().copy(pos),
+                        velocity: new THREE.Vector3(
+                            (Math.random() - 0.5) * 0.02,
+                            (Math.random() - 0.5) * 0.02,
+                            (Math.random() - 0.5) * 0.02
+                        ),
+                        angle: Math.random() * Math.PI * 2,
+                        speed: 0.02 + Math.random() * 0.02,
+                        isActive: false,
+                        assignedMine: voxel.targetMines[i] // Direct link to mine this dot represents
+                    });
+                }
+            }
+            
+            // Initialize dots for a resolved mine
+            initializeMineDots(voxel) {
+                // Clear existing dots
+                while (voxel.dotGroup.children.length > 0) {
+                    const dot = voxel.dotGroup.children[0];
+                    voxel.dotGroup.remove(dot);
+                    if (dot.geometry) dot.geometry.dispose();
+                    if (dot.material) dot.material.dispose();
+                }
+                
+                voxel.dots = [];
+                
+                // Find revealed neighbors with adjacent mines
+                const neighbors = this.getNeighbors(voxel);
+                const numberNeighbors = neighbors.filter(n => 
+                    n.isRevealed && n.adjacentMines > 0
+                );
+                
+                // Create dot geometry and material
+                const dotGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+                const dotMaterial = new THREE.MeshPhongMaterial({
+                    color: this.colors.resolvedMine,
+                    specular: 0xffffff,
+                    shininess: 100,
+                    emissive: this.colors.resolvedMine,
+                    emissiveIntensity: 0.3
+                });
+                
+                // Create dots for each number neighbor
+                for (let i = 0; i < numberNeighbors.length; i++) {
+                    const neighbor = numberNeighbors[i];
+                    
+                    // Random position within the voxel
+                    const pos = new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.6,
+                        (Math.random() - 0.5) * 0.6,
+                        (Math.random() - 0.5) * 0.6
+                    );
+                    
+                    const dot = new THREE.Mesh(dotGeometry, dotMaterial.clone());
+                    dot.position.copy(pos);
+                    voxel.dotGroup.add(dot);
+                    
+                    // Direction to neighbor
+                    const direction = new THREE.Vector3(
+                        neighbor.position.x - voxel.position.x,
+                        neighbor.position.y - voxel.position.y,
+                        neighbor.position.z - voxel.position.z
+                    ).normalize().multiplyScalar(0.4);
+                    
+                    // Add dot data
+                    voxel.dots.push({
+                        mesh: dot,
+                        targetPos: direction,
+                        velocity: new THREE.Vector3(),
+                        isActive: true
+                    });
+                }
+            }
+            
+            // Create dissipation effect for a voxel
+            createDissipationEffect(voxel) {
+                voxel.isDisappearing = true;
+                
+                // Make the voxel transparent and shrink
+                const duration = 1000; // ms
+                const startTime = performance.now();
+                
+                const animate = () => {
+                    const elapsed = performance.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Reduce opacity
+                    voxel.mesh.material.opacity = 0.7 * (1 - progress);
+                    
+                    // Shrink the voxel
+                    const scale = 1 - progress;
+                    voxel.mesh.scale.set(scale, scale, scale);
+                    
+                    // Shrink the dots
+                    for (const dot of voxel.dots) {
+                        dot.mesh.scale.set(scale, scale, scale);
+                    }
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        // Remove the voxel from the scene
+                        this.removeVoxel(voxel);
+                    }
+                };
+                
+                animate();
+            }
+            
+            // Remove a voxel and its dots from the scene
+            removeVoxel(voxel) {
+                if (!voxel) return;
+                
+                const key = this.getVoxelKey(voxel.position.x, voxel.position.y, voxel.position.z);
+                
+                // Remove mesh from scene
+                if (voxel.mesh) {
+                    this.voxelGroup.remove(voxel.mesh);
+                    if (voxel.mesh.material) voxel.mesh.material.dispose();
+                    if (voxel.mesh.geometry) voxel.mesh.geometry.dispose();
+                }
+                
+                // Remove dot group from scene
+                if (voxel.dotGroup) {
+                    while (voxel.dotGroup.children.length > 0) {
+                        const dot = voxel.dotGroup.children[0];
+                        voxel.dotGroup.remove(dot);
+                        if (dot.material) dot.material.dispose();
+                        if (dot.geometry) dot.geometry.dispose();
+                    }
+                    this.voxelGroup.remove(voxel.dotGroup);
+                }
+                
+                // Remove voxel from the map
+                this.voxels.delete(key);
+            }
+            
+            // Update neighboring voxels after a mine is removed
+            updateNeighborsAfterMineDissipation(voxel) {
+                const neighbors = this.getNeighbors(voxel);
+                
+                for (const neighbor of neighbors) {
+                    if (neighbor.isRevealed && !neighbor.hasMine) {
+                        // Decrement adjacent mine count
+                        neighbor.adjacentMines--;
+                        
+                        // If this was the last mine, schedule voxel for removal
+                        if (neighbor.adjacentMines === 0) {
+                            this.scheduleVoxelRemoval(neighbor);
+                        } else {
+                            // Update dots - remove the dot that was pointing to this mine
+                            const dotsToKeep = [];
+                            for (const dot of neighbor.dots) {
+                                if (dot.assignedMine !== voxel) {
+                                    dotsToKeep.push(dot);
+                                } else {
+                                    // Remove this dot from the scene
+                                    neighbor.dotGroup.remove(dot.mesh);
+                                    if (dot.mesh.material) dot.mesh.material.dispose();
+                                    if (dot.mesh.geometry) dot.mesh.geometry.dispose();
+                                    
+                                    // Update active dot count if needed
+                                    if (dot.isActive) {
+                                        neighbor.activeDotCount--;
+                                    }
+                                }
+                            }
+                            neighbor.dots = dotsToKeep;
+                            
+                            // Update the color of the remaining dots
+                            const dotColor = this.colors.dots[neighbor.adjacentMines] || this.colors.dots[0];
+                            for (const dot of neighbor.dots) {
+                                dot.mesh.material.color.setHex(dotColor);
+                                dot.mesh.material.emissive.setHex(dotColor);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Check if a mine should dissipate
+            shouldMineDissipate(voxel) {
+                if (!voxel.hasMine || !voxel.isRevealed || voxel.isDisappearing) {
+                    return false;
+                }
+                
+                const neighbors = this.getNeighbors(voxel);
+                const revealedNeighbors = neighbors.filter(n => n.isRevealed);
+                
+                // A mine should dissipate if all its neighbors are revealed
+                if (revealedNeighbors.length === neighbors.length) {
+                    // And either they are empty OR all their dots pointing to this mine are active
+                    const numberNeighbors = revealedNeighbors.filter(n => !n.hasMine && n.adjacentMines > 0);
+                    
+                    // If only empty neighbors, dissipate
+                    if (numberNeighbors.length === 0) {
+                        return true;
+                    }
+                    
+                    // Check if all dots pointing to this mine are active
+                    for (const neighbor of numberNeighbors) {
+                        for (const dot of neighbor.dots) {
+                            if (dot.assignedMine === voxel && !dot.isActive) {
+                                return false;
+                            }
+                        }
+                    }
+                    
+                    return true;
+                }
+                
+                return false;
+            }
+            
+            // Schedule a voxel for dissipation
+            scheduleDissipation(voxel, delay) {
+                this.pendingDissipations.push({
+                    voxel: voxel,
+                    time: performance.now() + delay
+                });
+            }
+            
+            // Schedule a voxel for removal
+            scheduleVoxelRemoval(voxel) {
+                this.pendingRemoval.add(voxel);
+            }
+            
+            // Process pending dissipations
+            processPendingDissipations() {
+                const now = performance.now();
+                const stillPending = [];
+                
+                for (const pending of this.pendingDissipations) {
+                    if (now >= pending.time) {
+                        if (this.shouldMineDissipate(pending.voxel)) {
+                            this.createDissipationEffect(pending.voxel);
+                            this.updateNeighborsAfterMineDissipation(pending.voxel);
+                        }
+                    } else {
+                        stillPending.push(pending);
+                    }
+                }
+                
+                this.pendingDissipations = stillPending;
+            }
+            
+            // Process pending voxel removals
+            processPendingRemovals() {
+                for (const voxel of this.pendingRemoval) {
+                    this.createDissipationEffect(voxel);
+                }
+                this.pendingRemoval.clear();
+            }
+            
+            // Activate a dot to point toward its assigned mine
+            activateDot(dot, voxel) {
+                if (!dot.assignedMine || dot.isActive) return;
+                
+                // Calculate direction to the mine
+                const direction = new THREE.Vector3(
+                    dot.assignedMine.position.x - voxel.position.x,
+                    dot.assignedMine.position.y - voxel.position.y,
+                    dot.assignedMine.position.z - voxel.position.z
+                ).normalize().multiplyScalar(0.4);
+                
+                // Set target position
+                dot.targetPos.copy(direction);
+                dot.isActive = true;
+                voxel.activeDotCount++;
+                
+                // Check if this activation makes the mine dissipate
+                if (dot.assignedMine.isRevealed) {
+                    this.scheduleDissipation(dot.assignedMine, this.dissipationDelay);
+                }
+            }
+            
+            // Schedule activation for later
+            scheduleActivation(voxel, delay) {
+                this.pendingActivations.push({
+                    voxel: voxel,
+                    time: performance.now() + delay
+                });
+            }
+            
+            // Process pending activations
+            processPendingActivations() {
+                const now = performance.now();
+                const stillPending = [];
+                
+                for (const pending of this.pendingActivations) {
+                    if (now >= pending.time) {
+                        this.activateVoxel(pending.voxel);
+                    } else {
+                        stillPending.push(pending);
+                    }
+                }
+                
+                this.pendingActivations = stillPending;
+            }
+            
+            // Activate all dots in a voxel that point to known mines
+            activateVoxel(voxel) {
+                if (!voxel.isRevealed || voxel.hasMine) return;
+                
+                for (const dot of voxel.dots) {
+                    if (dot.assignedMine && 
+                        (dot.assignedMine.isRevealed || dot.assignedMine.isResolved) && 
+                        !dot.isActive) {
+                        this.activateDot(dot, voxel);
+                    }
+                }
+            }
+            
+            // Update dots animations
+            updateDots(deltaTime) {
+                // Process pending activations, dissipations, and removals
+                this.processPendingActivations();
+                this.processPendingDissipations();
+                this.processPendingRemovals();
+                
+                // Update all dots
+                for (const voxel of this.voxels.values()) {
+                    if (!voxel.isRevealed || (voxel.adjacentMines === 0 && !voxel.hasMine) || voxel.isDisappearing) continue;
+                    
+                    for (const dot of voxel.dots) {
+                        if (dot.isActive) {
+                            // Move dot toward target with attraction
+                            const direction = new THREE.Vector3()
+                                .subVectors(dot.targetPos, dot.mesh.position)
+                                .multiplyScalar(0.1);
+                            
+                            dot.velocity.add(direction);
+                            
+                            // Add some jitter
+                            dot.velocity.add(new THREE.Vector3(
+                                (Math.random() - 0.5) * 0.005,
+                                (Math.random() - 0.5) * 0.005,
+                                (Math.random() - 0.5) * 0.005
+                            ));
+                        } else {
+                            // Swirling motion
+                            dot.angle += dot.speed;
+                            const radius = 0.3;
+                            
+                            // Create a swirling pattern (arbitrary rotation axis)
+                            const xPos = Math.cos(dot.angle) * radius;
+                            const yPos = Math.sin(dot.angle) * radius;
+                            const zPos = Math.sin(dot.angle * 1.5) * radius * 0.5;
+                            
+                            dot.targetPos.set(xPos, yPos, zPos);
+                            
+                            // Move dot toward swirl position
+                            const direction = new THREE.Vector3()
+                                .subVectors(dot.targetPos, dot.mesh.position)
+                                .multiplyScalar(0.05);
+                            
+                            dot.velocity.copy(direction);
+                        }
+                        
+                        // Apply velocity with damping
+                        dot.velocity.multiplyScalar(0.9);
+                        dot.mesh.position.add(dot.velocity);
+                        
+                        // Keep dots within bounds of the voxel
+                        const distance = dot.mesh.position.length();
+                        if (distance > 0.4) {
+                            dot.mesh.position.normalize().multiplyScalar(0.4);
+                            
+                            // Bounce effect
+                            dot.velocity.multiplyScalar(-0.5);
+                        }
+                    }
+                }
+            }
+            
+            // Reveal a voxel
+            revealVoxel(voxel) {
+                if (voxel.isRevealed || this.gameOver || this.gameWon) {
+                    return;
+                }
+                
+                if (this.firstClick) {
+                    this.firstClick = false;
+                    this.placeMines(voxel);
+                }
+                
+                voxel.isRevealed = true;
+                
+                // Update voxel appearance
+                if (voxel.hasMine) {
+                    // Update material for mines
+                    voxel.mesh.material.dispose();
+                    const mineMaterial = new THREE.MeshPhongMaterial({
+                        color: this.colors.mine,
+                        transparent: true,
+                        opacity: 0.7,
+                        specular: 0xffffff,
+                        shininess: 70,
+                        emissive: this.colors.mine,
+                        emissiveIntensity: 0.2
+                    });
+                    voxel.mesh.material = mineMaterial;
+                    
+                    this.gameOver = true;
+                    this.revealAllMines();
+                    return;
+                } else if (voxel.adjacentMines === 0) {
+                    // Use wireframe material for empty cells
+                    voxel.mesh.material.dispose();
+                    voxel.mesh.material = this.wireframeMaterial.clone();
+                } else {
+                    // Use transparent material for numbered cells
+                    voxel.mesh.material.dispose();
+                    voxel.mesh.material = this.revealedMaterial.clone();
+                }
+                
+                // If the voxel has adjacent mines, initialize its dots
+                if (voxel.adjacentMines > 0) {
+                    this.initializeDots(voxel);
+                    
+                    // Check if any neighbors are already revealed mines
+                    for (const dot of voxel.dots) {
+                        if (dot.assignedMine && 
+                            (dot.assignedMine.isRevealed || dot.assignedMine.isResolved)) {
+                            this.scheduleActivation(voxel, 0);
+                            break;
+                        }
+                    }
+                    
+                    // Check if this reveals any mines that can now dissipate
+                    const neighbors = this.getNeighbors(voxel);
+                    for (const neighbor of neighbors) {
+                        if (neighbor.hasMine && neighbor.isRevealed) {
+                            this.scheduleDissipation(neighbor, this.dissipationDelay);
+                        }
+                    }
+                }
+                
+                // If the voxel has no adjacent mines, reveal all neighbors
+                if (voxel.adjacentMines === 0) {
+                    const neighbors = this.getNeighbors(voxel);
+                    for (const neighbor of neighbors) {
+                        if (!neighbor.isRevealed) {
+                            this.revealVoxel(neighbor);
+                        }
+                    }
+                }
+                
+                // Check if we can identify any mines from this reveal
+                this.checkForIdentifiableMines();
+                
+                // Check if player has won
+                this.checkWinCondition();
+            }
+            
+            // Check if any mines can be identified based on revealed voxels
+            checkForIdentifiableMines() {
+                for (const voxel of this.voxels.values()) {
+                    if (!voxel.isRevealed || voxel.hasMine || voxel.adjacentMines === 0 || voxel.isDisappearing) continue;
+                    
+                    const neighbors = this.getNeighbors(voxel);
+                    const unknownNeighbors = neighbors.filter(n => !n.isRevealed);
+                    const mineNeighbors = neighbors.filter(n => n.hasMine);
+                    
+                    // If all unknown neighbors are mines and match the adjacent mine count
+                    if (unknownNeighbors.length === voxel.adjacentMines &&
+                        unknownNeighbors.every(n => n.hasMine)) {
+                        
+                        // Mark all unknown mine neighbors as resolved
+                        for (const mine of unknownNeighbors) {
+                            if (!mine.isRevealed && !mine.isResolved && !mine.isDisappearing) {
+                                this.resolveMine(mine);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Resolve a mine (identified through logic)
+            resolveMine(voxel) {
+                voxel.isRevealed = true;
+                voxel.isResolved = true;
+                // Make resolved mines visible with glow
+                voxel.mesh.material.dispose();
+                const resolvedMaterial = new THREE.MeshPhongMaterial({
+                    color: this.colors.resolvedMine,
+                    transparent: true,
+                    opacity: 0.7,
+                    specular: 0xffffff,
+                    shininess: 80,
+                    emissive: this.colors.resolvedMine,
+                    emissiveIntensity: 0.3
+                });
+                voxel.mesh.material = resolvedMaterial;
+                
+                this.initializeMineDots(voxel);
+                
+                // Activate dots in neighbors that point to this mine
+                const neighbors = this.getNeighbors(voxel);
+                let delay = 0;
+                
+                for (const neighbor of neighbors) {
+                    if (neighbor.isRevealed && neighbor.adjacentMines > 0) {
+                        // Schedule activation with increasing delays
+                        this.scheduleActivation(neighbor, this.activationDelay + delay);
+                        delay += this.activationDelay / 2;
+                    }
+                }
+                
+                // Schedule this mine for dissipation check
+                this.scheduleDissipation(voxel, this.dissipationDelay);
+                
+                // Check if this reveals more mines (with delay)
+                setTimeout(() => this.checkForIdentifiableMines(), this.activationDelay * 1.5);
+            }
+            
+            // Reveal all mines when the game is over
+            revealAllMines() {
+                for (const voxel of this.voxels.values()) {
+                    if (voxel.hasMine && !voxel.isRevealed && !voxel.isDisappearing) {
+                        voxel.isRevealed = true;
+                        voxel.mesh.material.dispose();
+                        const mineMaterial = new THREE.MeshPhongMaterial({
+                            color: this.colors.mine,
+                            transparent: true,
+                            opacity: 0.7,
+                            specular: 0xffffff,
+                            shininess: 70,
+                            emissive: this.colors.mine,
+                            emissiveIntensity: 0.2
+                        });
+                        voxel.mesh.material = mineMaterial;
+                    }
+                }
+                
+                // Show game over message
+                document.getElementById('info').textContent = 'GAME OVER! Press R to restart.';
+                document.getElementById('info').style.color = '#FF0055';
+            }
+            
+            // Check if the player has won
+            checkWinCondition() {
+                // Player wins when all non-mine voxels are revealed
+                const allNonMinesRevealed = Array.from(this.voxels.values()).every(voxel => 
+                    voxel.isRevealed || voxel.hasMine || voxel.isDisappearing
+                );
+                
+                if (allNonMinesRevealed && !this.gameWon) {
+                    this.gameWon = true;
+                    
+                    // Reveal all mines as resolved
+                    for (const voxel of this.voxels.values()) {
+                        if (voxel.hasMine && !voxel.isRevealed && !voxel.isDisappearing) {
+                            this.resolveMine(voxel);
+                        }
+                    }
+                    
+                    // Show win message
+                    document.getElementById('info').textContent = 'ACCESS GRANTED! Press R to restart.';
+                    document.getElementById('info').style.color = '#00FFAA';
+                }
+            }
+            
+            // Handle hover effect
+            handleHover(intersect) {
+                // Reset all hover states
+                for (const voxel of this.voxels.values()) {
+                    if (voxel.isHovered && !voxel.isRevealed && !voxel.isDisappearing) {
+                        voxel.isHovered = false;
+                        voxel.mesh.material.color.setHex(this.colors.unrevealed);
+                    }
+                }
+                
+                // Set hover for the intersected voxel
+                if (intersect) {
+                    const key = intersect.object.userData.voxelKey;
+                    const voxel = this.voxels.get(key);
+                    
+                    if (voxel && !voxel.isRevealed && !voxel.isDisappearing) {
+                        voxel.isHovered = true;
+                        voxel.mesh.material.color.setHex(this.colors.hover);
+                    }
+                }
+            }
+            
+            // Handle click to reveal a voxel
+            handleClick(intersect) {
+                if (!intersect) return;
+                
+                const key = intersect.object.userData.voxelKey;
+                const voxel = this.voxels.get(key);
+                
+                if (voxel && !voxel.isRevealed && !voxel.isDisappearing) {
+                    this.revealVoxel(voxel);
+                }
+            }
+            
+            // Reset the game
+            reset() {
+                // Reset UI
+                document.getElementById('info').textContent = 'Click to reveal cells. Find all safe cells without hitting mines.';
+                document.getElementById('info').style.color = '#00AAFF';
+                
+                // Reinitialize game
+                this.initialize();
+            }
+            
+            // Update game state
+            update(deltaTime) {
+                this.updateDots(deltaTime);
+            }
+        }
+
+        // Create and initialize the game
+        const game = new VoxelMinesweeper();
+
+        // Handle window resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Handle mouse movement for raycasting and hover effect
+        window.addEventListener('mousemove', (event) => {
+            // Update mouse position for raycasting
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            // Cast ray
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(game.voxelGroup.children, false);
+            
+            // Filter intersections to find the first unrevealed voxel
+            const unrevealedIntersect = intersects.find(intersect => {
+                const key = intersect.object.userData.voxelKey;
+                const voxel = game.voxels.get(key);
+                return voxel && !voxel.isRevealed && !voxel.isDisappearing;
+            });
+            
+            // Handle hover effect on the first unrevealed voxel 
+            if (unrevealedIntersect) {
+                game.handleHover(unrevealedIntersect);
+            } else {
+                game.handleHover(null);
+            }
+        });
+
+        // Handle mouse clicks for game interaction
+        window.addEventListener('mousedown', (event) => {
+            // Only handle left clicks
+            if (event.button !== 0) return;
+            
+            // Cast ray
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(game.voxelGroup.children, false);
+            
+            // Filter intersections to find the first unrevealed voxel
+            const unrevealedIntersect = intersects.find(intersect => {
+                const key = intersect.object.userData.voxelKey;
+                const voxel = game.voxels.get(key);
+                return voxel && !voxel.isRevealed && !voxel.isDisappearing;
+            });
+            
+            // Handle click on the first unrevealed voxel
+            if (unrevealedIntersect) {
+                game.handleClick(unrevealedIntersect);
+            }
+        });
+
+        // Handle keyboard input (R key to reset)
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'r' || event.key === 'R') {
+                game.reset();
+            }
+        });
+
+        // Clock for timing
+        const clock = new THREE.Clock();
+        
+        // Update moving light position
+        function updateMovingLight(time) {
+            const radius = 8;
+            movingLight.position.x = Math.sin(time * 0.5) * radius;
+            movingLight.position.y = Math.sin(time * 0.3) * radius * 0.5 + 5;
+            movingLight.position.z = Math.cos(time * 0.7) * radius;
+
+            movingLights.forEach((light, index) => {
+                light.position.x = Math.sin(time * (0.05 + index * 0.1)) * radius;
+                light.position.y = Math.sin(time * (0.03 + index * 0.1)) * radius * 0.5 + 5;
+                light.position.z = Math.cos(time * (0.07 + index * 0.1)) * radius;
+            });
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const deltaTime = clock.getDelta();
+            const elapsedTime = clock.getElapsedTime();
+            
+            // Update moving light
+            updateMovingLight(elapsedTime);
+            
+            // Update game
+            game.update(deltaTime);
+            
+            // Update controls
+            controls.update();
+            
+            // Render scene
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
