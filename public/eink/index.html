@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Ink Calendar</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="kindle-wrapper">
+        <div class="kindle-device">
+            <div class="kindle-frame">
+                <div class="kindle-screen">
+                    <div class="screen-content">
+                        <div class="today-card" id="todayCard">
+                            <!-- Today's date and events will be filled by JavaScript -->
+                            <div class="card-header">
+                                <div class="controls">
+                                    <button id="addEventBtn" class="icon-button">+</button>
+                                    <button id="exportBtn" class="icon-button">↓</button>
+                                </div>
+                                <div class="battery-indicator">
+                                    <div class="battery-level"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="time-ribbons">
+                            <div class="month-view-ribbon" id="monthViewRibbon">
+                                <!-- Current month with weeks will be filled by JavaScript -->
+                            </div>
+                            
+                            <div class="all-months-ribbon" id="allMonthsRibbon">
+                                <!-- All 12 months will be filled by JavaScript -->
+                            </div>
+                        </div>
+                        
+                        <div class="action-bar">
+                            <button id="todayBtn">Today</button>
+                            <button id="refreshBtn">↻ Refresh</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="kindle-button"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal for adding events -->
+    <div class="modal" id="addEventModal">
+        <div class="modal-content">
+            <span class="close-btn" id="closeModal">×</span>
+            <h3>Add Event</h3>
+            <form id="addEventForm">
+                <input type="text" id="eventTitle" placeholder="Title" required>
+                <textarea id="eventDescription" placeholder="Description"></textarea>
+                <input type="datetime-local" id="eventStart" required>
+                <input type="datetime-local" id="eventEnd">
+                <button type="submit">Save</button>
+            </form>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
