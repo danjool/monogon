@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Nebula Flow Field Simulator</title>
+  <style>
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      background-color: #000;
+    }
+    canvas { 
+      display: block; 
+    }
+    #info {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      color: white;
+      text-align: center;
+      font-family: Arial, sans-serif;
+      pointer-events: none;
+      z-index: 10;
+    }
+    #controls {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.4);
+      padding: 10px;
+      border-radius: 5px;
+      color: rgba(255,255,255,0.4);
+      font-family: Arial, sans-serif;
+      z-index: 10;
+      width: 90vw;
+    }
+    .slider-container {
+        display: flex;
+      margin: 5px 0;
+      width: 100vw;
+      opacity: 0.7;
+    }
+    .slider-container label {
+      display: inline-block;
+      width: 20vw;
+    }
+    input {
+      width: 85vw;
+    }
+    .slider-container span {
+      width: 5vw;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <div class="slider-container">
+        <label for="simSpeed">Simulation Speed:</label>
+        <input type="range" id="simSpeed" min="0.1" max="32.0" step="0.01" value="1.0">
+        <span id="simSpeedValue">1.0</span>
+    </div>
+    <div class="slider-container">
+      <label for="flowSpeed">Flow Speed:</label>
+      <input type="range" id="flowSpeed" min="0.1" max="3.0" step="0.01" value="1.0">
+      <span id="flowSpeedValue">1.0</span>
+    </div>
+    <div class="slider-container">
+      <label for="turbulence">Turbulence:</label>
+      <input type="range" id="turbulence" min="0.1" max="5.0" step="0.01" value="1.0">
+      <span id="turbulenceValue">1.0</span>
+    </div>
+    <div class="slider-container">
+      <label for="particleSize">Particle Size:</label>
+      <input type="range" id="particleSize" min="1" max="10" step="0.5" value="2">
+      <span id="particleSizeValue">2</span>
+    </div>
+    <div class="slider-container">
+      <label for="colorIntensity">Color Intensity:</label>
+      <input type="range" id="colorIntensity" min="0.1" max="3.0" step="0.01" value="1.0">
+      <span id="colorIntensityValue">1.0</span>
+    </div>
+    <div class="slider-container">
+      <label for="noiseScale">Noise Scale:</label>
+        <input type="range" id="noiseScale" min="0.0" max="8.0" step="0.01" value=".93">
+        <span id="noiseScaleValue">0.93</span>
+    </div>
+    <div class="slider-container">
+      <label for="vortexScale">Vortex Scale:</label>
+        <input type="range" id="vortexScale" min="0.0" max="16.0" step="0.01" value="1.0">
+        <span id="vortexScaleValue">1.0</span>
+    </div>
+    <div class="slider-container">
+      <label for="simulationSize">Simulation Size:</label>
+      <input type="range" id="simulationSize" min="128" max="1024" step="1" value="512">
+      <span id="simulationSizeValue">512</span>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    // Global parameters
+    const PARAMS = {
+      // Size of the simulation (width×height = total particle count)
+      // Must be power of 2 for best compatibility
+      simulationSize: 512, // simulationSize * simulationSize = # particles
+      bounds: 620.0,
+      time: 0,
+      particleSize: 1.5,
+      colorIntensity: 1.0,
+      flowSpeed: 1.0,
+      turbulence: 4.5,
+      noiseScale: 0.93,
+      vortexScale: 1.0,
+      simSpeed: 4.0,
+    };
+
+    // Create Three.js scene, camera, and renderer for the main view
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+    // camera.position.z = PARAMS.bounds*40.;
+    
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    // Check for floating point texture support
+    if (!renderer.capabilities.isWebGL2 && 
+        !renderer.extensions.get('OES_texture_float')) {
+      alert('This demo requires floating point texture support. Your browser might not be compatible.');
+    }
+
+    // Create Three.js components for the GPU compute passes
+    const computeScene = new THREE.Scene();
+    const computeCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const computeQuad = new THREE.Mesh(
+      new THREE.PlaneBufferGeometry(2, 2),
+      null
+    );
+    computeScene.add(computeQuad);
+
+    // Simulation variables
+    let particleSystem;
+    let positionTexture1, positionTexture2;
+    let velocityTexture1, velocityTexture2;
+    let currentTexture = 0; // 0 = first set, 1 = second set
+
+    // Shaders for compute passes
+    
+    // Utility functions shared between shaders
+    const shaderUtilsCode = `
+      // Simplex noise functions
+      vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+      vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+      
+      float snoise(vec3 v) {
+        const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+        const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+        
+        // First corner
+        vec3 i  = floor(v + dot(v, C.yyy));
+        vec3 x0 = v - i + dot(i, C.xxx);
+        
+        // Other corners
+        vec3 g = step(x0.yzx, x0.xyz);
+        vec3 l = 1.0 - g;
+        vec3 i1 = min(g.xyz, l.zxy);
+        vec3 i2 = max(g.xyz, l.zxy);
+        
+        vec3 x1 = x0 - i1 + C.xxx;
+        vec3 x2 = x0 - i2 + C.yyy;
+        vec3 x3 = x0 - D.yyy;
+        
+        // Permutations
+        i = mod289(i);
+        vec4 p = permute(permute(permute(
+                  i.z + vec4(0.0, i1.z, i2.z, 1.0))
+                  + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+                  + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+                  
+        // Gradients
+        float n_ = 0.142857142857; // 1.0/7.0
+        vec3 ns = n_ * D.wyz - D.xzx;
+        
+        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+        
+        vec4 x_ = floor(j * ns.z);
+        vec4 y_ = floor(j - 7.0 * x_);
+        
+        vec4 x = x_ *ns.x + ns.yyyy;
+        vec4 y = y_ *ns.x + ns.yyyy;
+        vec4 h = 1.0 - abs(x) - abs(y);
+        
+        vec4 b0 = vec4(x.xy, y.xy);
+        vec4 b1 = vec4(x.zw, y.zw);
+        
+        vec4 s0 = floor(b0)*2.0 + 1.0;
+        vec4 s1 = floor(b1)*2.0 + 1.0;
+        vec4 sh = -step(h, vec4(0.0));
+        
+        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+        
+        vec3 p0 = vec3(a0.xy, h.x);
+        vec3 p1 = vec3(a0.zw, h.y);
+        vec3 p2 = vec3(a1.xy, h.z);
+        vec3 p3 = vec3(a1.zw, h.w);
+        
+        // Normalise gradients
+        vec4 norm = taylorInvSqrt(vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
+        p0 *= norm.x;
+        p1 *= norm.y;
+        p2 *= norm.z;
+        p3 *= norm.w;
+        
+        // Mix final noise value
+        vec4 m = max(0.6 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
+        m = m * m;
+        return 42.0 * dot(m*m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
+      }
+      
+      // Flow field function
+      vec3 flowField(vec3 position, float time) {
+        vec3 flow = vec3(0.0);
+        
+        // 1. Create multiple vortex attractors
+        vec3 vortexCenters[3];
+        vortexCenters[0] = vec3( 20.0 * sin(time * 0.011),    15.0 * cos(time * 0.011),     10.0 * sin(time * 0.023));
+        vortexCenters[1] = vec3( 99.0 * cos(time * 0.019),   -15.0 * sin(time * 0.09),    -55.0 * cos(time * 0.01));
+        vortexCenters[2] = vec3( 117.0 * sin(time * 0.025),    -30.0 * cos(time * 0.08),    25.0 * sin(time * 0.07));
+        
+        // Apply vortex forces
+        for (int i = 0; i < 3; i++) {
+          vec3 toVortex = vortexCenters[i] - position;
+          float dist = length(toVortex);
+          float strength = 200.8*float(i+1)/(1.0 + 0.05  * dist * dist);
+          
+          // Create spiral pattern around vortex
+          vec3 perpendicular = normalize(vec3(
+            toVortex.y - toVortex.z,
+            toVortex.z - toVortex.x,
+            toVortex.x - toVortex.y
+          ));
+          
+          // Combine attraction toward vortex with spiral motion
+          flow += (vortexScale*.5*(4.0-float(i))*normalize(toVortex) * 0.5 + perpendicular) * strength;
+        }
+        
+        // 2. Add wave-like motion
+        float waveX = sin(position.x * 0.05 + time * 0.2) * cos(position.z * 0.06) * 0.3;
+        float waveY = cos(position.y * 0.05 + time * 0.15) * sin(position.x * 0.06) * 0.3;
+        float waveZ = sin(position.z * 0.05 + time * 0.1) * cos(position.y * 0.06) * 0.3;
+        
+        flow += vec3(waveX, waveY, waveZ) * 1.4;
+        
+        // 3. Add subtle noise for organic movement
+        float scale = 0.03;
+        vec3 noise = vec3(
+          snoise(vec3(position.x * scale, position.y * scale, position.z * scale + time * 0.1)),
+          snoise(vec3(position.x * scale + 100.0, position.y * scale, position.z * scale + time * 0.1)),
+          snoise(vec3(position.x * scale, position.y * scale + 100.0, position.z * scale + time * 0.1))
+        ) * noiseScale;
+        
+        flow += noise;
+        
+        // 4. Create a large-scale flow current
+        // vec3 globalFlow = vec3(
+        //   sin(time * 0.1) * 0.2,
+        //   cos(time * 0.15) * 0.1,
+        //   sin(time * 0.13) * 0.2
+        // );
+        
+        // flow += globalFlow;
+        
+        return flow;
+      }
+      
+      // Random function based on UV coordinates and seed
+      float random(vec2 uv, float seed) {
+        return fract(sin(dot(uv, vec2(12.9898, 78.233) + seed)) * 43758.5453);
+      }
+    `;
+    
+    // Velocity update shader
+    const velocityShader = `
+      uniform sampler2D positionTexture;
+      uniform sampler2D velocityTexture;
+      uniform float time;
+      uniform float deltaTime;
+      uniform float turbulence;
+      uniform float noiseScale;
+      uniform float vortexScale;
+      
+      varying vec2 vUv;
+      
+      ${shaderUtilsCode}
+      
+      void main() {
+        // Get current position and life
+        vec4 posData = texture2D(positionTexture, vUv);
+        vec3 pos = posData.xyz;
+        float life = posData.w;
+        
+        // Get current velocity
+        vec4 velData = texture2D(velocityTexture, vUv);
+        vec3 vel = velData.xyz;
+        float initialSpeed = velData.w;
+        
+        // Get flow field vector at current position
+        vec3 flowVector = flowField(pos, time) * turbulence;
+        
+        // Gradual velocity update using mix for smooth transitions
+        vel = mix(vel, flowVector, 0.05 * min(deltaTime * 60.0, 1.0));
+        
+        // Apply damping to prevent extreme velocities
+        vel *= 0.995;
+        
+        // Reset velocity when particle life is reset (detected in position shader)
+        if (life > 99.99) {
+          // Generate new random velocity
+          float theta = 6.2831853 * random(vUv, time * 0.1);
+          float phi = 3.14159 * random(vUv, time * 0.2);
+          
+          vel.x = 1.0 * sin(phi) * cos(theta);
+          vel.y = 1.0 * sin(phi) * sin(theta);
+          vel.z = 1.0 * cos(phi);
+        }
+        
+        // Output updated velocity
+        gl_FragColor = vec4(vel, initialSpeed);
+      }
+    `;
+    
+    // Position update shader
+    const positionShader = `
+      uniform sampler2D positionTexture;
+      uniform sampler2D velocityTexture;
+      uniform float time;
+      uniform float deltaTime;
+      uniform float flowSpeed;
+      uniform float bounds;
+      uniform float noiseScale;
+      uniform float vortexScale;
+      
+      varying vec2 vUv;
+      
+      ${shaderUtilsCode}
+      
+      void main() {
+        // Get current position and life
+        vec4 posData = texture2D(positionTexture, vUv);
+        vec3 pos = posData.xyz;
+        float life = posData.w;
+        
+        // Get current velocity
+        vec3 vel = texture2D(velocityTexture, vUv).xyz;
+        
+        // Update position based on velocity
+        pos += vel * flowSpeed * deltaTime * 20.0;
+        float d = length(pos);
+        
+        // Decrease lifetime
+        life -= 0.001 * deltaTime * 60.0 ;
+
+        // Reset particle if it's dead or out of bounds
+        if (life <= 0.0 || d > bounds) {
+          // Generate new particle position in a spherical shell
+          float theta = 6.2831853 * random(vUv, time * 0.15);
+          float phi = acos(2.0 * random(vUv, time * 0.25) - 1.0);
+          float radius = bounds*.5 + bounds*.5 * random(vUv, time * 0.35);
+          
+          pos.x = radius * sin(phi) * cos(theta);
+          pos.y = radius * sin(phi) * sin(theta);
+          pos.z = radius * cos(phi);
+          
+          // Reset lifetime (slightly above 0.98 to signal velocity reset)
+          life = 100.0;
+        }
+
+
+        
+        // Output updated position and life
+        gl_FragColor = vec4(pos, life);
+      }
+    `;
+    
+    // Render shader for particles
+    const particleVertexShader = `
+      uniform sampler2D positionTexture;
+      uniform float particleSize;
+      uniform float time;
+      
+      varying vec3 vColor;
+      varying float vLife;
+      
+      // HSL to RGB conversion
+      vec3 hsl2rgb(vec3 c) {
+        vec3 rgb = clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0), 6.0)-3.0)-1.0, 0.0, 1.0);
+        return c.z + c.y * (rgb-0.5)*(1.0-abs(2.0*c.z-1.0));
+      }
+      
+      void main() {
+        // Get particle UV from position attribute
+        vec2 uv = position.xy;
+        
+        // Sample position texture to get particle position and life
+        vec4 texData = texture2D(positionTexture, uv);
+        vec3 pos = texData.xyz;
+        float life = texData.w;
+        
+        // Calculate color based on position and time
+        float dist = length(pos);
+        float hue = mod(dist * 0.01 + time * 0.1, 1.0);
+        float saturation = 0.6 + 0.4 * sin(dist * 0.05 + time * 0.2);
+        float lightness = 0.5 + 0.2 * cos(dist * 0.08 + time * 0.3);
+        
+        vColor = hsl2rgb(vec3(hue, saturation, lightness));
+        vLife = min(life, 0.98); // Clamp life to avoid flash when reset
+        
+        // Position the vertex
+        vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+        gl_PointSize = particleSize * (300.0 / -mvPosition.z) * (0.01 + vLife * 0.99);
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `;
+    
+    const particleFragmentShader = `
+      varying vec3 vColor;
+      varying float vLife;
+      
+      uniform float colorIntensity;
+      
+      void main() {
+        // Calculate distance from center of point
+        vec2 center = gl_PointCoord - vec2(0.5);
+        float dist = length(center);
+        
+        // Create soft particle effect
+        float strength = 1.0 - smoothstep(0.0, 0.5, dist);
+        
+        // Glow effect
+        float glow = 1. - exp(-dist * 3.0) * strength * vLife * colorIntensity;
+        
+        // Apply color with glow
+        gl_FragColor = vec4(vColor * glow, glow);
+        
+        // Discard pixels outside of point radius
+        if (dist > 0.5) discard;
+      }
+    `;
+
+    // Materials for the compute passes
+    const velocityMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        positionTexture: { value: null },
+        velocityTexture: { value: null },
+        time: { value: 0 },
+        deltaTime: { value: 0 },
+        turbulence: { value: PARAMS.turbulence }, 
+        noiseScale: { value: PARAMS.noiseScale },
+        vortexScale: { value: PARAMS.vortexScale } // Scale for vortex effect 
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: velocityShader
+    });
+    
+    const positionMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        positionTexture: { value: null },
+        velocityTexture: { value: null },
+        time: { value: 0 },
+        deltaTime: { value: 0 },
+        flowSpeed: { value: PARAMS.flowSpeed },
+        bounds: { value: PARAMS.bounds },
+        noiseScale: { value: PARAMS.noiseScale },
+        vortexScale: { value: PARAMS.vortexScale } // Scale for vortex effect
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: positionShader
+    });
+
+    // Function to create a texture filled with random data
+    function createDataTexture(size, generator) {
+      const data = new Float32Array(size * size * 4);
+      
+      for (let i = 0; i < size * size; i++) {
+        const stride = i * 4;
+        const values = generator(i, size);
+        
+        data[stride] = values[0];     // r
+        data[stride + 1] = values[1]; // g
+        data[stride + 2] = values[2]; // b
+        data[stride + 3] = values[3]; // a
+      }
+      
+      const texture = new THREE.DataTexture(
+        data,
+        size,
+        size,
+        THREE.RGBAFormat,
+        THREE.FloatType
+      );
+      
+      texture.needsUpdate = true;
+      return texture;
+    }
+
+    // Initialize the particle system
+    function init() {
+      const size = PARAMS.simulationSize;
+      
+      // Create position textures - xy: position, z: life
+      positionTexture1 = createDataTexture(size, (i, size) => {
+        // Random position in a sphere
+        const radius = Math.random() * 100;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        
+        return [
+          radius * Math.sin(phi) * Math.cos(theta), // x
+          radius * Math.sin(phi) * Math.sin(theta), // y
+          radius * Math.cos(phi),                   // z
+          9.9 + 9.*Math.random()                            // life (0-1)
+        ];
+      });
+      
+      positionTexture2 = positionTexture1.clone();
+      
+      // Create velocity textures - xy: velocity, z: seed
+      velocityTexture1 = createDataTexture(size, (i, size) => {
+        // Random velocity
+        const speed = Math.random() * 0.2;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        
+        return [
+          speed * Math.sin(phi) * Math.cos(theta), // vx
+          speed * Math.sin(phi) * Math.sin(theta), // vy
+          speed * Math.cos(phi),                   // vz
+          speed                                    // initial speed
+        ];
+      });
+      
+      velocityTexture2 = velocityTexture1.clone();
+      
+      // Create render targets for compute passes
+      const rtOptions = {
+        format: THREE.RGBAFormat,
+        type: THREE.FloatType,
+        minFilter: THREE.NearestFilter,
+        magFilter: THREE.NearestFilter,
+        stencilBuffer: false,
+        depthBuffer: false
+      };
+      
+      positionRenderTarget1 = new THREE.WebGLRenderTarget(size, size, rtOptions);
+      positionRenderTarget2 = new THREE.WebGLRenderTarget(size, size, rtOptions);
+      velocityRenderTarget1 = new THREE.WebGLRenderTarget(size, size, rtOptions);
+      velocityRenderTarget2 = new THREE.WebGLRenderTarget(size, size, rtOptions);
+      
+      // Copy initial data to render targets
+      renderer.setRenderTarget(positionRenderTarget1);
+      renderer.render(new THREE.Scene(), computeCamera); // Clear
+      renderer.setRenderTarget(positionRenderTarget2);
+      renderer.render(new THREE.Scene(), computeCamera); // Clear
+      renderer.setRenderTarget(velocityRenderTarget1);
+      renderer.render(new THREE.Scene(), computeCamera); // Clear
+      renderer.setRenderTarget(velocityRenderTarget2);
+      renderer.render(new THREE.Scene(), computeCamera); // Clear
+      renderer.setRenderTarget(null);
+      
+      // Create the particle system
+      createParticles(size);
+    }
+
+    // Create the particle rendering system
+    function createParticles(size) {
+      // Clean up previous system if it exists
+      if (particleSystem) {
+        scene.remove(particleSystem);
+        particleSystem.geometry.dispose();
+        particleSystem.material.dispose();
+      }
+      
+      // Create particle geometry - just a grid of UV coordinates
+      const geometry = new THREE.BufferGeometry();
+      const particles = size * size;
+      
+      const positions = new Float32Array(particles * 3);
+      let p = 0;
+      
+      for (let j = 0; j < size; j++) {
+        for (let i = 0; i < size; i++) {
+          positions[p++] = (i + 0.5) / size;  // x = u
+          positions[p++] = (j + 0.5) / size;  // y = v
+          positions[p++] = 0;                 // z = unused
+        }
+      }
+      
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      
+      // Create particle material
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          positionTexture: { value: null },
+          particleSize: { value: PARAMS.particleSize },
+          colorIntensity: { value: PARAMS.colorIntensity },
+          time: { value: 0 }
+        },
+        vertexShader: particleVertexShader,
+        fragmentShader: particleFragmentShader,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      
+      // Create the particle system
+      particleSystem = new THREE.Points(geometry, material);
+      scene.add(particleSystem);
+    }
+
+    // Perform compute shader passes and update the particle system
+    function compute(deltaTime) {
+      // Get current and next render targets
+      const posFrom = currentTexture === 0 ? positionRenderTarget1 : positionRenderTarget2;
+      const velFrom = currentTexture === 0 ? velocityRenderTarget1 : velocityRenderTarget2;
+      const posTo = currentTexture === 0 ? positionRenderTarget2 : positionRenderTarget1;
+      const velTo = currentTexture === 0 ? velocityRenderTarget2 : velocityRenderTarget1;
+      
+      // Update velocity first
+      velocityMaterial.uniforms.positionTexture.value = posFrom.texture;
+      velocityMaterial.uniforms.velocityTexture.value = velFrom.texture;
+      velocityMaterial.uniforms.time.value = PARAMS.time;
+      velocityMaterial.uniforms.deltaTime.value = deltaTime;
+      velocityMaterial.uniforms.turbulence.value = PARAMS.turbulence;
+      velocityMaterial.uniforms.noiseScale.value = PARAMS.noiseScale;
+      velocityMaterial.uniforms.vortexScale.value = PARAMS.vortexScale;
+      
+      computeQuad.material = velocityMaterial;
+      renderer.setRenderTarget(velTo);
+      renderer.render(computeScene, computeCamera);
+      
+      // Then update position using the updated velocity
+      positionMaterial.uniforms.positionTexture.value = posFrom.texture;
+      positionMaterial.uniforms.velocityTexture.value = velTo.texture; // Use updated velocity
+      positionMaterial.uniforms.time.value = PARAMS.time;
+      positionMaterial.uniforms.deltaTime.value = deltaTime;
+      positionMaterial.uniforms.flowSpeed.value = PARAMS.flowSpeed;
+      positionMaterial.uniforms.noiseScale.value = PARAMS.noiseScale;
+      positionMaterial.uniforms.vortexScale.value = PARAMS.vortexScale;
+      
+      computeQuad.material = positionMaterial;
+      renderer.setRenderTarget(posTo);
+      renderer.render(computeScene, computeCamera);
+      
+      // Reset render target
+      renderer.setRenderTarget(null);
+      
+      // Update particle material with the new position texture
+      particleSystem.material.uniforms.positionTexture.value = posTo.texture;
+      particleSystem.material.uniforms.time.value = PARAMS.time;
+      particleSystem.material.uniforms.particleSize.value = PARAMS.particleSize;
+      particleSystem.material.uniforms.colorIntensity.value = PARAMS.colorIntensity;
+      
+      // Swap texture sets for next frame
+      currentTexture = 1 - currentTexture;
+    }
+
+    // Camera movement
+    function updateCamera() {
+      const time = Date.now() * 0.0001;
+      const radius = PARAMS.bounds * (1.5 + Math.sin(time * 1.) * 0.5);
+      const spinRate = .01;
+      
+      camera.position.x = Math.sin(time * 0.3 * spinRate) * radius;
+      camera.position.z = Math.cos(time * 0.3 * spinRate) * radius;
+      camera.position.y = Math.sin(time * 0.4 * spinRate) * 20;
+      
+      camera.lookAt(0, 0, 0);
+    }
+
+    // Animation loop
+    let lastTime = 0;
+    function animate(timestamp) {
+      requestAnimationFrame(animate);
+      
+      // Calculate delta time for smooth animation
+      const deltaTime = (lastTime === 0) ? 0.016 : Math.min(0.05, (timestamp - lastTime) / 1000);
+      lastTime = timestamp;
+      
+      // Update time
+      PARAMS.time += deltaTime;
+      
+      // Compute particle physics
+      compute(deltaTime*PARAMS.simSpeed);
+      
+      // Update camera position
+      updateCamera();
+      
+      // Render scene
+      renderer.render(scene, camera);
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', function() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Setup UI controls
+    document.getElementById('flowSpeed').addEventListener('input', function(e) {
+      PARAMS.flowSpeed = parseFloat(e.target.value);
+      document.getElementById('flowSpeedValue').textContent = PARAMS.flowSpeed.toFixed(1);
+    });
+
+    document.getElementById('turbulence').addEventListener('input', function(e) {
+      PARAMS.turbulence = parseFloat(e.target.value);
+      document.getElementById('turbulenceValue').textContent = PARAMS.turbulence.toFixed(1);
+    });
+
+    document.getElementById('particleSize').addEventListener('input', function(e) {
+      PARAMS.particleSize = parseFloat(e.target.value);
+      document.getElementById('particleSizeValue').textContent = PARAMS.particleSize.toFixed(1);
+    });
+
+    document.getElementById('colorIntensity').addEventListener('input', function(e) {
+      PARAMS.colorIntensity = parseFloat(e.target.value);
+      document.getElementById('colorIntensityValue').textContent = PARAMS.colorIntensity.toFixed(1);
+    });
+
+    document.getElementById('noiseScale').addEventListener('input', function(e) {
+      PARAMS.noiseScale = parseFloat(e.target.value);
+      document.getElementById('noiseScaleValue').textContent = PARAMS.noiseScale.toFixed(2);
+    });
+
+    document.getElementById('vortexScale').addEventListener('input', function(e) {
+      PARAMS.vortexScale = parseFloat(e.target.value);
+      document.getElementById('vortexScaleValue').textContent = PARAMS.vortexScale.toFixed(2);
+    });
+
+    document.getElementById('simSpeed').addEventListener('input', function(e) {
+      PARAMS.simSpeed = parseFloat(e.target.value);
+      document.getElementById('simSpeedValue').textContent = PARAMS.simSpeed.toFixed(2);
+    });
+    // Update simulation size
+
+    document.getElementById('simulationSize').addEventListener('input', function(e) {
+      PARAMS.simulationSize = parseInt(e.target.value, 10);
+      document.getElementById('simulationSizeValue').textContent = PARAMS.simulationSize;
+      createParticles(PARAMS.simulationSize);
+    });
+
+    // key presses
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'h') { // hide the controls
+        const controls = document.getElementById('controls');
+        controls.style.display = (controls.style.display === 'none') ? 'block' : 'none';
+      }
+    });
+
+    // Initialize and start animation
+    init();
+    animate(0);
+  </script>
+</body>
+</html>
