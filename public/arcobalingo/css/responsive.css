@@ -1,0 +1,88 @@
+
+@media (max-width: 768px) {
+    .header {
+        display: none;
+    }
+    
+    .line-pair {
+        display: block;
+    }
+    
+    .column-content {
+        display: none;
+        width: 100%;
+    }
+    
+    .column-content.active {
+        display: block;
+    }
+    
+    .text-container {
+        padding: 15px;
+        touch-action: pan-y;
+    }
+    
+    h1 {
+        font-size: 20px;
+        margin: 10px 0 15px 0;
+    }
+    
+    .swipe-indicators {
+        display: flex !important;
+    }
+    
+    .canto-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .selection-screen {
+        padding: 20px 15px;
+    }
+    
+    .selection-screen h2 {
+        font-size: 28px;
+    }
+}
+@media (min-width: 769px) {
+    .swipe-indicators {
+        display: none !important;
+    }
+    
+    .header {
+        display: grid;
+    }
+    
+    .line-pair {
+        display: grid;
+    }
+    
+    .column-content {
+        display: block;
+    }
+}
+@media (hover: none) and (pointer: coarse) {
+    .word {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
+    
+    .canto-button {
+        min-height: 60px;
+    }
+    
+    #canto-nav button {
+        min-height: 44px;
+        padding: 12px 20px;
+    }
+}
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .word {
+        border-radius: 4px;
+    }
+    
+    .tooltip {
+        border-radius: 6px;
+    }
+}

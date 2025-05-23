@@ -1,0 +1,32 @@
+:root {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --text-primary: #e0e0e0;
+    --text-secondary: #b0b0b0;
+    --border-color: #3d3d3d;
+    --shadow-color: rgba(0, 0, 0, 0.5);
+    --highlight-color: #ffd700;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.canto-button.active {
+    border-color: var(--highlight-color);
+    background: rgba(255, 215, 0, 0.1);
+}
+
+.canto-number {
+    color: var(--highlight-color);
+}
+
+.dot.active {
+    background: var(--highlight-color);
+}
+
+.word.highlighted {
+    outline: 3px solid var(--highlight-color);
+    box-shadow: 0 0 10px var(--highlight-color);
+}

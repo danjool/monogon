@@ -1,0 +1,74 @@
+
+body {
+    font-family: 'Georgia', serif;
+}
+
+h1 {
+    text-align: center;
+    color: var(--text-primary);
+    margin: 10px 0 20px 0;
+    font-size: 24px;
+    font-weight: normal;
+}
+
+.header h2 {
+    text-align: center;
+    color: var(--text-primary);
+    font-size: 22px;
+    margin: 0;
+}
+
+.line {
+    line-height: 1.6;
+    font-size: 16px;
+    min-height: 1.6em;
+    display: flex;
+    align-items: center;
+}
+
+#current-canto {
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.selection-screen h2 {
+    font-size: 32px;
+    margin-bottom: 30px;
+    color: var(--text-primary);
+}
+
+.canto-number {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.canto-title {
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.canto-button small {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.indicator {
+    font-size: 20px;
+}
+
+.loading {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.tooltip {
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 20px;
+        margin: 10px 0 15px 0;
+    }
+}

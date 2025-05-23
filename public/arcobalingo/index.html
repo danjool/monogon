@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Divine Comedy - Interactive Reader</title>
+    
+    <!-- CSS Imports -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/colors.css">
+    <link rel="stylesheet" href="css/typography.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    
+    <!-- Import Map for ES6 Modules -->
+    <script type="importmap">
+    {
+        "imports": {
+            "./app.js": "./js/app.js",
+            "./analysis/contraction-handler.js": "./js/analysis/contraction-handler.js",
+            "./analysis/color-mapper.js": "./js/analysis/color-mapper.js",
+            "./analysis/tooltip-manager.js": "./js/analysis/tooltip-manager.js",
+            "./analysis/highlight-manager.js": "./js/analysis/highlight-manager.js",
+            "./ui/renderer.js": "./js/ui/renderer.js",
+            "./ui/mobile-handler.js": "./js/ui/mobile-handler.js",
+            "./ui/desktop-handler.js": "./js/ui/desktop-handler.js",
+            "./data/loader.js": "./js/data/loader.js",
+            "./data/dict-core.js": "./data/dict-core.js",
+            "./data/cantos/canto01.js": "./data/cantos/canto01.js",
+            "./data/metadata.js": "./data/metadata.js"
+        }
+    }
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Divine Comedy</h1>
+        <nav id="canto-nav" style="display: none;">
+            <button id="prev-canto">‹ Previous</button>
+            <span id="current-canto">Canto I</span>
+            <button id="next-canto">Next ›</button>
+        </nav>
+    </header>
+
+    <main id="app-container">
+        <!-- Canto Selection Screen -->
+        <div id="canto-selection" class="selection-screen">
+            <h2>Inferno</h2>
+            <div class="canto-grid" id="canto-grid">
+                <!-- Canto buttons will be generated dynamically -->
+            </div>
+        </div>
+
+        <!-- Reading Interface -->
+        <div id="reading-interface" style="display: none;">
+            <!-- Desktop Headers -->
+            <div class="header" id="header">
+                <h2>Italiano</h2>
+                <h2>English</h2>
+                <h2>Notes</h2>
+            </div>
+            
+            <!-- Mobile Indicators -->
+            <div class="swipe-indicators" id="swipe-indicators" style="display: none;">
+                <span class="indicator left">←</span>
+                <span class="indicator-dots">
+                    <span class="dot active" data-column="0"></span>
+                    <span class="dot" data-column="1"></span>
+                    <span class="dot" data-column="2"></span>
+                </span>
+                <span class="indicator right">→</span>
+            </div>
+
+            <!-- Text Container -->
+            <div class="text-container" id="text-container">
+                <div class="loading">Loading canto...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Tooltip -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <!-- Load Main Application -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
