@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinocchio - Interactive Italian Reader</title>
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Le avventure di Pinocchio</h1>
+        <nav id="chapter-nav">
+            <button id="prev-chapter">‹ Previous</button>
+            <span id="current-chapter">Chapter 1</span>
+            <button id="next-chapter">Next ›</button>
+        </nav>
+    </header>
+
+    <main id="app-container">
+        <!-- Chapter Selection Screen -->
+        <div id="chapter-selection" class="selection-screen">
+            <h2>Choose a Chapter</h2>
+            <div class="chapter-grid" id="chapter-grid">
+                <!-- Chapter buttons will be generated dynamically -->
+            </div>
+        </div>
+
+        <!-- Reading Interface -->
+        <div id="reading-interface">
+            <!-- Desktop Headers -->
+            <div class="header" id="header">
+                <h2>Le avventure di Pinocchio</h2>
+                <h2>The Adventures of Pinocchio</h2>
+                <h2>Notes</h2>
+            </div>
+            
+            <!-- Mobile Indicators -->
+            <div class="swipe-indicators" id="swipe-indicators">
+                <span class="indicator left">←</span>
+                <span class="indicator-dots">
+                    <span class="dot active" data-column="0"></span>
+                    <span class="dot" data-column="1"></span>
+                    <span class="dot" data-column="2"></span>
+                </span>
+                <span class="indicator right">→</span>
+            </div>
+
+            <!-- Text Container -->
+            <div class="text-container" id="text-container">
+                <div class="loading">Select a chapter to begin reading...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Tooltip -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <!-- Data Files Structure -->
+    <script type="module">
+        // Create data structure for easy testing
+        window.chapterData = {
+            chapters: {},
+            dictionary: {}
+        };
+        
+        // Import and store the chapter data for easy access
+        import('./chapters/chapter01.js').then(module => {
+            window.chapterData.chapters[1] = module.chapter01;
+        }).catch(e => console.log('Chapter 1 not loaded'));
+        
+        import('./chapters/chapter02.js').then(module => {
+            window.chapterData.chapters[2] = module.chapter02;
+        }).catch(e => console.log('Chapter 2 not loaded'));
+        
+        import('./dict-modern.js').then(module => {
+            window.chapterData.dictionary = module.modernDictionary;
+        }).catch(e => console.log('Dictionary not loaded'));
+    </script>
+
+    <!-- Load Main Application -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
