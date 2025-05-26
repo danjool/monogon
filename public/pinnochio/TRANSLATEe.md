@@ -9,7 +9,7 @@ Convert raw Italian text from Carlo Collodi's "Le avventure di Pinocchio" into s
 ### Required Output Format
 
 ```javascript
-export const chapterXX = {
+export const chapterNN = { // where NN is the chapter number, zero padded to two digits, eg chapter01, chapter17; ensure you use the correct chapter number formatted to two digits
     title: "English chapter title",
     textPairs: [
         ["Italian sentence", "English translation", "Cultural note or empty string"],
@@ -19,6 +19,8 @@ export const chapterXX = {
     ]
 };
 ```
+
+Note chapters are exported as zero padded, two digit numbers (e.g., `chapter01`, `chapter02`, etc.).
 
 ### Enhanced Translation Guidelines
 
@@ -319,6 +321,26 @@ export const modernDictionary = {
     ...
 }
 ```
+Because we are iterating over chapters, pasting more dictionary entires, conclude them with a comma, like:
+```javascript
+...
+'volare': 'to fly',
+
+// Z
+    'zampettavano': 'strutted',
+    'zoppo': 'lame', // <-- this is the last entry for chapter 18
+    ... // doesn't end here, because there are more chapters to process
+// Chapter 19 Dictionary Additions - User is pasting here
+
+    'galateo': 'etiquette manual',
+    'gorilla': 'gorilla',
+    ...
+    'sott\'acqua': 'underwater',
+    ...
+};
+```
+
+Note we lower case the keys, and back slashes are used to escape apostrophes in contractions.
 
 ### Quality Control Checklist
 
