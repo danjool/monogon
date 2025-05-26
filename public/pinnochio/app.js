@@ -13,6 +13,7 @@ class PinocchioApp {
         this.isLoading = false;
         this.isMobile = window.innerWidth <= 768;
         this.currentColumn = 0; // For mobile: 0=Italian, 1=English, 2=Notes
+        this.PUNCTUATION_REGEX = /^[.,;:!?«»"""'\-—()*…]+|[.,;:!?«»"""'\-—()*…]+$/g;
         
         this.init();
     }
@@ -193,8 +194,14 @@ class PinocchioApp {
             tooltip.style.display = 'block';
             
             const rect = wordElement.getBoundingClientRect();
-            tooltip.style.left = rect.left + 'px';
-            tooltip.style.top = (rect.bottom + 5) + 'px';
+            
+            const tooltipHeight = tooltip.offsetHeight;
+            
+            // Position the tooltip above the word and account for scrolling
+            // getBoundingClientRect() returns coordinates relative to the viewport, the visible part of the document
+            // so we need to add the scroll position to get document coordinates
+            tooltip.style.left = (rect.left + window.scrollX) + 'px';
+            tooltip.style.top = (rect.top + window.scrollY - tooltipHeight - 10) + 'px';
         }
     }
     
@@ -225,7 +232,7 @@ class PinocchioApp {
             const chapterData = chapterModule[`chapter${chapterNumber.toString().padStart(2, '0')}`];
             
             if (!chapterData) {
-                throw new Error(`Chapter ${chapterNumber} not available`);
+                throw new Error(`Chapter ${chapterNumber} not available at ./chapters/chapter${chapterNumber.toString().padStart(2, '0')}.js`);
             }
             
             this.currentChapter = chapterNumber;
@@ -257,7 +264,7 @@ class PinocchioApp {
                 
                 italianWords.forEach(word => {
                     // Clean punctuation from word (both leading and trailing)
-                    const cleanWord = word.replace(/^[.,;:!?«»"""'\-—()*…]+|[.,;:!?«»"""'\-—()*…]+$/g, '');
+                    const cleanWord = word.replace(this.PUNCTUATION_REGEX, '');
                     
                     // Skip empty words, pure punctuation, and very short words
                     if (cleanWord.length <= 1) return;
@@ -364,7 +371,7 @@ class PinocchioApp {
         
         return words.map(word => {
             // Extract clean word by removing ALL punctuation from both ends
-            const cleanWord = word.replace(/^[.,;:!?«»"""'\-—()]+|[.,;:!?«»"""'\-—()]+$/g, '');
+            const cleanWord = word.replace(this.PUNCTUATION_REGEX, '').toLowerCase();
             
             if (cleanWord.length === 0) return word;
             
