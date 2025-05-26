@@ -72,11 +72,13 @@ class PinocchioApp {
     
     setupEventListeners() {
         document.addEventListener('click', (e) => {
-            if (e.target.matches('.chapter-button')) {
-                const chapterNumber = e.target.dataset.chapter;
+            const chapterButton = e.target.closest('.chapter-button');
+            if (chapterButton) {
+                const chapterNumber = chapterButton.dataset.chapter;
                 this.loadChapter(parseInt(chapterNumber));
             }
         });
+
         
         const prevBtn = document.getElementById('prev-chapter');
         const nextBtn = document.getElementById('next-chapter');
@@ -245,7 +247,14 @@ class PinocchioApp {
             this.renderChapter(chapterData);
             this.updateNavigation();
             this.showReadingInterface();
-            this.logUntraslatedWords(chapterData.textPairs,chapterNumber);
+
+            // super helpful during translation phase,
+            // creates two stage process of:
+            // 1.   Translate chapter, get untranslated words
+            // 2.a    Review for errors in punctuation, spacing, etc, fix
+            // 2.b    Translate words to add to dictionary
+
+            // this.logUntraslatedWords(chapterData.textPairs,chapterNumber);
             
         } catch (error) {
             console.error(`Failed to load chapter ${chapterNumber}:`, error);
