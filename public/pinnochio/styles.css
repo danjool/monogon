@@ -262,9 +262,8 @@ h1 {
 }
 
 .stanza-break {
-    height: 2rem;
+    height: .2rem;
     border-bottom: 1px solid #444;
-    margin: 1rem 0;
 }
 
 /* Tooltip */
