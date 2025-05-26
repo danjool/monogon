@@ -364,24 +364,28 @@ class PinocchioApp {
     }
     
     processLine(line, language) {
-        if (!line || line === '') return '';
+    if (!line || line === '') return '';
+    
+    // First, add spaces around em dashes when they follow other punctuation
+    const preprocessed = line.replace(/([.,;:!?])―/g, '$1 ―');
+    
+    // Then split by whitespace
+    const words = preprocessed.split(/\s+/);
+    
+    return words.map(word => {
+        // Extract clean word by removing ALL punctuation from both ends
+        const cleanWord = word.replace(this.PUNCTUATION_REGEX, '').toLowerCase();
         
-        // Simple word processing - can be enhanced later
-        const words = line.split(/\s+/);
+        if (cleanWord.length === 0) return word;
         
-        return words.map(word => {
-            // Extract clean word by removing ALL punctuation from both ends
-            const cleanWord = word.replace(this.PUNCTUATION_REGEX, '').toLowerCase();
-            
-            if (cleanWord.length === 0) return word;
-            
-            // Get semantic color for the CLEAN word
-            const color = this.colorMapper.getSemanticColor(cleanWord, language);
-            
-            // Return original word wrapped, but use clean word for data attributes and color
-            return `<span class="word" data-word="${cleanWord}" data-language="${language}" style="background-color: ${color}">${word}</span>`;
-        }).join(' ');
-    }
+        // Get semantic color for the CLEAN word
+        const color = this.colorMapper.getSemanticColor(cleanWord, language);
+        
+        // Return original word wrapped, but use clean word for data attributes and color
+        return `<span class="word" data-word="${cleanWord}" data-language="${language}" style="background-color: ${color}">${word}</span>`;
+    }).join(' ');
+}
+
     
     isStanzaBreak(pair) {
         return Array.isArray(pair) && 

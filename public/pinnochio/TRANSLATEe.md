@@ -259,7 +259,7 @@ Output: "_important_"
 After translation, the app logs all Italian words missing from the English dictionary for review. The app also reveals new punctuation patterns that need handling.
 
 Ask the user to paste the output of the log back to the conversation. Put a line of emojis here to grab the user's attention:
-🦖🦕🦖🦕🦖🦕🦖🦕🦖🦖🦕🦖🦕🦖🦕🦖🦕🦖🦖🦕🦖🦕🦖🦕🦖🦕🦖🦖🦕🦖🦕🦖🦕🦖🦕🦖🦖🦕🦖🦕🦖🦕🦖🦕🦖
+🦖🦕🦖🦕🦖🦕🦖🦕🦖🦕🦖🦕🦖🦕🦖🦕🦖🦕🦖🦕🦖🦕🦖🦕🦖🦕
 
 ### App Regex Pattern Evolution
 

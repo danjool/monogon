@@ -101,7 +101,7 @@ export const chapter08 = {
         
         ["— Perchè l'avete venduta?", "'Why did you sell it?'", ""],
         
-        ["— Perchè mi faceva caldo.―", "'Because it made me hot.'", ""],
+        ["— Perchè mi faceva caldo.", "'Because it made me hot.'", ""],
         
         ["", "", ""],
         
