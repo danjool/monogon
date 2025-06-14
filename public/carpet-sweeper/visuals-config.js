@@ -2,7 +2,7 @@ export const visualsConfig = {
     // Trajectory Prediction
     predictionSteps: { value: 1000, min: 100, max: 3000, step: 100, label: "Prediction Steps" },
     markerInterval: { value: 20, min: 5, max: 50, step: 5, label: "Marker Interval" },
-    markerSize: { value: 0.5, min: 0.1, max: 2.0, step: 0.1, label: "Marker Size" },
+    markerSize: { value: 0.05, min: 0.01, max: 2.0, step: 0.1, label: "Marker Size" },
     markerOpacity: { value: 0.0, min: 0.0, max: 1.0, step: 0.1, label: "Marker Opacity" },
     showTrajectory: { value: 1, min: 0, max: 1, step: 1, label: "Show Trajectory" },
 

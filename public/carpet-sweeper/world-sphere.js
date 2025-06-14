@@ -52,7 +52,7 @@ export class WorldSphere {
         }
         
         // Create line segments for longitude lines
-        for (let lon = 0; lon <= this.segments; lon++) {
+        for (let lon = 0; lon < this.segments; lon++) {
             for (let lat = 0; lat < latSegments; lat++) {
                 const current = lat * (this.segments + 1) + lon;
                 const below = current + (this.segments + 1);
