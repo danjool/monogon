@@ -192,6 +192,10 @@ io.attach(httpsServer);
 
 require('./public/wat/subapp')(io)
 
+// Setup carpet-sweeper multiplayer
+const { setupCarpetSweeperSocket } = require('./carpet-sweeper-socket')
+setupCarpetSweeperSocket(io)
+
 const cardsNsp = io.of('/cards')
 
 let gameState = {

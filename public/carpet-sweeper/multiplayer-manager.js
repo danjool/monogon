@@ -20,16 +20,18 @@ export class MultiplayerManager {
   connect() {
   // Handle local network development
   const hostname = window.location.hostname;
+  const protocol = window.location.protocol;
+  const port = window.location.port;
   let serverUrl;
 
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    serverUrl = 'http://localhost:3001';
+    serverUrl = `${protocol}//${hostname}${port ? ':' + port : ''}/carpet-sweeper`;
   } else if (hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.')) {
-    // Local network - connect to same host but port 3001
-    serverUrl = `http://${hostname}:3001`;
+    // Local network - connect to same host with namespace
+    serverUrl = `${protocol}//${hostname}${port ? ':' + port : ''}/carpet-sweeper`;
   } else {
-    // Production
-    serverUrl = 'https://your-production-server.com';
+    // Production - use same domain with namespace
+    serverUrl = `${protocol}//${hostname}/carpet-sweeper`;
   }
 
   console.log('Window location:', hostname);
