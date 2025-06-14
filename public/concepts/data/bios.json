@@ -1210,7 +1210,8 @@
 	{"id": "David Eagleman", "time": 1971, "type": "author"},
 	{"id": "Norman Thomas Di Giovanni", "time": 1933, "type": "author"},
 	{"id": "The Lesson of the Master", "time": 2003, "type": "book"},
-	{"id": "R. D. Laing", "time": 1927, "type": "psychiatrist"}
+	{"id": "R. D. Laing", "time": 1927, "type": "psychiatrist"},
+	{"id": "Herbert A. Simon", "time": 1916, "type": "author"}
 
 ],"links":[
 	{"source": "Norman Thomas Di Giovanni", "target": "The Aleph", "type": "translated" },
