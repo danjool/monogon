@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surfing Skeleton - Planted Feet Animation</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: linear-gradient(to bottom, #87CEEB, #4682B4); }
+        canvas { display: block; }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial;
+            font-size: 11px;
+            background: rgba(0,0,0,0.8);
+            padding: 8px;
+            border-radius: 4px;
+            max-height: 90vh;
+            overflow-y: auto;
+            width: 200px;
+        }
+        .control-group {
+            margin-bottom: 8px;
+            border-bottom: 1px solid #444;
+            padding-bottom: 6px;
+        }
+        .control-group h4 {
+            margin: 0 0 4px 0;
+            color: #ffaa00;
+            font-size: 12px;
+        }
+        input {
+            width: 50px;
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+            padding: 2px;
+            margin: 1px;
+            font-size: 10px;
+        }
+        label {
+            display: inline-block;
+            width: 80px;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div class="control-group">
+            <h4>Wave Motion</h4>
+            <label>Amplitude:</label><input type="number" id="waveAmp" value="0.39" step="0.01"><br>
+            <label>Frequency:</label><input type="number" id="waveFreq" value="0.8" step="0.1"><br>
+            <label>Tilt:</label><input type="number" id="waveTilt" value="0.26" step="0.01"><br>
+            <label>Roll:</label><input type="number" id="waveRoll" value="0.195" step="0.01">
+        </div>
+        
+        <div class="control-group">
+            <h4>Stance</h4>
+            <label>Foot Width:</label><input type="number" id="footWidth" value="0.9" step="0.1"><br>
+            <label>Base Bend:</label><input type="number" id="kneeBend" value="0.6" step="0.1"><br>
+            <label>Bend Range:</label><input type="number" id="bendRange" value="0.4" step="0.1"><br>
+            <label>Left Offset:</label><input type="number" id="leftLegOffset" value="0.0" step="0.1"><br>
+            <label>Right Offset:</label><input type="number" id="rightLegOffset" value="0.1" step="0.1"><br>
+            <label>Bend Lag:</label><input type="number" id="bendLag" value="0.05" step="0.01"><br>
+            <label>Balance X:</label><input type="number" id="balanceX" value="0.15" step="0.01"><br>
+            <label>Balance Z:</label><input type="number" id="balanceZ" value="0.1" step="0.01">
+        </div>
+        
+        <div class="control-group">
+            <h4>Hip Dynamics</h4>
+            <label>Hip Tilt:</label><input type="number" id="hipTiltAmount" value="0.8" step="0.1"><br>
+            <label>Spine Counter:</label><input type="number" id="spineCounter" value="0.6" step="0.1">
+        </div>
+        
+        <div class="control-group">
+            <h4>Leg Angles</h4>
+            <label>Left Angle:</label><input type="number" id="leftLegAngle" value="-0.15" step="0.01"><br>
+            <label>Right Angle:</label><input type="number" id="rightLegAngle" value="0.15" step="0.01">
+        </div>
+        
+        <div class="control-group">
+            <h4>Spine Motion</h4>
+            <label>Lower X:</label><input type="number" id="spineX1" value="0.15" step="0.01"><br>
+            <label>Middle X:</label><input type="number" id="spineX2" value="0.12" step="0.01"><br>
+            <label>Upper X:</label><input type="number" id="spineX3" value="0.08" step="0.01"><br>
+            <label>Twist:</label><input type="number" id="spineTwist" value="0.1" step="0.01">
+        </div>
+        
+        <div class="control-group">
+            <h4>Arms</h4>
+            <label>Spread:</label><input type="number" id="armSpread" value="0.8" step="0.1"><br>
+            <label>Forward:</label><input type="number" id="armForward" value="0.3" step="0.1"><br>
+            <label>Elbow Bend:</label><input type="number" id="elbowBend" value="0.4" step="0.1"><br>
+            <label>Hand Level:</label><input type="number" id="handLevel" value="0.7" step="0.1">
+        </div>
+        
+        <div class="control-group">
+            <h4>Head/Neck</h4>
+            <label>Right Gaze:</label><input type="number" id="headGaze" value="-1.22" step="0.1"><br>
+            <label>Scan Range:</label><input type="number" id="headScan" value="0.15" step="0.01"><br>
+            <label>Neck Tilt:</label><input type="number" id="neckTilt" value="0.2" step="0.01"><br>
+            <label>Neck Bend:</label><input type="number" id="neckBend" value="0.15" step="0.01">
+        </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer;
+        let surfboard, skeleton = {};
+        let time = 0;
+        
+        // Dynamic knee bend state with lag for each leg independently
+        let kneeBendState = {
+            leftCurrent: 0.6,
+            leftTarget: 0.6,
+            rightCurrent: 0.6,
+            rightTarget: 0.6,
+            lagFactor: 0.05
+        };
+        
+        // Board state tracking for reactive animation
+        let boardState = {
+            prevRotationZ: 0,     // Previous tilt
+            prevRotationX: 0,     // Previous roll  
+            prevPositionY: 0,     // Previous height
+            tiltVelocity: 0,      // Rate of left/right tilt change
+            rollVelocity: 0,      // Rate of forward/back roll change
+            verticalVelocity: 0   // Rate of height change
+        };
+        
+        // Live animation parameters
+        let params = {
+            waveAmp: 0.39,
+            waveFreq: 0.8,
+            waveTilt: 0.26,
+            waveRoll: 0.195,
+            footWidth: 0.9,
+            kneeBend: 0.6,
+            bendRange: 0.4,
+            leftLegOffset: 0.0,
+            rightLegOffset: 0.1,
+            bendLag: 0.05,
+            balanceX: 0.15,
+            balanceZ: 0.1,
+            leftLegAngle: -0.15,
+            rightLegAngle: 0.15,
+            hipTiltAmount: 0.8,
+            spineCounter: 0.6,
+            spineX1: 0.15,
+            spineX2: 0.12,
+            spineX3: 0.08,
+            spineTwist: 0.1,
+            armSpread: 0.8,
+            armForward: 0.3,
+            elbowBend: 0.4,
+            handLevel: 0.7,
+            headGaze: -1.22,
+            headScan: 0.15,
+            neckTilt: 0.2,
+            neckBend: 0.15
+        };
+        
+        function updateParams() {
+            Object.keys(params).forEach(key => {
+                const input = document.getElementById(key);
+                if (input) {
+                    params[key] = parseFloat(input.value);
+                }
+            });
+            
+            // Update knee bend lag factor in real-time
+            const bendLagInput = document.getElementById('bendLag');
+            if (bendLagInput) {
+                kneeBendState.lagFactor = parseFloat(bendLagInput.value);
+            }
+        }
+        
+        function setupControls() {
+            // Setup regular parameters
+            Object.keys(params).forEach(key => {
+                const input = document.getElementById(key);
+                if (input) {
+                    input.addEventListener('input', updateParams);
+                }
+            });
+            
+            // Setup additional controls
+            const additionalControls = ['bendLag'];
+            additionalControls.forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.addEventListener('input', updateParams);
+                }
+            });
+        }
+        
+        // Skeleton parameters - realistic human proportions (using head as unit)
+        const skeletonParams = {
+            legLength: 1.05,       // Total leg length (3.5 head lengths)
+            torsoLength: 0.75,     // Torso (2.5 head lengths) 
+            armLength: 0.825,      // Total arm length (2.75 head lengths)
+            headSize: 0.3          // Head radius (1 head length diameter)
+        };
+
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x4682B4, 10, 50);
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(5, 3, 5);
+            camera.lookAt(0, 1, 0);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // Create ocean
+            createOcean();
+            
+            // Create surfboard
+            createSurfboard();
+            
+            // Create skeleton with planted feet
+            createSkeleton();
+            
+            // Setup live controls
+            setupControls();
+            
+            // Start animation
+            animate();
+        }
+        
+        function createOcean() {
+            const oceanGeometry = new THREE.PlaneGeometry(100, 100, 50, 50);
+            const oceanMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x006994,
+                transparent: true,
+                opacity: 0.8
+            });
+            const ocean = new THREE.Mesh(oceanGeometry, oceanMaterial);
+            ocean.rotation.x = -Math.PI / 2;
+            ocean.position.y = -1;
+            ocean.receiveShadow = true;
+            scene.add(ocean);
+        }
+        
+        function createSurfboard() {
+            const boardGeometry = new THREE.BoxGeometry(4, 0.15, 0.8);
+            const boardMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
+            surfboard = new THREE.Mesh(boardGeometry, boardMaterial);
+            surfboard.castShadow = true;
+            surfboard.receiveShadow = true;
+            scene.add(surfboard);
+        }
+        
+        function createSkeleton() {
+            // Create bone material
+            const boneMaterial = new THREE.MeshLambertMaterial({ color: 0xEEEEEE });
+            const jointMaterial = new THREE.MeshLambertMaterial({ color: 0xFFAA00 });
+            
+            // ROOT: Positioned at center of board, this is our reference point
+            skeleton.root = new THREE.Group();
+            skeleton.root.position.set(0, 0.05, 0); // Just above board surface
+            surfboard.add(skeleton.root); // Attach to board so feet stay planted!
+            
+            // FEET: Planted wide on the board - realistic foot proportions
+            const footGeometry = new THREE.BoxGeometry(0.3, 0.08, 0.1);
+            
+            // Left foot (planted on board)
+            skeleton.leftFoot = new THREE.Mesh(footGeometry, boneMaterial);
+            skeleton.leftFoot.position.set(-params.footWidth/2, 0, 0);
+            skeleton.leftFoot.castShadow = true;
+            skeleton.root.add(skeleton.leftFoot);
+            
+            // Right foot (planted on board)
+            skeleton.rightFoot = new THREE.Mesh(footGeometry, boneMaterial);
+            skeleton.rightFoot.position.set(params.footWidth/2, 0, 0);
+            skeleton.rightFoot.castShadow = true;
+            skeleton.root.add(skeleton.rightFoot);
+            
+            // LEFT LEG CHAIN (Forward Kinematics from planted foot)
+            // Starts from wide foot position, angles inward toward narrow hips
+            skeleton.leftLowerLeg = new THREE.Group();
+            skeleton.leftLowerLeg.position.set(-params.footWidth/2, 0.1, 0);
+            skeleton.leftLowerLeg.rotation.z = params.leftLegAngle;
+            skeleton.root.add(skeleton.leftLowerLeg);
+            
+            const lowerLegGeometry = new THREE.CylinderGeometry(0.06, 0.06, skeletonParams.legLength * 0.5);
+            const leftLowerLegMesh = new THREE.Mesh(lowerLegGeometry, boneMaterial);
+            leftLowerLegMesh.position.y = skeletonParams.legLength * 0.25;
+            leftLowerLegMesh.castShadow = true;
+            skeleton.leftLowerLeg.add(leftLowerLegMesh);
+            
+            // Left knee joint
+            skeleton.leftKnee = new THREE.Group();
+            skeleton.leftKnee.position.y = skeletonParams.legLength * 0.5;
+            skeleton.leftLowerLeg.add(skeleton.leftKnee);
+            
+            const kneeJoint = new THREE.Mesh(new THREE.SphereGeometry(0.08), jointMaterial);
+            kneeJoint.castShadow = true;
+            skeleton.leftKnee.add(kneeJoint);
+            
+            // Left upper leg - continues angling inward
+            const leftUpperLegMesh = new THREE.Mesh(lowerLegGeometry, boneMaterial);
+            leftUpperLegMesh.position.y = skeletonParams.legLength * 0.25;
+            leftUpperLegMesh.castShadow = true;
+            skeleton.leftKnee.add(leftUpperLegMesh);
+            
+            // RIGHT LEG CHAIN (Forward Kinematics from planted foot)
+            // Starts from wide foot position, angles inward toward narrow hips
+            skeleton.rightLowerLeg = new THREE.Group();
+            skeleton.rightLowerLeg.position.set(params.footWidth/2, 0.1, 0);
+            skeleton.rightLowerLeg.rotation.z = params.rightLegAngle;
+            skeleton.root.add(skeleton.rightLowerLeg);
+            
+            const rightLowerLegMesh = new THREE.Mesh(lowerLegGeometry, boneMaterial);
+            rightLowerLegMesh.position.y = skeletonParams.legLength * 0.25;
+            rightLowerLegMesh.castShadow = true;
+            skeleton.rightLowerLeg.add(rightLowerLegMesh);
+            
+            // Right knee joint
+            skeleton.rightKnee = new THREE.Group();
+            skeleton.rightKnee.position.y = skeletonParams.legLength * 0.5;
+            skeleton.rightLowerLeg.add(skeleton.rightKnee);
+            
+            const rightKneeJoint = new THREE.Mesh(new THREE.SphereGeometry(0.08), jointMaterial);
+            rightKneeJoint.castShadow = true;
+            skeleton.rightKnee.add(rightKneeJoint);
+            
+            // Right upper leg - continues angling inward
+            const rightUpperLegMesh = new THREE.Mesh(lowerLegGeometry, boneMaterial);
+            rightUpperLegMesh.position.y = skeletonParams.legLength * 0.25;
+            rightUpperLegMesh.castShadow = true;
+            skeleton.rightKnee.add(rightUpperLegMesh);
+            
+            // DEBUG SPHERES - show actual thigh endpoints
+            const debugMaterial = new THREE.MeshLambertMaterial({ color: 0x0066FF });
+            
+            // Left thigh endpoint debug sphere
+            skeleton.leftThighEnd = new THREE.Mesh(new THREE.SphereGeometry(0.05), debugMaterial);
+            skeleton.leftThighEnd.position.y = skeletonParams.legLength * 0.5; // Top of thigh cylinder
+            skeleton.leftKnee.add(skeleton.leftThighEnd);
+            
+            // Right thigh endpoint debug sphere  
+            skeleton.rightThighEnd = new THREE.Mesh(new THREE.SphereGeometry(0.05), debugMaterial);
+            skeleton.rightThighEnd.position.y = skeletonParams.legLength * 0.5; // Top of thigh cylinder
+            skeleton.rightKnee.add(skeleton.rightThighEnd);
+            
+            // HIP/PELVIS (positioned dynamically based on thigh endpoints)
+            skeleton.hip = new THREE.Group();
+            skeleton.hip.position.set(0, skeletonParams.legLength, 0); // Initial position, will be updated dynamically
+            skeleton.root.add(skeleton.hip);
+            
+            const hipGeometry = new THREE.BoxGeometry(0.5, 0.2, 0.3); // More realistic hip width
+            const hipMesh = new THREE.Mesh(hipGeometry, boneMaterial);
+            hipMesh.castShadow = true;
+            skeleton.hip.add(hipMesh);
+            
+            // THREE-SEGMENT SPINE (built up from hip)
+            const spineSegmentLength = skeletonParams.torsoLength / 3;
+            
+            // Lower spine segment
+            skeleton.lowerSpine = new THREE.Group();
+            skeleton.lowerSpine.position.y = 0.15;
+            skeleton.hip.add(skeleton.lowerSpine);
+            
+            const lowerSpineGeometry = new THREE.CylinderGeometry(0.10, 0.11, spineSegmentLength);
+            const lowerSpineMesh = new THREE.Mesh(lowerSpineGeometry, boneMaterial);
+            lowerSpineMesh.position.y = spineSegmentLength / 2;
+            lowerSpineMesh.castShadow = true;
+            skeleton.lowerSpine.add(lowerSpineMesh);
+            
+            // Middle spine segment
+            skeleton.middleSpine = new THREE.Group();
+            skeleton.middleSpine.position.y = spineSegmentLength;
+            skeleton.lowerSpine.add(skeleton.middleSpine);
+            
+            const middleSpineGeometry = new THREE.CylinderGeometry(0.09, 0.10, spineSegmentLength);
+            const middleSpineMesh = new THREE.Mesh(middleSpineGeometry, boneMaterial);
+            middleSpineMesh.position.y = spineSegmentLength / 2;
+            middleSpineMesh.castShadow = true;
+            skeleton.middleSpine.add(middleSpineMesh);
+            
+            // Upper spine segment
+            skeleton.upperSpine = new THREE.Group();
+            skeleton.upperSpine.position.y = spineSegmentLength;
+            skeleton.middleSpine.add(skeleton.upperSpine);
+            
+            const upperSpineGeometry = new THREE.CylinderGeometry(0.08, 0.09, spineSegmentLength);
+            const upperSpineMesh = new THREE.Mesh(upperSpineGeometry, boneMaterial);
+            upperSpineMesh.position.y = spineSegmentLength / 2;
+            upperSpineMesh.castShadow = true;
+            skeleton.upperSpine.add(upperSpineMesh);
+            
+            // SHOULDERS
+            skeleton.shoulders = new THREE.Group();
+            skeleton.shoulders.position.y = spineSegmentLength;
+            skeleton.upperSpine.add(skeleton.shoulders);
+            
+            const shoulderGeometry = new THREE.BoxGeometry(0.7, 0.15, 0.25); // More realistic shoulder width
+            const shoulderMesh = new THREE.Mesh(shoulderGeometry, boneMaterial);
+            shoulderMesh.castShadow = true;
+            skeleton.shoulders.add(shoulderMesh);
+            
+            // LEFT ARM CHAIN
+            skeleton.leftShoulder = new THREE.Group();
+            skeleton.leftShoulder.position.set(-0.35, 0, 0); // Adjusted for realistic shoulder width
+            skeleton.shoulders.add(skeleton.leftShoulder);
+            
+            const upperArmGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.45); // Realistic upper arm
+            const leftUpperArmMesh = new THREE.Mesh(upperArmGeometry, boneMaterial);
+            leftUpperArmMesh.position.y = -0.225; // Half of upper arm length
+            leftUpperArmMesh.castShadow = true;
+            skeleton.leftShoulder.add(leftUpperArmMesh);
+            
+            skeleton.leftElbow = new THREE.Group();
+            skeleton.leftElbow.position.y = -0.45;
+            skeleton.leftShoulder.add(skeleton.leftElbow);
+            
+            const elbowJoint = new THREE.Mesh(new THREE.SphereGeometry(0.06), jointMaterial);
+            elbowJoint.castShadow = true;
+            skeleton.leftElbow.add(elbowJoint);
+            
+            const forearmGeometry = new THREE.CylinderGeometry(0.04, 0.04, 0.375); // Realistic forearm
+            const leftForearmMesh = new THREE.Mesh(forearmGeometry, boneMaterial);
+            leftForearmMesh.position.y = -0.1875; // Half of forearm length
+            leftForearmMesh.castShadow = true;
+            skeleton.leftElbow.add(leftForearmMesh);
+            
+            // RIGHT ARM CHAIN
+            skeleton.rightShoulder = new THREE.Group();
+            skeleton.rightShoulder.position.set(0.35, 0, 0); // Adjusted for realistic shoulder width
+            skeleton.shoulders.add(skeleton.rightShoulder);
+            
+            const rightUpperArmMesh = new THREE.Mesh(upperArmGeometry, boneMaterial);
+            rightUpperArmMesh.position.y = -0.225;
+            rightUpperArmMesh.castShadow = true;
+            skeleton.rightShoulder.add(rightUpperArmMesh);
+            
+            skeleton.rightElbow = new THREE.Group();
+            skeleton.rightElbow.position.y = -0.45;
+            skeleton.rightShoulder.add(skeleton.rightElbow);
+            
+            const rightElbowJoint = new THREE.Mesh(new THREE.SphereGeometry(0.06), jointMaterial);
+            rightElbowJoint.castShadow = true;
+            skeleton.rightElbow.add(rightElbowJoint);
+            
+            const rightForearmMesh = new THREE.Mesh(forearmGeometry, boneMaterial);
+            rightForearmMesh.position.y = -0.1875;
+            rightForearmMesh.castShadow = true;
+            skeleton.rightElbow.add(rightForearmMesh);
+            
+            // LEFT WRIST AND HAND
+            skeleton.leftWrist = new THREE.Group();
+            skeleton.leftWrist.position.y = -0.375; // End of forearm
+            skeleton.leftElbow.add(skeleton.leftWrist);
+            
+            // Left wrist joint
+            const leftWristJoint = new THREE.Mesh(new THREE.SphereGeometry(0.04), jointMaterial);
+            leftWristJoint.castShadow = true;
+            skeleton.leftWrist.add(leftWristJoint);
+            
+            // Left hand - offset from wrist, not glued to forearm end
+            const handGeometry = new THREE.BoxGeometry(0.08, 0.25, 0.12);
+            skeleton.leftHand = new THREE.Mesh(handGeometry, boneMaterial);
+            skeleton.leftHand.position.set(0, -0.15, 0); // Offset down from wrist joint
+            skeleton.leftHand.castShadow = true;
+            skeleton.leftWrist.add(skeleton.leftHand);
+            
+            // RIGHT WRIST AND HAND
+            skeleton.rightWrist = new THREE.Group();
+            skeleton.rightWrist.position.y = -0.375; // End of forearm
+            skeleton.rightElbow.add(skeleton.rightWrist);
+            
+            // Right wrist joint
+            const rightWristJoint = new THREE.Mesh(new THREE.SphereGeometry(0.04), jointMaterial);
+            rightWristJoint.castShadow = true;
+            skeleton.rightWrist.add(rightWristJoint);
+            
+            // Right hand - offset from wrist, not glued to forearm end
+            skeleton.rightHand = new THREE.Mesh(handGeometry, boneMaterial);
+            skeleton.rightHand.position.set(0, -0.15, 0); // Offset down from wrist joint
+            skeleton.rightHand.castShadow = true;
+            skeleton.rightWrist.add(skeleton.rightHand);
+            
+            // NECK
+            skeleton.neck = new THREE.Group();
+            skeleton.neck.position.y = 0.15;
+            skeleton.shoulders.add(skeleton.neck);
+            
+            const neckGeometry = new THREE.CylinderGeometry(0.06, 0.06, 0.15);
+            const neckMesh = new THREE.Mesh(neckGeometry, boneMaterial);
+            neckMesh.position.y = 0.075;
+            neckMesh.castShadow = true;
+            skeleton.neck.add(neckMesh);
+            
+            // HEAD COMPOUND
+            skeleton.head = new THREE.Group();
+            skeleton.head.position.y = 0.15;
+            skeleton.head.rotation.y = 0.3; // Default looking right (direction of travel)
+            skeleton.neck.add(skeleton.head);
+            
+            // Main skull (sphere)
+            const skullGeometry = new THREE.SphereGeometry(0.25); // Slightly smaller for realism
+            const skullMesh = new THREE.Mesh(skullGeometry, boneMaterial);
+            skullMesh.position.y = 0.05; // Raised slightly for jaw space
+            skullMesh.castShadow = true;
+            skeleton.head.add(skullMesh);
+            
+            // Jaw (box)
+            const jawGeometry = new THREE.BoxGeometry(0.22, 0.15, 0.18);
+            const jawMesh = new THREE.Mesh(jawGeometry, boneMaterial);
+            jawMesh.position.y = -0.12; // Below skull
+            jawMesh.castShadow = true;
+            skeleton.head.add(jawMesh);
+            
+            // Small nose
+            const noseGeometry = new THREE.BoxGeometry(0.04, 0.06, 0.08);
+            const noseMesh = new THREE.Mesh(noseGeometry, boneMaterial);
+            noseMesh.position.set(0, 0.02, 0.24); // Front of face
+            noseMesh.castShadow = true;
+            skeleton.head.add(noseMesh);
+        }
+        
+        function animateSurfing() {
+            // BOARD WAVE MOTION - primary wave generation
+            const primaryWave = Math.sin(time * params.waveFreq) * params.waveAmp;
+            const secondaryWave = Math.sin(time * params.waveFreq * 1.7 + 0.5) * params.waveAmp * 0.3;
+            
+            // Update board position and rotation
+            surfboard.position.y = primaryWave + secondaryWave;
+            surfboard.rotation.z = Math.sin(time * params.waveFreq * 0.8) * params.waveTilt;
+            surfboard.rotation.x = Math.sin(time * params.waveFreq * 1.2) * params.waveRoll;
+            
+            // CALCULATE BOARD DYNAMICS for reactive animation
+            const currentTilt = surfboard.rotation.z;
+            const currentRoll = surfboard.rotation.x;
+            const currentHeight = surfboard.position.y;
+            
+            // Calculate velocities (change per frame)
+            boardState.tiltVelocity = currentTilt - boardState.prevRotationZ;
+            boardState.rollVelocity = currentRoll - boardState.prevRotationX;
+            boardState.verticalVelocity = currentHeight - boardState.prevPositionY;
+            
+            // Update previous values for next frame
+            boardState.prevRotationZ = currentTilt;
+            boardState.prevRotationX = currentRoll;
+            boardState.prevPositionY = currentHeight;
+            
+            // BOARD-DRIVEN BALANCE SHIFTS - character reacts to board dynamics
+            const balanceShiftX = (
+                currentTilt * -0.5 + 
+                boardState.tiltVelocity * -2.0 +
+                boardState.verticalVelocity * 0.3
+            ) * params.balanceX;
+            
+            const balanceShiftZ = (
+                currentRoll * -0.4 +
+                boardState.rollVelocity * -1.5
+            ) * params.balanceZ;
+            
+            // Note: balanceShift values used for internal body dynamics, not sliding position
+            
+            // FEET STAY PLANTED - update foot positions if width changed
+            skeleton.leftFoot.position.x = -params.footWidth / 2;
+            skeleton.rightFoot.position.x = params.footWidth / 2;
+            skeleton.leftLowerLeg.position.x = -params.footWidth / 2;
+            skeleton.rightLowerLeg.position.x = params.footWidth / 2;
+            skeleton.leftLowerLeg.rotation.z = params.leftLegAngle;
+            skeleton.rightLowerLeg.rotation.z = params.rightLegAngle;
+            
+            // DYNAMIC BOARD-DRIVEN KNEE BEND - no time dependencies; note there are no refs to time, 
+            // or primary or secondary waves after, character is driven procedurally from board
+            // Base knee bend driven by board height and vertical motion
+            const baseTargetKneeBend = 
+                params.kneeBend +                              // Base crouch level
+                currentHeight * -0.4 +                         // Higher board = stand more, lower = crouch more  
+                boardState.verticalVelocity * -2.0;            // Rising board = anticipate by extending, falling = compress
+
+            // Individual leg responses to board tilt (asymmetric loading)
+            const leftLegTiltResponse = currentTilt * 0.3;     // Left leg loads more when board tilts right
+            const rightLegTiltResponse = currentTilt * -0.3;   // Right leg loads more when board tilts left
+
+            // Individual leg responses to board roll (symmetric loading)  
+            const legRollResponse = Math.abs(currentRoll) * 0.2; // Both legs bend more with forward/back tilt
+
+            // Final targets with all influences
+            kneeBendState.leftTarget = baseTargetKneeBend + leftLegTiltResponse + legRollResponse + params.leftLegOffset;
+            kneeBendState.rightTarget = baseTargetKneeBend + rightLegTiltResponse + legRollResponse + params.rightLegOffset;
+            
+            // Apply lag - smoothly transition current toward target for each leg
+            kneeBendState.lagFactor = params.bendLag;
+            kneeBendState.leftCurrent += (kneeBendState.leftTarget - kneeBendState.leftCurrent) * kneeBendState.lagFactor;
+            kneeBendState.rightCurrent += (kneeBendState.rightTarget - kneeBendState.rightCurrent) * kneeBendState.lagFactor;
+            
+            // Board-reactive micro-adjustments instead of time-based
+            const leftKneeBend = Math.max(0.1, kneeBendState.leftCurrent + boardState.tiltVelocity * 0.1);
+            const rightKneeBend = Math.max(0.1, kneeBendState.rightCurrent - boardState.tiltVelocity * 0.1);
+            
+            skeleton.leftKnee.rotation.x = -leftKneeBend;
+            skeleton.rightKnee.rotation.x = -rightKneeBend;
+            
+            // CALCULATE WORLD POSITIONS OF THIGH ENDPOINTS (the debug spheres)
+            // Update world matrices to get accurate positions
+            skeleton.leftLowerLeg.updateMatrixWorld();
+            skeleton.leftKnee.updateMatrixWorld(); 
+            skeleton.leftThighEnd.updateMatrixWorld();
+            
+            skeleton.rightLowerLeg.updateMatrixWorld();
+            skeleton.rightKnee.updateMatrixWorld();
+            skeleton.rightThighEnd.updateMatrixWorld();
+            
+            // Get world positions of thigh endpoints
+            const leftThighWorldPos = new THREE.Vector3();
+            const rightThighWorldPos = new THREE.Vector3();
+            skeleton.leftThighEnd.getWorldPosition(leftThighWorldPos);
+            skeleton.rightThighEnd.getWorldPosition(rightThighWorldPos);
+            
+            // Convert world positions back to root coordinate space for hip placement
+            const rootWorldMatrix = new THREE.Matrix4();
+            skeleton.root.updateMatrixWorld();
+            rootWorldMatrix.copy(skeleton.root.matrixWorld).invert();
+            
+            leftThighWorldPos.applyMatrix4(rootWorldMatrix);
+            rightThighWorldPos.applyMatrix4(rootWorldMatrix);
+            
+            // POSITION HIP at exact midpoint between thigh endpoints
+            const hipX = (leftThighWorldPos.x + rightThighWorldPos.x) / 2;
+            const hipY = (leftThighWorldPos.y + rightThighWorldPos.y) / 2;
+            const hipZ = (leftThighWorldPos.z + rightThighWorldPos.z) / 2;
+            skeleton.hip.position.set(hipX, hipY, hipZ);
+            
+            // CALCULATE HIP TILT from actual thigh endpoint height difference
+            const thighHeightDifference = rightThighWorldPos.y - leftThighWorldPos.y;
+            const thighWidthDistance = rightThighWorldPos.x - leftThighWorldPos.x;
+            const realHipTiltAngle = Math.atan2(thighHeightDifference, thighWidthDistance) * params.hipTiltAmount;
+            
+            // Apply hip rotations
+            skeleton.hip.rotation.x = (leftKneeBend + rightKneeBend) * 0.15;
+            skeleton.hip.rotation.z = balanceShiftX * 0.8 + realHipTiltAngle;
+            
+            // THREE-SEGMENT SPINE - board-driven movement instead of time
+            const spineBaseBalance = -currentTilt * 0.3; // Direct board tilt response, no more balanceShiftX
+            const hipTiltInfluence = realHipTiltAngle * 0.7;
+            
+            // Lower spine - most responsive to board dynamics
+            const lowerSpineCounterTilt = -realHipTiltAngle * params.spineCounter * 0.3;
+            skeleton.lowerSpine.rotation.z = spineBaseBalance + hipTiltInfluence + lowerSpineCounterTilt;
+            skeleton.lowerSpine.rotation.x = currentRoll * params.spineX1 + boardState.rollVelocity * params.spineX1 * 2.0; // Forward/back response to board roll
+            skeleton.lowerSpine.rotation.y = currentTilt * params.spineTwist + boardState.tiltVelocity * params.spineTwist * 1.5; // Twist response to board tilt
+            
+            // Middle spine - moderate response, transitional
+            const middleSpineBalance = spineBaseBalance * 0.7;
+            const middleSpineCounterTilt = -realHipTiltAngle * params.spineCounter * 0.5;
+            skeleton.middleSpine.rotation.z = middleSpineBalance + hipTiltInfluence * 0.5 + middleSpineCounterTilt;
+            skeleton.middleSpine.rotation.x = currentRoll * params.spineX2 * 0.8 + boardState.rollVelocity * params.spineX2 * 1.5; // Reduced roll response
+            skeleton.middleSpine.rotation.y = currentTilt * params.spineTwist * 0.6 + boardState.tiltVelocity * params.spineTwist * 1.0; // Reduced twist response
+            
+            // Upper spine - focused on head stability, minimal board response
+            const upperSpineBalance = spineBaseBalance * 0.4;
+            const upperSpineCounterTilt = -realHipTiltAngle * params.spineCounter * 0.8;
+            skeleton.upperSpine.rotation.z = upperSpineBalance + hipTiltInfluence * 0.2 + upperSpineCounterTilt;
+            skeleton.upperSpine.rotation.x = currentRoll * params.spineX3 * 0.5 + boardState.verticalVelocity * params.spineX3; // Minimal roll + height anticipation
+            skeleton.upperSpine.rotation.y = currentTilt * params.spineTwist * 0.3 + boardState.tiltVelocity * params.spineTwist * 0.5; // Minimal twist for head tracking
+            
+            // ARMS - board-driven balance movements
+            const finalUpperSpineBalance = upperSpineBalance + hipTiltInfluence * 0.2 + upperSpineCounterTilt;
+            const armBalanceLeft = finalUpperSpineBalance * -params.armSpread + boardState.tiltVelocity * 0.3;
+            const armBalanceRight = finalUpperSpineBalance * -params.armSpread + boardState.tiltVelocity * -0.3;
+            
+            // Left arm positioning - extend out to left side
+            skeleton.leftShoulder.rotation.z = -params.armSpread + armBalanceLeft;
+            skeleton.leftShoulder.rotation.x = params.armForward + currentRoll * 0.2; // Forward response to board roll
+            skeleton.leftElbow.rotation.x = -params.elbowBend + boardState.rollVelocity * 0.3; // Elbow response to roll velocity
+            
+            // Right arm positioning - extend out to right side
+            skeleton.rightShoulder.rotation.z = params.armSpread + armBalanceRight;
+            skeleton.rightShoulder.rotation.x = params.armForward + currentRoll * 0.2; // Forward response to board roll
+            skeleton.rightElbow.rotation.x = -params.elbowBend + boardState.rollVelocity * 0.3; // Elbow response to roll velocity
+            
+            // WRIST ANIMATION - keep hands level with board, board-driven
+            const boardTiltInfluence = currentTilt * params.handLevel;
+            const boardRollInfluence = currentRoll * params.handLevel * 0.5;
+            
+            // Left wrist - counter-rotate to maintain level with board
+            const leftArmTotalTilt = skeleton.leftShoulder.rotation.z + finalUpperSpineBalance * 0.3;
+            skeleton.leftWrist.rotation.z = -leftArmTotalTilt * params.handLevel + boardTiltInfluence;
+            skeleton.leftWrist.rotation.x = -skeleton.leftShoulder.rotation.x * params.handLevel + boardRollInfluence;
+            skeleton.leftWrist.rotation.y = boardState.tiltVelocity * 0.1; // Natural movement based on board tilt velocity
+            
+            // Right wrist - counter-rotate to maintain level with board  
+            const rightArmTotalTilt = skeleton.rightShoulder.rotation.z + finalUpperSpineBalance * 0.3;
+            skeleton.rightWrist.rotation.z = -rightArmTotalTilt * params.handLevel + boardTiltInfluence;
+            skeleton.rightWrist.rotation.x = -skeleton.rightShoulder.rotation.x * params.handLevel + boardRollInfluence;
+            skeleton.rightWrist.rotation.y = boardState.tiltVelocity * -0.1; // Natural movement based on board tilt velocity
+            
+            // NECK - board-driven movement for balance and looking
+            const neckScan = currentTilt * params.headScan * 0.5; // Scan based on board tilt instead of time
+            const neckTiltAmount = boardState.tiltVelocity * params.neckTilt; // Tilt response to board tilt velocity
+            const neckBendAmount = currentRoll * params.neckBend + boardState.rollVelocity * params.neckBend; // Bend response to board roll
+            
+            skeleton.neck.rotation.y = params.headGaze + neckScan;
+            skeleton.neck.rotation.z = neckTiltAmount - finalUpperSpineBalance * 0.4;
+            skeleton.neck.rotation.x = neckBendAmount;
+            
+            // HEAD - subtle movement on top of neck movement, also board-driven
+            skeleton.head.rotation.y = -0.3 + boardState.tiltVelocity * 0.2; // Track tilt changes
+            skeleton.head.rotation.x = boardState.verticalVelocity * 0.1; // Anticipate height changes
+            skeleton.head.rotation.z = -neckTiltAmount * 0.3;
+            
+            // SHOULDERS - board-driven counter-rotation for natural movement
+            skeleton.shoulders.rotation.z = -finalUpperSpineBalance * 0.2;
+            skeleton.shoulders.rotation.y = boardState.tiltVelocity * 0.1; // Respond to board tilt changes
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.016; // ~60fps
+            
+            animateSurfing();
+            
+            // Camera slowly rotates around the scene
+            const cameraRadius = 6;
+            const cameraSpeed = 0.15;
+            const cameraHeight = 3;
+            
+            camera.position.x = Math.sin(time * cameraSpeed) * cameraRadius;
+            camera.position.z = Math.cos(time * cameraSpeed) * cameraRadius;
+            camera.position.y = cameraHeight + Math.sin(time * 0.1) * 0.5; // Slight vertical movement
+            camera.lookAt(new THREE.Vector3(0, 1.5, 0)); // Look at character's torso
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Initialize the scene
+        init();
+    </script>
+</body>
+</html>

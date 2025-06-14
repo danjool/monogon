@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flying Carpet Minesweeper</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            font-family: monospace; 
+            background: #000;
+        }
+        
+        #info { 
+            position: absolute;
+            color: white;
+            background-color: rgba(0,0,0,0.7);
+            padding: 1vh 1vw;
+            font-size: 0.8vw;
+            top: 1vh;
+            left: 1vw;
+            max-width: 25vw;
+            border-radius: 0.5vh;
+            border: 1px solid #333;
+            font-family: monospace;
+        }
+        
+        #crosshair { 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            pointer-events: none; 
+            z-index: 100; 
+        }
+    </style>
+</head>
+<body>
+    <div id="info">Loading...</div>
+    <div id="crosshair">
+        <svg width="40" height="40">
+            <line x1="20" y1="5" x2="20" y2="15" stroke="white" stroke-width="2" opacity="0.8"/>
+            <line x1="20" y1="25" x2="20" y2="35" stroke="white" stroke-width="2" opacity="0.8"/>
+            <line x1="5" y1="20" x2="15" y2="20" stroke="white" stroke-width="2" opacity="0.8"/>
+            <line x1="25" y1="20" x2="35" y2="20" stroke="white" stroke-width="2" opacity="0.8"/>
+            <circle cx="20" cy="20" r="2" fill="white" opacity="0.6"/>
+        </svg>
+    </div>
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "./three.module.min.js"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import { init } from './main.js';
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "flying-carpet-multiplayer-server",
+  "version": "1.0.0",
+  "description": "Multiplayer server for Flying Carpet Minesweeper game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4"
+  },
+  "keywords": [
+    "multiplayer",
+    "websockets",
+    "game",
+    "three.js",
+    "minesweeper"
+  ],
+  "author": "Flying Carpet Dev",
+  "license": "MIT"
+}
