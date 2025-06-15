@@ -1,11 +1,21 @@
 export class Keyboard {
     constructor() {
         this.keys = {
-            // Movement
+            // Movement (arrow keys for menu navigation)
             left: false,
             right: false,
             up: false,
             down: false,
+            
+            // WASD for camera controls
+            w: false,
+            a: false,
+            s: false,
+            d: false,
+            
+            // Throttle controls
+            q: false,
+            e: false,
             
             // Special actions
             space: false,
@@ -70,6 +80,36 @@ export class Keyboard {
             case 'R':
                 this.keys.r = true;
                 break;
+            case 'w':
+            case 'W':
+                this.keys.w = true;
+                e.preventDefault();
+                break;
+            case 'a':
+            case 'A':
+                this.keys.a = true;
+                e.preventDefault();
+                break;
+            case 's':
+            case 'S':
+                this.keys.s = true;
+                e.preventDefault();
+                break;
+            case 'd':
+            case 'D':
+                this.keys.d = true;
+                e.preventDefault();
+                break;
+            case 'q':
+            case 'Q':
+                this.keys.q = true;
+                e.preventDefault();
+                break;
+            case 'e':
+            case 'E':
+                this.keys.e = true;
+                e.preventDefault();
+                break;
         }
     }
     
@@ -103,6 +143,30 @@ export class Keyboard {
             case 'r':
             case 'R':
                 this.keys.r = false;
+                break;
+            case 'w':
+            case 'W':
+                this.keys.w = false;
+                break;
+            case 'a':
+            case 'A':
+                this.keys.a = false;
+                break;
+            case 's':
+            case 'S':
+                this.keys.s = false;
+                break;
+            case 'd':
+            case 'D':
+                this.keys.d = false;
+                break;
+            case 'q':
+            case 'Q':
+                this.keys.q = false;
+                break;
+            case 'e':
+            case 'E':
+                this.keys.e = false;
                 break;
         }
     }

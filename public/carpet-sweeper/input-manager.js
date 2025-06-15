@@ -7,12 +7,32 @@ export class InputManager {
         this.gamepad = new Gamepad();
         
         this.mouseClicked = false;
+        this.mouseDelta = { x: 0, y: 0 };
+        this.isPointerLocked = false;
         this.setupMouseEvents();
     }
     
     setupMouseEvents() {
-        window.addEventListener('click', () => {
+        window.addEventListener('click', (e) => {
             this.mouseClicked = true;
+            
+            // Request pointer lock on click (for mouse camera control)
+            if (!this.isPointerLocked && document.pointerLockElement !== document.body) {
+                document.body.requestPointerLock();
+            }
+        });
+        
+        // Handle pointer lock changes
+        document.addEventListener('pointerlockchange', () => {
+            this.isPointerLocked = document.pointerLockElement === document.body;
+        });
+        
+        // Handle mouse movement for camera control
+        document.addEventListener('mousemove', (e) => {
+            if (this.isPointerLocked) {
+                this.mouseDelta.x = e.movementX || 0;
+                this.mouseDelta.y = e.movementY || 0;
+            }
         });
         
         window.addEventListener('resize', () => {
@@ -26,6 +46,7 @@ export class InputManager {
         
         // Clear single-frame events
         // (mouseClicked will be cleared by whoever consumes it)
+        // Mouse delta will be cleared after being consumed
     }
     
     // Get unified input for carpet control
@@ -42,11 +63,22 @@ export class InputManager {
             cameraPitch: 0
         };
         
-        // Keyboard input
-        if (keyState.up) input.pitch -= config.pitchSensitivity.value;
-        if (keyState.down) input.pitch += config.pitchSensitivity.value;
-        if (keyState.left) input.turn += config.turnInputRate.value * deltaTime;
-        if (keyState.right) input.turn -= config.turnInputRate.value * deltaTime;
+        // WASD for camera controls
+        if (keyState.w) input.pitch -= config.pitchSensitivity.value;
+        if (keyState.s) input.pitch += config.pitchSensitivity.value;
+        if (keyState.a) input.turn += config.turnInputRate.value * deltaTime;
+        if (keyState.d) input.turn -= config.turnInputRate.value * deltaTime;
+        
+        // Q/E for throttle controls
+        if (keyState.q) input.boost = 1.0;
+        if (keyState.e) input.reverse = 1.0;
+        
+        // Mouse camera input
+        if (this.isPointerLocked) {
+            const mouseSensitivity = 0.002; // Adjust as needed
+            input.cameraYaw = -this.mouseDelta.x * mouseSensitivity;
+            input.cameraPitch = -this.mouseDelta.y * mouseSensitivity;
+        }
         
         // Gamepad input (if active)
         if (this.gamepad.isActive()) {
@@ -82,9 +114,9 @@ export class InputManager {
         const gamepadState = this.gamepad.getState();
         
         return {
-            // Tab switching
-            nextTab: keyState.tab || this.gamepad.wasPressed('rightBumper'),
-            prevTab: keyState.shiftTab || this.gamepad.wasPressed('leftBumper'),
+            // Tab switching (only gamepad bumpers, keyboard tab is for menu toggle)
+            nextTab: this.gamepad.wasPressed('rightBumper'),
+            prevTab: this.gamepad.wasPressed('leftBumper'),
             
             // Navigation within tab (separate from value adjustment)
             up: keyState.up || this.gamepad.wasPressed('dpadUp'),
@@ -118,6 +150,9 @@ export class InputManager {
             // Reset actions
             resetCarpet: keyState.r,
             
+            // Menu toggle
+            toggleMenu: keyState.tab,
+            
             // Click actions (mouse, gamepad A button, or bumper buttons)
             click: this.mouseClicked || this.gamepad.wasPressed('a') || 
                    this.gamepad.wasPressed('leftBumper') || this.gamepad.wasPressed('rightBumper')
@@ -127,6 +162,12 @@ export class InputManager {
     // Consume click event (call this after handling click)
     consumeClick() {
         this.mouseClicked = false;
+    }
+    
+    // Consume mouse delta (call this after handling mouse input)
+    consumeMouseDelta() {
+        this.mouseDelta.x = 0;
+        this.mouseDelta.y = 0;
     }
     
     // Handle window resize

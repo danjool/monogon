@@ -188,6 +188,11 @@ export class CarpetMinesweeperGame {
             this.resetCarpet();
         }
         
+        // Handle menu toggle from action input (Tab key)
+        if (actionInput.toggleMenu) {
+            this.menuSystem.toggle();
+        }
+        
         // Handle menu input
         const menuInput = this.inputManager.getMenuInput();
         if (menuInput.toggleMenu) {
@@ -216,7 +221,12 @@ export class CarpetMinesweeperGame {
             }
             
             // Get carpet input
-            return this.inputManager.getCarpetInput(deltaTime, this.configs.carpet);
+            const carpetInput = this.inputManager.getCarpetInput(deltaTime, this.configs.carpet);
+            
+            // Consume mouse delta after processing
+            this.inputManager.consumeMouseDelta();
+            
+            return carpetInput;
         }
     }
     
