@@ -80,8 +80,8 @@ export class InfoPanel {
                 <div style="margin-top: 1vh; padding-top: 1vh; border-top: 1px solid #444;">
                     <strong>Gamepad Controls:</strong><br>
                     Left Stick: Turn/Pitch | Right Stick: Look Around<br>
-                    Left/Right Trigger: Reverse/Boost | A: Click Mines<br>
-                    Select: Options Menu | Space: Toggle Camera<br>
+                    Left/Right Trigger: Reverse/Boost | A,RB: Click Mines<br>
+                    Select: Options Menu<br>
                     R: Reset Carpet
                 </div>
             `;
@@ -89,7 +89,7 @@ export class InfoPanel {
             return `
                 <div style="margin-top: 1vh; padding-top: 1vh; border-top: 1px solid #444;">
                     <strong>Keyboard Controls:</strong><br>
-                    Arrow Keys: Turn/Pitch | Space: Toggle Camera<br>
+                    WASD: Turn/Pitch | Mouse: Look Around<br>
                     Click: Interact with Mines<br>
                     R: Reset Carpet
                 </div>
