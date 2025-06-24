@@ -117,7 +117,7 @@
             scene.add(hemiLight);         
 
             let shafts = [];
-            for (let i = 0; i < 55; i++) {
+            for (let i = 0; i < 40; i++) {
                 const radius = 0.15 + Math.random() * 0.15;
                 const shaft = new THREE.Mesh(
                     // params for cyl are: radiusTop, radiusBottom, height, radialSegments
@@ -129,15 +129,16 @@
                     
                     new THREE.MeshStandardMaterial({
                         color: new THREE.Color(0, .5, .5),
-                        transparent: true,
-                        opacity: .165 + Math.random() * .32,
-                        side: THREE.DoubleSide
                     })
                 );
+                // randomly distributed around the center, not in center of scene
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = 3 + Math.random() * 5;
                 shaft.position.set(
-                    Math.random() * 15 - 7.5,
+                    Math.cos(angle) * dist,
                     0,
-                    Math.random() * 15 - 7.5
+                    Math.sin(angle) * dist
+
                     );
                 shaft.originalPosition = shaft.position.clone();
                 shaft.rotation.x = .2*Math.PI / 2;
@@ -147,13 +148,13 @@
             }
 
             // small particle system to animate slowly back past the turtle
-            const particleCount = 1000;
+            const particleCount = 100;
             const particles = new THREE.BufferGeometry();
             const positions = new Float32Array(particleCount * 3);
             const colors = new Float32Array(particleCount * 3);
             for (let i = 0; i < particleCount; i++) {
                 positions[i * 3] = (Math.random() - 0.5) * 10;
-                positions[i * 3 + 1] = Math.random() * 10;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 10;
                 positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
 
                 colors[i * 3] = Math.random();
