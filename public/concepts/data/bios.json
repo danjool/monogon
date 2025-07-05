@@ -1214,6 +1214,7 @@
 	{"id": "Herbert A. Simon", "time": 1916, "type": "author"}
 
 ],"links":[
+	{"source": "Dune (Lynch Movie)", "target": "Michael Kirkbride", "type": "influenced" },
 	{"source": "Norman Thomas Di Giovanni", "target": "The Aleph", "type": "translated" },
 	{"source": "Norman Thomas Di Giovanni", "target": "The Lesson of the Master", "type": "wrote" },
 	{"source": "The Lesson of the Master", "target": "R. D. Laing", "type": "referenced" },
