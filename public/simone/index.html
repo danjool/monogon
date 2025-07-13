@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+      font-family: Arial, sans-serif;
+    }
+    
+    #instructions {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      z-index: 1000;
+      max-width: 400px;
+    }
+    
+    #instructions.hidden {
+      display: none;
+    }
+    
+    #crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+      pointer-events: none;
+      z-index: 100;
+    }
+    
+    #crosshair::before,
+    #crosshair::after {
+      content: '';
+      position: absolute;
+      background: white;
+      border: 1px solid black;
+    }
+    
+    #crosshair::before {
+      top: 50%;
+      left: 45%;
+      width: 10%;
+      height: 2px;
+      transform: translateY(-50%);
+    }
+    
+    #crosshair::after {
+      top: 45%;
+      left: 50%;
+      width: 2px;
+      height: 10%;
+      transform: translateX(-50%);
+    }
+    
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <div id="instructions">
+    <h2>Minecraft-Style Game</h2>
+    <p><strong>Click to play!</strong></p>
+    <p>Controls:</p>
+    <ul style="text-align: left; display: inline-block;">
+      <li>WASD - Move</li>
+      <li>Mouse - Look around</li>
+      <li>Space - Jump</li>
+      <li>Double Space - Toggle Flight</li>
+      <li>Shift - Crouch</li>
+      <li>ESC - Exit pointer lock</li>
+    </ul>
+    <p>Look at blocks to see green wireframe highlights!</p>
+  </div>
+  
+  <div id="crosshair"></div>
+  
+  <div id="info">
+    <div>Position: <span id="position">0, 0, 0</span></div>
+    <div>Mode: <span id="mode">Walking</span></div>
+    <div>Selected: <span id="selected">None</span></div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+
+    // Scene setup
+    const scene = new THREE.Scene();
+    const cam = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const geometry = new THREE.BoxGeometry();
+    const clock = new THREE.Clock();
+
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000);
+    document.body.appendChild(renderer.domElement);
+
+    // Lighting
+    scene.add(new THREE.AmbientLight(0x444444, 1.0));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(50, 100, 50);
+    scene.add(dirLight);
+
+    // Pointer lock setup
+    let isPointerLocked = false;
+    const instructions = document.getElementById('instructions');
+    const crosshair = document.getElementById('crosshair');
+    const info = document.getElementById('info');
+
+    // Camera rotation variables
+    const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+    const minPolarAngle = 0; // radians
+    const maxPolarAngle = Math.PI; // radians
+
+    // Pointer lock event handlers
+    function onPointerLockChange() {
+      isPointerLocked = document.pointerLockElement === renderer.domElement;
+      
+      if (isPointerLocked) {
+        instructions.classList.add('hidden');
+        crosshair.style.display = 'block';
+        info.style.display = 'block';
+      } else {
+        instructions.classList.remove('hidden');
+        crosshair.style.display = 'none';
+        info.style.display = 'none';
+      }
+    }
+
+    function onPointerLockError() {
+      console.error('Pointer lock failed');
+    }
+
+    // Request pointer lock on click
+    renderer.domElement.addEventListener('click', () => {
+      if (!isPointerLocked) {
+        renderer.domElement.requestPointerLock();
+      }
+    });
+
+    // Mouse movement handler for pointer lock
+    function onMouseMove(event) {
+      if (!isPointerLocked) return;
+
+      const movementX = event.movementX || 0;
+      const movementY = event.movementY || 0;
+
+      // Mouse sensitivity
+      const sensitivity = 0.002;
+
+      euler.setFromQuaternion(cam.quaternion);
+      euler.y -= movementX * sensitivity;
+      euler.x -= movementY * sensitivity;
+      euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, euler.x));
+
+      cam.quaternion.setFromEuler(euler);
+    }
+
+    // Event listeners
+    document.addEventListener('pointerlockchange', onPointerLockChange);
+    document.addEventListener('pointerlockerror', onPointerLockError);
+    document.addEventListener('mousemove', onMouseMove);
+
+    // Game state variables
+    let blockMap, 
+      velocity = new THREE.Vector3(), 
+      onGround = false, 
+      jumpPressed = false,
+      isCrouching = false,
+      isFlying = false,
+      lastSpacePress = 0,
+      spaceDoubleTapWindow = 300,
+      groundY = null; // NEW: Track the ground Y position
+
+    // Block Selection System
+    const raycaster = new THREE.Raycaster();
+    let selectedBlock = null;
+    let selectorWireframes = [];
+    const SELECTION_RANGE = 8;
+
+    // Controls
+    const keys = {};
+    const GRAVITY = -16;
+    const JUMP_SPEED = 8;
+    const MOVE_SPEED = 5;
+    const CROUCH_SPEED_MULTIPLIER = 0.3;
+    const AIR_CONTROL_MULTIPLIER = 0.4;
+    const PLAYER_HEIGHT = 1.8;
+    const PLAYER_EYE_HEIGHT = 1.62;
+    const PLAYER_RADIUS = 0.3;
+    const CROUCH_HEIGHT = 1.2;
+    const CROUCH_EYE_HEIGHT = 1.02;
+    const GROUND_SNAP_TOLERANCE = 0.05; // NEW: Only snap if more than this distance from ground
+
+    // Create wireframe corner indicators
+    const createCornerIndicators = () => {
+      selectorWireframes.forEach(wireframe => {
+          scene.remove(wireframe);
+      });
+      selectorWireframes = [];
+      if (!selectedBlock) return;
+
+      const { x, y, z } = selectedBlock;
+      
+      const cornerMaterial = new THREE.MeshBasicMaterial({ 
+          color: 0x00ff00, 
+          transparent: true, 
+          opacity: 0.8 
+      });
+      const cornerGeo = new THREE.SphereGeometry(0.05, 4, 3); // radius, widthSegments, heightSegments
+
+      const corners = [
+          [-0.5, -0.5, -0.5], [0.5, -0.5, -0.5],
+          [-0.5,  0.5, -0.5], [0.5,  0.5, -0.5],
+          [-0.5, -0.5,  0.5], [0.5, -0.5,  0.5],
+          [-0.5,  0.5,  0.5], [0.5,  0.5,  0.5]
+      ];
+
+      corners.forEach(([cx, cy, cz]) => {
+          const cornerMesh = new THREE.Mesh(cornerGeo, cornerMaterial);
+          cornerMesh.position.set(x + cx, y + cy, z + cz);
+          scene.add(cornerMesh);
+          selectorWireframes.push(cornerMesh);
+      });
+    };
+
+    // Ray casting to find looked-at block
+    const updateBlockSelection = () => {
+      const cameraDirection = new THREE.Vector3(0, 0, -1);
+      cameraDirection.applyQuaternion(cam.quaternion);
+      raycaster.set(cam.position, cameraDirection);
+
+      let closestDistance = Infinity;
+      let closestBlock = null;
+
+      const camPos = cam.position;
+      const minX = Math.floor(camPos.x - SELECTION_RANGE);
+      const maxX = Math.ceil(camPos.x + SELECTION_RANGE);
+      const minY = Math.floor(camPos.y - SELECTION_RANGE);
+      const maxY = Math.ceil(camPos.y + SELECTION_RANGE);
+      const minZ = Math.floor(camPos.z - SELECTION_RANGE);
+      const maxZ = Math.ceil(camPos.z + SELECTION_RANGE);
+
+      for (let x = minX; x <= maxX; x++) {
+        for (let y = minY; y <= maxY; y++) {
+          for (let z = minZ; z <= maxZ; z++) {
+            const blockType = blockMap?.get(`${x},${y},${z}`);
+            if (blockType && blockType !== 'air') {
+              const blockBox = new THREE.Box3(
+                new THREE.Vector3(x - 0.5, y - 0.5, z - 0.5),
+                new THREE.Vector3(x + 0.5, y + 0.5, z + 0.5)
+              );
+
+              const intersectionPoint = new THREE.Vector3();
+              if (raycaster.ray.intersectBox(blockBox, intersectionPoint)) {
+                const distance = cam.position.distanceTo(intersectionPoint);
+                if (distance < closestDistance && distance <= SELECTION_RANGE) {
+                  closestDistance = distance;
+                  closestBlock = { x, y, z, distance, blockType };
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (closestBlock && (!selectedBlock || 
+        selectedBlock.x !== closestBlock.x || 
+        selectedBlock.y !== closestBlock.y || 
+        selectedBlock.z !== closestBlock.z)) {
+        selectedBlock = closestBlock;
+        createCornerIndicators();
+        document.getElementById('selected').textContent = `${selectedBlock.blockType} (${selectedBlock.x}, ${selectedBlock.y}, ${selectedBlock.z})`;
+      } else if (!closestBlock && selectedBlock) {
+        selectedBlock = null;
+        createCornerIndicators();
+        document.getElementById('selected').textContent = 'None';
+      }
+    };
+
+    // Enhanced Key Handling
+    addEventListener('keydown', e => {
+      keys[e.code] = true;
+      
+      // ESC to exit pointer lock
+      if (e.code === 'Escape') {
+        document.exitPointerLock();
+      }
+      
+      // Double-tap space for flight mode
+      if (e.code === 'Space') {
+        const now = Date.now();
+        if (now - lastSpacePress < spaceDoubleTapWindow) {
+          isFlying = !isFlying;
+          velocity.y = 0;
+          groundY = null; // Reset ground tracking when toggling flight
+          document.getElementById('mode').textContent = isFlying ? 'Flying' : 'Walking';
+        }
+        lastSpacePress = now;
+      }
+    });
+    
+    addEventListener('keyup', e => keys[e.code] = false);
+
+    const transparentBlocks = new Set(['air', 'water', 'torch', 'wooden_door', 'standing_sign', 'ladder']);
+
+    const isBlockAt = (x, y, z) => {
+      const blockType = blockMap?.get(`${Math.floor(x)},${Math.floor(y)},${Math.floor(z)}`);
+      return blockType && !transparentBlocks.has(blockType);
+    };
+
+    // FIXED: Improved ground detection that returns the ground Y position
+    const findGroundY = (feetPosition, radius) => {
+      const minX = Math.floor(feetPosition.x - radius);
+      const maxX = Math.ceil(feetPosition.x + radius);
+      const minZ = Math.floor(feetPosition.z - radius);
+      const maxZ = Math.ceil(feetPosition.z + radius);
+      
+      let highestGroundY = -Infinity;
+      let foundGround = false;
+      
+      // Check downward from current position
+      for (let checkY = Math.floor(feetPosition.y + 0.1); checkY >= Math.floor(feetPosition.y - 2.0); checkY--) {
+        for (let x = minX; x <= maxX; x++) {
+          for (let z = minZ; z <= maxZ; z++) {
+            if (isBlockAt(x, checkY, z)) {
+              const blockCenterX = x + 0.5;
+              const blockCenterZ = z + 0.5;
+              const dx = feetPosition.x - blockCenterX;
+              const dz = feetPosition.z - blockCenterZ;
+              const distanceSquared = dx * dx + dz * dz;
+              
+              if (distanceSquared <= (radius + 0.5) * (radius + 0.5)) {
+                const blockTop = checkY + 1;
+                if (blockTop > highestGroundY && blockTop <= feetPosition.y + 0.6) {
+                  highestGroundY = blockTop;
+                  foundGround = true;
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      return foundGround ? highestGroundY : null;
+    };
+
+    // Collision Detection
+    const checkCollision = (feetPosition, radius, height) => {
+      const minX = Math.floor(feetPosition.x - radius);
+      const maxX = Math.ceil(feetPosition.x + radius);
+      const minZ = Math.floor(feetPosition.z - radius);
+      const maxZ = Math.ceil(feetPosition.z + radius);
+      const minY = Math.floor(feetPosition.y + 0.1);
+      const maxY = Math.ceil(feetPosition.y + height - 1.0);
+
+      for (let x = minX; x <= maxX; x++) {
+        for (let z = minZ; z <= maxZ; z++) {
+          for (let y = minY; y <= maxY; y++) {
+            if (isBlockAt(x, y, z)) {
+              const blockCenterX = x + 0.0;
+              const blockCenterZ = z + 0.0;
+              const dx = feetPosition.x - blockCenterX;
+              const dz = feetPosition.z - blockCenterZ;
+              const distance = Math.sqrt(dx * dx + dz * dz);
+              
+              if (distance < radius + 0.5) {
+                return { 
+                  collision: true, 
+                  normal: new THREE.Vector3(dx, 0, dz).normalize(),
+                  blockX: x,
+                  blockZ: z
+                };
+              }
+            }
+          }
+        }
+      }
+      return { collision: false, normal: null };
+    };
+
+    // Wall Sliding
+    const getWallSlideVector = (moveVector, collisionNormal) => {
+      const slideVector = moveVector.clone();
+      const dot = slideVector.dot(collisionNormal);
+      slideVector.sub(collisionNormal.clone().multiplyScalar(dot));
+      return slideVector;
+    };
+
+    const tryWallSlide = (feetPos, moveVector, radius, height) => {
+      const slideVectors = [];
+      
+      const originalResult = checkCollision(feetPos.clone().add(moveVector), radius, height);
+      if (!originalResult.collision) {
+        return moveVector;
+      }
+      
+      const slideVector1 = getWallSlideVector(moveVector, originalResult.normal);
+      slideVectors.push(slideVector1);
+      
+      if (Math.abs(moveVector.x) > 0.01) {
+        slideVectors.push(new THREE.Vector3(moveVector.x, 0, 0));
+      }
+      if (Math.abs(moveVector.z) > 0.01) {
+        slideVectors.push(new THREE.Vector3(0, 0, moveVector.z));
+      }
+      
+      for (const slide of slideVectors) {
+        if (slide.length() > 0.001) {
+          const slideResult = checkCollision(feetPos.clone().add(slide), radius, height);
+          if (!slideResult.collision) {
+            return slide;
+          }
+        }
+      }
+      
+      return new THREE.Vector3(0, 0, 0);
+    };
+
+    // Flight Mode Physics
+    const updateFlightMode = (delta) => {
+      const camPos = cam.position;
+      const eyeHeight = isCrouching ? CROUCH_EYE_HEIGHT : PLAYER_EYE_HEIGHT;
+      
+      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
+      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+      const up = new THREE.Vector3(0, 1, 0);
+
+      const move = new THREE.Vector3();
+      if (keys.KeyW) move.add(forward);
+      if (keys.KeyS) move.sub(forward);
+      if (keys.KeyA) move.sub(right);
+      if (keys.KeyD) move.add(right);
+      if (keys.Space) move.add(up);
+      if (keys.ShiftLeft || keys.ShiftRight) move.sub(up);
+
+      const speed = (isCrouching ? MOVE_SPEED * CROUCH_SPEED_MULTIPLIER : MOVE_SPEED) * delta;
+      move.normalize().multiplyScalar(speed);
+
+      const newCamPos = camPos.clone().add(move);
+      const newFeetPos = new THREE.Vector3(newCamPos.x, newCamPos.y - eyeHeight, newCamPos.z);
+      const height = isCrouching ? CROUCH_HEIGHT : PLAYER_HEIGHT;
+      const collisionResult = checkCollision(newFeetPos, PLAYER_RADIUS, height);
+      
+      if (!collisionResult.collision) {
+        camPos.copy(newCamPos);
+      }
+    };
+
+    // Crouch State Management
+    const updateCrouchState = () => {
+      const wasCrouching = isCrouching;
+      isCrouching = keys.ShiftLeft || keys.ShiftRight;
+      
+      if (isCrouching !== wasCrouching) {
+        const currentEyeHeight = wasCrouching ? CROUCH_EYE_HEIGHT : PLAYER_EYE_HEIGHT;
+        const targetEyeHeight = isCrouching ? CROUCH_EYE_HEIGHT : PLAYER_EYE_HEIGHT;
+        const heightDiff = targetEyeHeight - currentEyeHeight;
+        
+        if (!isCrouching) {
+          const camPos = cam.position;
+          const feetPos = new THREE.Vector3(camPos.x, camPos.y - currentEyeHeight, camPos.z);
+          const collisionResult = checkCollision(feetPos, PLAYER_RADIUS, PLAYER_HEIGHT);
+          if (!collisionResult.collision) {
+            cam.position.y += heightDiff;
+            // Update groundY tracking if we were on ground
+            if (groundY !== null) {
+              groundY += heightDiff;
+            }
+          } else {
+            isCrouching = true;
+          }
+        } else {
+          cam.position.y += heightDiff;
+          // Update groundY tracking if we were on ground
+          if (groundY !== null) {
+            groundY += heightDiff;
+          }
+        }
+      }
+    };
+
+    // FIXED: Enhanced Physics System with stable ground handling
+    const mcPhysics = delta => {
+      updateCrouchState();
+
+      if (isFlying) {
+        updateFlightMode(delta);
+        return;
+      }
+
+      const camPos = cam.position;
+      const height = isCrouching ? CROUCH_HEIGHT : PLAYER_HEIGHT;
+      const eyeHeight = isCrouching ? CROUCH_EYE_HEIGHT : PLAYER_EYE_HEIGHT;
+      
+      const feetPos = new THREE.Vector3(camPos.x, camPos.y - eyeHeight, camPos.z);
+      
+      // FIXED: Improved ground detection with stable Y tracking
+      const detectedGroundY = findGroundY(feetPos, PLAYER_RADIUS);
+      const wasOnGround = onGround;
+      
+      if (detectedGroundY !== null) {
+        const groundDistance = Math.abs(feetPos.y - detectedGroundY);
+        
+        if (groundDistance <= 0.6) { // Within ground detection range
+          onGround = true;
+          
+          // FIXED: Only snap to ground if we're significantly off and falling
+          if (velocity.y <= 0 && groundDistance > GROUND_SNAP_TOLERANCE) {
+            const targetCamY = detectedGroundY + eyeHeight;
+            camPos.y = targetCamY;
+            groundY = detectedGroundY;
+          } else if (velocity.y <= 0) {
+            // We're close enough to ground, just track it
+            groundY = detectedGroundY;
+          }
+        } else {
+          onGround = false;
+          groundY = null;
+        }
+      } else {
+        onGround = false;
+        groundY = null;
+      }
+      
+      // FIXED: Improved gravity and ground handling
+      if (onGround && velocity.y <= 0) {
+        velocity.y = 0;
+        // Ensure we stay on the tracked ground level
+        if (groundY !== null) {
+          const targetCamY = groundY + eyeHeight;
+          const currentGroundDistance = Math.abs(camPos.y - targetCamY);
+          if (currentGroundDistance > GROUND_SNAP_TOLERANCE) {
+            camPos.y = targetCamY;
+          }
+        }
+      } else {
+        velocity.y += GRAVITY * delta;
+      }
+      
+      // Jumping
+      if (keys.Space && onGround && !jumpPressed) {
+        velocity.y = JUMP_SPEED;
+        jumpPressed = true;
+        onGround = false;
+        groundY = null;
+      }
+      if (!keys.Space) jumpPressed = false;
+      
+      // Horizontal Movement
+      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion);
+      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+      forward.y = right.y = 0;
+      forward.normalize();
+      right.normalize();
+      
+      const move = new THREE.Vector3();
+      if (keys.KeyW) move.add(forward);
+      if (keys.KeyS) move.sub(forward);
+      if (keys.KeyA) move.sub(right);
+      if (keys.KeyD) move.add(right);
+      
+      let currentSpeed = MOVE_SPEED;
+      if (isCrouching) currentSpeed *= CROUCH_SPEED_MULTIPLIER;
+      if (!onGround) currentSpeed *= AIR_CONTROL_MULTIPLIER;
+      
+      move.normalize().multiplyScalar(currentSpeed * delta);
+      
+      // Enhanced Horizontal Movement with Wall Sliding
+      if (move.length() > 0) {
+        const slideVector = tryWallSlide(feetPos, move, PLAYER_RADIUS, height);
+        if (slideVector.length() > 0) {
+          feetPos.add(slideVector);
+          camPos.x = feetPos.x;
+          camPos.z = feetPos.z;
+        }
+      }
+      
+      // FIXED: Vertical Movement with better collision handling
+      if (Math.abs(velocity.y) > 0.001) {
+        const verticalMove = velocity.y * delta;
+        const newFeetY = feetPos.y + verticalMove;
+        const newCamY = newFeetY + eyeHeight;
+        
+        if (velocity.y > 0) { // Moving up - check ceiling
+          const testFeetPos = new THREE.Vector3(feetPos.x, newFeetY, feetPos.z);
+          const ceilingResult = checkCollision(testFeetPos, PLAYER_RADIUS, height);
+          
+          if (ceilingResult.collision) {
+            velocity.y = 0;
+          } else {
+            camPos.y = newCamY;
+          }
+        } else { // Moving down - let ground detection handle it
+          camPos.y = newCamY;
+        }
+      }
+      
+      // Safety check
+      if (camPos.y < 50) {
+        camPos.set(788, 75, 850);
+        velocity.set(0, 0, 0);
+        onGround = false;
+        groundY = null;
+      }
+    };
+    
+    const blockConfig = {
+      stone: { color: 0x7f7f7f, scale: [1, 1, 1], needsSafetyNet: true },
+      dirt: { color: 0x8b4513, scale: [1, 1, 1], needsSafetyNet: true },
+      sand: { color: 0xc2b280, scale: [1, 1, 1], needsSafetyNet: true },
+      gravel: { color: 0x888888, scale: [1, 1, 1], needsSafetyNet: true },
+      coal_ore: { color: 0x343434, scale: [1, 1, 1], needsSafetyNet: false },
+      iron_ore: { color: 0xd8af93, scale: [1, 1, 1], needsSafetyNet: false },
+      gold_ore: { color: 0xfcee4b, scale: [1, 1, 1], needsSafetyNet: false },
+      diamond_ore: { color: 0x5decf5, scale: [1, 1, 1], needsSafetyNet: false },
+      redstone_ore: { color: 0xff0000, scale: [1, 1, 1], needsSafetyNet: false },
+      lapis_ore: { color: 0x1e90ff, scale: [1, 1, 1], needsSafetyNet: false },
+      cobblestone: { color: 0x7d7d7d, scale: [1, 1, 1], needsSafetyNet: false },
+      sandstone: { color: 0xf2e6a6, scale: [1, 1, 1], needsSafetyNet: false },
+      planks: { color: 0xae8a47, scale: [1, 1, 1], needsSafetyNet: false },
+      crafting_table: { color: 0xae7a37, scale: [1, 1, 1], needsSafetyNet: false },
+      chest: { color: 0xbf7a37, scale: [1, 1, 1], needsSafetyNet: false },
+      brick_block: { color: 0x985542, scale: [1, 1, 1], needsSafetyNet: false },
+      mossy_cobblestone: { color: 0x6b7d5a, scale: [1, 1, 1], needsSafetyNet: false },
+      obsidian: { color: 0x14141e, scale: [1, 1, 1], needsSafetyNet: false },
+      grass_block: { color: 0x7cbd6b, scale: [1, 1, 1], needsSafetyNet: true },
+      ice: { color: 0xa0c4ff, scale: [1, 1, 1], needsSafetyNet: false },
+      white_wool: { color: 0xf9fffe, scale: [1, 1, 1], needsSafetyNet: false },
+      red_wool: { color: 0xb02e26, scale: [1, 1, 1], needsSafetyNet: false },
+      orange_wool: { color: 0xf9801d, scale: [1, 1, 1], needsSafetyNet: false },
+      yellow_wool: { color: 0xfed83d, scale: [1, 1, 1], needsSafetyNet: false },
+      lime_wool: { color: 0x80c71f, scale: [1, 1, 1], needsSafetyNet: false },
+      green_wool: { color: 0x5e7c16, scale: [1, 1, 1], needsSafetyNet: false },
+      cyan_wool: { color: 0x169c9c, scale: [1, 1, 1], needsSafetyNet: false },
+      light_blue_wool: { color: 0x3ab3da, scale: [1, 1, 1], needsSafetyNet: false },
+      blue_wool: { color: 0x3c44aa, scale: [1, 1, 1], needsSafetyNet: false },
+      purple_wool: { color: 0x8932b8, scale: [1, 1, 1], needsSafetyNet: false },
+      magenta_wool: { color: 0xc74ebd, scale: [1, 1, 1], needsSafetyNet: false },
+      pink_wool: { color: 0xf38baa, scale: [1, 1, 1], needsSafetyNet: false },
+      gray_wool: { color: 0x474f52, scale: [1, 1, 1], needsSafetyNet: false },
+      light_gray_wool: { color: 0x9d9d97, scale: [1, 1, 1], needsSafetyNet: false },
+      black_wool: { color: 0x1d1d21, scale: [1, 1, 1], needsSafetyNet: false },
+      brown_wool: { color: 0x835432, scale: [1, 1, 1], needsSafetyNet: false },
+      cactus: { color: 0x0d7c0d, scale: [0.9, 1.0, 0.9], needsSafetyNet: false },
+      fence: { color: 0x8b7355, scale: [0.4, 0.8, 0.4], needsSafetyNet: false },
+      torch: { color: 0xffaa00, scale: [0.2, 0.8, 0.2], needsSafetyNet: false },
+      ladder: { color: 0x8b7355, scale: [0.9, 1.0, 0.1], needsSafetyNet: false },
+      red_mushroom: { color: 0xff4444, scale: [0.5, 0.7, 0.5], needsSafetyNet: false },
+      brown_mushroom: { color: 0x8b4513, scale: [0.5, 0.7, 0.5], needsSafetyNet: false },
+      yellow_flower: { color: 0xffff00, scale: [0.3, 0.8, 0.3], needsSafetyNet: false },
+      water: { color: 0x70a4ef, scale: [1, 1, 1], needsSafetyNet: false },
+      lit_pumpkin: { color: 0xdec420, scale: [1, 1, 1], needsSafetyNet: false },
+      wooden_door: { color: 0xae7a37, scale: [1, 1, 1], needsSafetyNet: false },
+      standing_sign: { color: 0xae7a37, scale: [.1, .9, .1], needsSafetyNet: false },
+      furnace:   { color: 0x888888, scale: [1, 1, 1], needsSafetyNet: true },
+    };
+    
+    const createMaterial = color => new THREE.MeshLambertMaterial({ color });
+    
+    const shouldRenderBlock = (blockType, x, y, z, blockMap) => {
+        const config = blockConfig[blockType];
+        if (!config) return false;
+        
+        // Check all 6 adjacent positions
+        const neighbors = [
+            blockMap.get(`${x},${y+1},${z}`),     // up
+            blockMap.get(`${x},${y-1},${z}`),     // down  
+            blockMap.get(`${x-1},${y},${z}`),     // left
+            blockMap.get(`${x+1},${y},${z}`),     // right
+            blockMap.get(`${x},${y},${z-1}`),     // forward
+            blockMap.get(`${x},${y},${z+1}`)      // backward
+        ];
+        
+        // If any neighbor is missing or transparent, render this block
+        return neighbors.some(neighbor => !neighbor || transparentBlocks.has(neighbor));
+    };
+    
+    const addBlock = (blockType, x, y, z) => {
+      const config = blockConfig[blockType];
+      if (!config) {
+        const cube = new THREE.Mesh(geometry, createMaterial(0xffff00));
+        cube.position.set(x, y, z);
+        cube.scale.set(1, 1, 1);
+        scene.add(cube);
+        return cube;    
+      }
+      const cube = new THREE.Mesh(geometry, createMaterial(config.color));
+      cube.position.set(x, y, z);
+      cube.scale.set(...config.scale);
+      scene.add(cube);
+      return cube;
+    };
+
+    async function loadDino() {
+      try {
+        const response = await fetch('dino.csv');
+        const csvData = await response.text();
+        const lines = csvData.trim().split('\n').slice(1);
+        const blocks = [];
+        const blockTypeCounts = new Map();
+        
+        blockMap = new Map();
+        
+        lines.forEach(line => {
+          const [block, state, x, z, y] = line.split(';');
+          const blockType = block.replace('minecraft:', ''); // the original 
+          const coords = [parseInt(x), parseInt(y), parseInt(z)];
+          
+          blockMap.set(`${coords[0]},${coords[1]},${coords[2]}`, blockType);
+          blocks.push({type: blockType, coords});
+          blockTypeCounts.set(blockType, (blockTypeCounts.get(blockType) || 0) + 1);
+        });
+        
+        console.log('Block types loaded:', Array.from(blockTypeCounts.entries()).sort((a, b) => b[1] - a[1]));
+        console.log(`Total blocks: ${blocks.length}`);
+        
+        let renderedCount = 0, skippedCount = 0;
+        blocks.forEach(({type, coords}) => {
+          const [x, y, z] = coords;
+          if (y < 60) return;
+          if (shouldRenderBlock(type, x, y, z, blockMap)) {
+            addBlock(type, x, y, z);
+            renderedCount++;
+          } else skippedCount++;
+        });
+        
+        console.log(`Rendered: ${renderedCount}, Skipped: ${skippedCount}, Ratio: ${(skippedCount/renderedCount).toFixed(2)}x reduction`);
+      } catch (e) {
+        console.error('Error loading dino.csv:', e);
+      }
+    }
+
+    async function init() {
+      await loadDino();
+      
+      const spawnX = 788, spawnZ = 850;
+      let spawnY = 75;
+      
+      cam.position.set(spawnX, spawnY, spawnZ);
+      cam.lookAt(spawnX, spawnY, spawnZ - 5);
+      
+      console.log(`Spawned at: ${spawnX}, ${spawnY}, ${spawnZ}`);
+    }
+
+    // Update info display
+    function updateInfo() {
+      const pos = cam.position;
+      document.getElementById('position').textContent = 
+        `${Math.round(pos.x)}, ${Math.round(pos.y)}, ${Math.round(pos.z)}`;
+    }
+
+    init();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      
+      if (isPointerLocked) {
+        mcPhysics(delta);
+        updateBlockSelection();
+        updateInfo();
+      }
+      
+      renderer.render(scene, cam);
+    }
+    animate();
+
+    addEventListener('resize', () => {
+      cam.aspect = window.innerWidth / window.innerHeight;
+      cam.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
