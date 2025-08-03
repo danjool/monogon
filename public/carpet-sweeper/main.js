@@ -7,6 +7,8 @@ import { Crosshair } from './crosshair.js';
 import { WorldSphere } from './world-sphere.js';
 import { InputManager } from './input-manager.js';
 import { MenuSystem } from './menu-system.js';
+import { LaunchScreen } from './launch-screen.js';
+import { DeviceDetector } from './device-detector.js';
 import { InfoPanel } from './info-panel.js';
 import { MultiplayerManager } from './multiplayer-manager.js';
 import { carpetConfig } from './carpet-config.js';
@@ -26,10 +28,21 @@ export class CarpetMinesweeperGame {
             visuals: visualsConfig
         };
         
-        this.initScene();
-        this.initSystems();
         this.lastTime = performance.now();
         this.frameCount = 0;
+        this.initialized = false;
+    }
+    
+    async initialize() {
+        // Show launch screen first
+        this.inputManager = new InputManager();
+        this.launchScreen = new LaunchScreen(this.inputManager, this.configs);
+        const launchSettings = await this.launchScreen.show();
+        
+        // Initialize the game with launch settings
+        this.initScene();
+        this.initSystems(launchSettings);
+        this.initialized = true;
     }
     
     initScene() {
@@ -84,14 +97,19 @@ export class CarpetMinesweeperGame {
         this.crosshair = new Crosshair();
     }
     
-    initSystems() {
-        // Input system
-        this.inputManager = new InputManager();
+    initSystems(launchSettings) {
+        // Input system is already created, just set it up based on platform
         window.inputManager = this.inputManager;
-        this.inputManager.initializeMobileUI();
         
-        // Menu system  
-        this.menuSystem = new MenuSystem(this.configs);
+        // Initialize controls based on platform
+        if (DeviceDetector.isMobile()) {
+            this.inputManager.setupMobileControls();
+            // NO menu system initialization for mobile
+            this.menuSystem = null;
+        } else {
+            // Initialize full menu system for desktop only
+            this.menuSystem = new MenuSystem(this.configs);
+        }
         
         // Info panel
         this.infoPanel = new InfoPanel();
@@ -190,46 +208,47 @@ export class CarpetMinesweeperGame {
             this.resetCarpet();
         }
         
-        // Handle menu toggle from action input (Tab key)
-        if (actionInput.toggleMenu) {
-            this.menuSystem.toggle();
-        }
-        
-        // Handle menu input
-        const menuInput = this.inputManager.getMenuInput();
-        if (menuInput.toggleMenu) {
-            this.menuSystem.toggle();
-        }
-        
-        // Handle menu close with B button or Escape
-        if (this.menuSystem.isVisible() && menuInput.back) {
-            this.menuSystem.hide();
-        }
-        
-        // Route input based on menu visibility
-        if (this.menuSystem.isVisible()) {
-            this.menuSystem.handleMenuInput(menuInput);
-            // Show crosshair but don't process game input
-            this.crosshair.hide();
-            return { pitch: 0, turn: 0, boost: 0, reverse: 0, cameraYaw: 0, cameraPitch: 0 };
-        } else {
-            // Show crosshair and process game input normally
-            this.crosshair.show();
-            
-            // Handle minesweeper interaction
-            if (actionInput.click) {
-                this.sweeper.checkInteraction(this.activeCamera, true);
-                this.inputManager.consumeClick();
+        // Handle menu input ONLY on desktop
+        if (!DeviceDetector.isMobile() && this.menuSystem) {
+            // Handle menu toggle from action input (Tab key)
+            if (actionInput.toggleMenu) {
+                this.menuSystem.toggle();
             }
             
-            // Get carpet input
-            const carpetInput = this.inputManager.getCarpetInput(deltaTime, this.configs.carpet);
+            const menuInput = this.inputManager.getMenuInput();
+            if (menuInput.toggleMenu) {
+                this.menuSystem.toggle();
+            }
             
-            // Consume mouse delta after processing
-            this.inputManager.consumeMouseDelta();
+            // Handle menu close with B button or Escape
+            if (this.menuSystem.isVisible() && menuInput.back) {
+                this.menuSystem.hide();
+            }
             
-            return carpetInput;
+            // Route input based on menu visibility
+            if (this.menuSystem.isVisible()) {
+                this.menuSystem.handleMenuInput(menuInput);
+                this.crosshair.hide();
+                return { pitch: 0, turn: 0, boost: 0, reverse: 0, cameraYaw: 0, cameraPitch: 0 };
+            }
         }
+        
+        // Show crosshair and process game input normally
+        this.crosshair.show();
+        
+        // Handle minesweeper interaction
+        if (actionInput.click) {
+            this.sweeper.checkInteraction(this.activeCamera, true);
+            this.inputManager.consumeClick();
+        }
+        
+        // Get carpet input
+        const carpetInput = this.inputManager.getCarpetInput(deltaTime, this.configs.carpet);
+        
+        // Consume mouse delta after processing
+        this.inputManager.consumeMouseDelta();
+        
+        return carpetInput;
     }
     
     resetCarpet() {
@@ -336,9 +355,14 @@ export class CarpetMinesweeperGame {
     }
     
     animate() {
+        requestAnimationFrame(() => this.animate());
+        
+        if (!this.initialized) {
+            return;
+        }
+        
         const deltaTime = this.calculateDeltaTime();
         this.frameCount++;
-        requestAnimationFrame(() => this.animate());
         
         // Process all input
         const input = this.processInput(deltaTime);
@@ -357,7 +381,8 @@ export class CarpetMinesweeperGame {
     }
 }
 
-export function init() {
+export async function init() {
     const game = new CarpetMinesweeperGame();
-    game.animate();
+    game.animate(); // Start the render loop
+    await game.initialize(); // Initialize after launch screen
 }

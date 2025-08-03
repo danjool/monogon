@@ -35,6 +35,90 @@
             pointer-events: none; 
             z-index: 100; 
         }
+        
+        /* Mobile-specific styles */
+        #mobile-controls {
+            display: none;
+            z-index: 1000;
+        }
+
+        .mobile-button-bar {
+            display: flex;
+            justify-content: space-between;
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            width: 100vw;
+            pointer-events: none;
+        }
+
+        .mobile-btn {
+            width: 60px;
+            height: 60px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            touch-action: manipulation;
+            user-select: none;
+            font-family: monospace;
+            margin: 20px;
+            pointer-events: auto;
+        }
+
+        .mobile-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0.95);
+        }
+
+        .mobile-btn.boost {
+            background: rgba(0, 255, 0, 0.3);
+        }
+
+        .mobile-btn.brake {
+            background: rgba(255, 0, 0, 0.3);
+        }
+
+        /* Hide ALL desktop menu elements on mobile */
+        @media screen and (max-width: 768px) {
+            #menu-system,
+            .menu-tabs,
+            .menu-content,
+            .config-sliders {
+                display: none !important;
+            }
+            
+            #mobile-controls {
+                display: block !important;
+            }
+        }
+        
+        /* Portrait mode hint */
+        @media screen and (orientation: portrait) and (max-width: 768px) {
+            .orientation-hint {
+                position: fixed;
+                top: 0; left: 0;
+                width: 100vw; height: 100vh;
+                background: rgba(0, 0, 0, 0.9);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 18px;
+                text-align: center;
+                z-index: 9999;
+                font-family: monospace;
+            }
+            
+            .rotate-icon {
+                font-size: 48px;
+                margin-bottom: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -49,49 +133,23 @@
         </svg>
     </div>
 
-    <div id="mobile-controls" style="
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    z-index: 1000;
-    background: rgba(0,0,0,0.8);
-    color: white;
-    padding: 15px;
-    border-radius: 8px;
-    font-family: monospace;
-    font-size: 14px;
-">
-    <div id="orientation-status">
-        Device Orientation: <span id="orientation-state">Checking...</span>
+    <!-- Mobile Controls (Bottom Button Bar) -->
+    <div id="mobile-controls">
+        <div class="mobile-button-bar">
+            <button class="mobile-btn brake" id="mobile-brake">
+                BRAKE
+            </button>
+            <button class="mobile-btn boost" id="mobile-boost">
+                BOOST
+            </button>
+        </div>
     </div>
     
-    <button id="enable-orientation" style="
-        margin: 10px 0;
-        padding: 10px 15px;
-        background: #007AFF;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        font-size: 14px;
-        cursor: pointer;
-    ">
-        Enable Motion Controls
-    </button>
-    
-    <button id="calibrate-orientation" style="
-        margin: 10px 0;
-        padding: 10px 15px;
-        background: #FF9500;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        font-size: 14px;
-        cursor: pointer;
-        display: none;
-    ">
-        Recalibrate
-    </button>
-</div>
+    <!-- Portrait Orientation Hint -->
+    <div class="orientation-hint" id="portrait-hint" style="display: none;">
+        <div class="rotate-icon">ROTATE</div>
+        <div>Please rotate your device to landscape mode for the best flying experience</div>
+    </div>
     
     <script type="importmap">
     {

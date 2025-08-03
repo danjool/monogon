@@ -1,5 +1,7 @@
 import { Keyboard } from './keyboard.js';
 import { Gamepad } from './gamepad.js';
+import { DeviceDetector } from './device-detector.js';
+import { MobileTapHandler } from './mobile-tap-handler.js';
 
 export class InputManager {
     constructor() {
@@ -33,6 +35,15 @@ export class InputManager {
         };
         
         this.setupDeviceOrientation();
+        
+        // Mobile controls
+        this.isMobile = DeviceDetector.isMobile();
+        this.tapHandler = null;
+        this.mobileButtons = {
+            boost: false,
+            brake: false
+        };
+        this.touchClick = null;
     }
     
     setupMouseEvents() {
@@ -218,8 +229,17 @@ export class InputManager {
             input.cameraPitch = -this.mouseDelta.y * mouseSensitivity;
         }
         
-        // Device orientation input replaces keyboard input if available
-        if (this.deviceOrientation.enabled && this.deviceOrientation.calibrated) {
+        // Mobile uses ONLY orientation for flight control
+        if (this.isMobile && this.deviceOrientation.enabled && this.deviceOrientation.calibrated) {
+            // Orientation input overrides keyboard on mobile
+            input.pitch = -this.deviceOrientation.pitch * config.pitchSensitivity.value;
+            input.turn = this.deviceOrientation.turn * config.turnInputRate.value * deltaTime;
+            
+            // Mobile button input for boost/brake
+            if (this.mobileButtons.boost) input.boost = 1.0;
+            if (this.mobileButtons.brake) input.reverse = 1.0;
+        } else if (!this.isMobile && this.deviceOrientation.enabled && this.deviceOrientation.calibrated) {
+            // Desktop can combine orientation with keyboard
             input.pitch -= this.deviceOrientation.pitch * config.pitchSensitivity.value;
             input.turn += this.deviceOrientation.turn * config.turnInputRate.value * deltaTime;
         }
@@ -252,8 +272,18 @@ export class InputManager {
         return input;
     }
     
-    // Get menu navigation input
+    // Get menu navigation input - DESKTOP ONLY
     getMenuInput() {
+        // Mobile users get NO menu access
+        if (this.isMobile) {
+            return { 
+                nextTab: false, prevTab: false, up: false, down: false, 
+                left: false, right: false, adjustValue: 0, adjustValueTriggers: 0,
+                select: false, back: false, toggleMenu: false 
+            };
+        }
+        
+        // Desktop menu navigation
         const keyState = this.keyboard.getState();
         const gamepadState = this.gamepad.getState();
         
@@ -297,15 +327,17 @@ export class InputManager {
             // Menu toggle
             toggleMenu: keyState.tab,
             
-            // Click actions (mouse, gamepad A button, or bumper buttons)
+            // Click actions (mouse, gamepad A button, bumper buttons, or touch)
             click: this.mouseClicked || this.gamepad.wasPressed('a') || 
-                   this.gamepad.wasPressed('leftBumper') || this.gamepad.wasPressed('rightBumper')
+                   this.gamepad.wasPressed('leftBumper') || this.gamepad.wasPressed('rightBumper') ||
+                   (this.touchClick && (Date.now() - this.touchClick.timestamp < 100))
         };
     }
     
     // Consume click event (call this after handling click)
     consumeClick() {
         this.mouseClicked = false;
+        this.touchClick = null;
     }
     
     // Consume mouse delta (call this after handling mouse input)
@@ -363,7 +395,56 @@ export class InputManager {
         }
     }
     
-    // Initialize mobile UI controls
+    // Setup mobile controls
+    setupMobileControls() {
+        if (this.isMobile) {
+            this.tapHandler = new MobileTapHandler(document.body, this);
+            this.setupMobileButtons();
+            this.showMobileUI();
+        }
+    }
+    
+    setupMobileButtons() {
+        const boostBtn = document.getElementById('mobile-boost');
+        const brakeBtn = document.getElementById('mobile-brake');
+        
+        if (boostBtn && brakeBtn) {
+            boostBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.mobileButtons.boost = true;
+            });
+            boostBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                this.mobileButtons.boost = false;
+            });
+            brakeBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.mobileButtons.brake = true;
+            });
+            brakeBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                this.mobileButtons.brake = false;
+            });
+        }
+    }
+    
+    showMobileUI() {
+        const mobileControls = document.getElementById('mobile-controls');
+        if (mobileControls) {
+            mobileControls.style.display = this.isMobile ? 'block' : 'none';
+        }
+    }
+    
+    triggerTouchClick(touchEvent) {
+        // Convert touch to click for minesweeper interaction
+        this.touchClick = {
+            clientX: touchEvent.clientX,
+            clientY: touchEvent.clientY,
+            timestamp: Date.now()
+        };
+    }
+    
+    // Initialize mobile UI controls (legacy method for compatibility)
     initializeMobileUI() {
         // Make this instance globally accessible
         window.inputManager = this;

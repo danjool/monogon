@@ -1,7 +1,16 @@
+import { DeviceDetector } from './device-detector.js';
+
 export class MenuSystem {
     constructor(configs) {
         this.configs = configs;
         this.visible = false;
+        this.isMobile = DeviceDetector.isMobile();
+        
+        // Mobile gets NO menu system at all
+        if (this.isMobile) {
+            this.disabled = true;
+            return;
+        }
         
         this.tabs = ['carpet', 'camera', 'particles', 'visuals'];
         this.currentTab = 'carpet';
@@ -260,7 +269,7 @@ export class MenuSystem {
     }
     
     handleMenuInput(input) {
-        if (!this.visible) return;
+        if (!this.visible || this.isMobile || this.disabled) return;
         
         // Tab switching
         if (input.nextTab) {
@@ -385,16 +394,21 @@ export class MenuSystem {
     }
     
     show() {
+        if (this.isMobile || this.disabled) return;
         this.visible = true;
         this.element.style.display = 'block';
     }
     
     hide() {
+        if (this.isMobile || this.disabled) return;
         this.visible = false;
         this.element.style.display = 'none';
     }
     
     toggle() {
+        // Block menu access on mobile completely
+        if (this.isMobile || this.disabled) return;
+        
         if (this.visible) {
             this.hide();
         } else {
@@ -403,6 +417,9 @@ export class MenuSystem {
     }
     
     isVisible() {
+        // Menu never visible on mobile
+        if (this.isMobile || this.disabled) return false;
+        
         return this.visible;
     }
 }
