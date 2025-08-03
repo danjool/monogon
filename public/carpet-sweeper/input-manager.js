@@ -44,6 +44,13 @@ export class InputManager {
             brake: false
         };
         this.touchClick = null;
+        
+        // Mobile swipe for camera control
+        this.mobileSwipe = {
+            deltaX: 0,
+            deltaY: 0,
+            active: false
+        };
     }
     
     setupMouseEvents() {
@@ -229,15 +236,24 @@ export class InputManager {
             input.cameraPitch = -this.mouseDelta.y * mouseSensitivity;
         }
         
-        // Mobile uses ONLY orientation for flight control
-        if (this.isMobile && this.deviceOrientation.enabled && this.deviceOrientation.calibrated) {
-            // Orientation input overrides keyboard on mobile
-            input.pitch = -this.deviceOrientation.pitch * config.pitchSensitivity.value;
-            input.turn = this.deviceOrientation.turn * config.turnInputRate.value * deltaTime;
-            
+        // Mobile input handling
+        if (this.isMobile) {
             // Mobile button input for boost/brake
             if (this.mobileButtons.boost) input.boost = 1.0;
             if (this.mobileButtons.brake) input.reverse = 1.0;
+            
+            // Mobile swipe input for camera control (always available)
+            if (this.mobileSwipe.active) {
+                const swipeSensitivity = 0.005; // Similar to mouse sensitivity
+                input.cameraYaw = -this.mobileSwipe.deltaX * swipeSensitivity;
+                input.cameraPitch = -this.mobileSwipe.deltaY * swipeSensitivity;
+            }
+            
+            // Orientation input for flight control (if enabled)
+            if (this.deviceOrientation.enabled && this.deviceOrientation.calibrated) {
+                input.pitch = -this.deviceOrientation.pitch * config.pitchSensitivity.value;
+                input.turn = this.deviceOrientation.turn * config.turnInputRate.value * deltaTime;
+            }
         } else if (!this.isMobile && this.deviceOrientation.enabled && this.deviceOrientation.calibrated) {
             // Desktop can combine orientation with keyboard
             input.pitch -= this.deviceOrientation.pitch * config.pitchSensitivity.value;
@@ -442,6 +458,20 @@ export class InputManager {
             clientY: touchEvent.clientY,
             timestamp: Date.now()
         };
+    }
+    
+    // Update mobile swipe state for camera control
+    updateMobileSwipe(swipeDelta) {
+        this.mobileSwipe.deltaX = swipeDelta.x;
+        this.mobileSwipe.deltaY = swipeDelta.y;
+        this.mobileSwipe.active = true;
+    }
+    
+    // Clear mobile swipe state
+    clearMobileSwipe() {
+        this.mobileSwipe.deltaX = 0;
+        this.mobileSwipe.deltaY = 0;
+        this.mobileSwipe.active = false;
     }
     
     // Initialize mobile UI controls (legacy method for compatibility)

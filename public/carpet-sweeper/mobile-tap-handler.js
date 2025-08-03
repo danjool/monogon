@@ -5,11 +5,19 @@ export class MobileTapHandler {
         this.lastTap = 0;
         this.doubleTapWindow = 500; // ms
         
+        // Swipe detection
+        this.touchStart = null;
+        this.touchCurrent = null;
+        this.isSwipeActive = false;
+        this.swipeDelta = { x: 0, y: 0 };
+        this.swipeThreshold = 10; // minimum pixels to consider a swipe
+        
         this.setupTapEvents();
     }
     
     setupTapEvents() {
         this.element.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+        this.element.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
         this.element.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
     }
     
@@ -18,23 +26,23 @@ export class MobileTapHandler {
         e.preventDefault();
         
         const now = Date.now();
-        const timeSinceLastTap = now - this.lastTap;
         const touch = e.touches[0];
+        
+        // Store touch start position for swipe detection
+        this.touchStart = {
+            x: touch.clientX,
+            y: touch.clientY,
+            time: now
+        };
+        this.touchCurrent = { ...this.touchStart };
+        this.isSwipeActive = false;
+        this.swipeDelta = { x: 0, y: 0 };
         
         // Check if touch is on a button
         const isOnButton = this.isTouchOnButton(touch);
         
-        if (timeSinceLastTap < this.doubleTapWindow && !isOnButton) {
-            // Double tap on empty area - recalibrate orientation
-            this.inputManager.calibrateDeviceOrientation();
-            this.showCalibrationFeedback();
-        } else if (!isOnButton) {
-            // Single tap on empty area - store for potential minesweeper interaction
-            this.handleTapInteraction(touch);
-        }
-        // If touch is on button, let the button handle it (no minesweeper interaction)
-        
-        this.lastTap = now;
+        // Store button status for later processing
+        this.touchStartOnButton = isOnButton;
     }
     
     isTouchOnButton(touch) {
@@ -53,15 +61,73 @@ export class MobileTapHandler {
         return false;
     }
     
-    handleTouchEnd(e) {
+    handleTouchMove(e) {
         e.preventDefault();
+        
+        if (!this.touchStart) return;
+        
+        const touch = e.touches[0];
+        this.touchCurrent = {
+            x: touch.clientX,
+            y: touch.clientY,
+            time: Date.now()
+        };
+        
+        // Calculate movement delta
+        const deltaX = this.touchCurrent.x - this.touchStart.x;
+        const deltaY = this.touchCurrent.y - this.touchStart.y;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        
+        // If we've moved beyond threshold and not on button, start swiping
+        if (distance > this.swipeThreshold && !this.touchStartOnButton) {
+            this.isSwipeActive = true;
+            
+            // Calculate swipe delta for camera control
+            this.swipeDelta.x = deltaX;
+            this.swipeDelta.y = deltaY;
+            
+            // Update input manager with swipe data
+            this.inputManager.updateMobileSwipe(this.swipeDelta);
+        }
     }
     
-    handleTapInteraction(touch) {
+    handleTouchEnd(e) {
+        e.preventDefault();
+        
+        if (!this.touchStart) return;
+        
+        const now = Date.now();
+        const timeSinceLastTap = now - this.lastTap;
+        
+        // If this was a swipe, don't process as tap
+        if (this.isSwipeActive) {
+            // Clear swipe state
+            this.inputManager.clearMobileSwipe();
+        } else if (!this.touchStartOnButton) {
+            // Process as potential tap/double-tap
+            if (timeSinceLastTap < this.doubleTapWindow) {
+                // Double tap - recalibrate orientation
+                this.inputManager.calibrateDeviceOrientation();
+                this.showCalibrationFeedback();
+            } else {
+                // Single tap - minesweeper interaction
+                this.handleTapInteraction(this.touchStart);
+            }
+        }
+        
+        // Reset touch state
+        this.touchStart = null;
+        this.touchCurrent = null;
+        this.isSwipeActive = false;
+        this.swipeDelta = { x: 0, y: 0 };
+        this.lastTap = now;
+    }
+    
+    handleTapInteraction(touchPos) {
         // Convert touch to screen coordinates for minesweeper interaction
         const event = {
-            clientX: touch.clientX,
-            clientY: touch.clientY,
+            clientX: touchPos.x,
+            clientY: touchPos.y,
             type: 'touch'
         };
         
