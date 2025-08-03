@@ -10,6 +10,29 @@ export class InputManager {
         this.mouseDelta = { x: 0, y: 0 };
         this.isPointerLocked = false;
         this.setupMouseEvents();
+        
+        // Device orientation support
+        this.deviceOrientation = {
+            enabled: false,
+            supported: false,
+            permissionGranted: false,
+            alpha: 0,  // Device rotation (compass)
+            beta: 0,   // Front-to-back tilt (-90 to 90)
+            gamma: 0,  // Left-to-right tilt (-90 to 90)
+            
+            // Calibration
+            calibrated: false,
+            neutralBeta: 0,
+            neutralGamma: 0,
+            deadzone: 5, // degrees
+            sensitivity: 2.0, // multiplier
+            
+            // Derived values
+            pitch: 0,
+            turn: 0
+        };
+        
+        this.setupDeviceOrientation();
     }
     
     setupMouseEvents() {
@@ -38,6 +61,121 @@ export class InputManager {
         window.addEventListener('resize', () => {
             this.onResize();
         });
+    }
+    
+    setupDeviceOrientation() {
+        if (typeof DeviceOrientationEvent !== 'undefined') {
+            this.deviceOrientation.supported = true;
+            // For iOS 13+, we need to request permission
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                console.log('iOS 13+ detected - permission required for device orientation');
+            } else {
+                // Android or older iOS - permission granted by default
+                this.deviceOrientation.permissionGranted = true;
+                this.setupOrientationListener();
+            }
+        } else {
+            console.log('Device orientation not supported');
+        }
+    }
+    
+    async requestOrientationPermission() {
+        if (!this.deviceOrientation.supported) {
+            return { success: false, error: 'Device orientation not supported' };
+        }
+        
+        if (this.deviceOrientation.permissionGranted) {
+            return { success: true, message: 'Permission already granted' };
+        }
+        
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            try {
+                const permission = await DeviceOrientationEvent.requestPermission();
+                if (permission === 'granted') {
+                    this.deviceOrientation.permissionGranted = true;
+                    this.setupOrientationListener();
+                    return { success: true, message: 'Permission granted' };
+                } else {
+                    return { success: false, error: `Permission ${permission}` };
+                }
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+        
+        this.deviceOrientation.permissionGranted = true;
+        this.setupOrientationListener();
+        return { success: true, message: 'Permission granted' };
+    }
+    
+    setupOrientationListener() {
+        if (!this.deviceOrientation.permissionGranted) return;
+        window.addEventListener('deviceorientation', (event) => {
+            this.deviceOrientation.alpha = event.alpha || 0;
+            this.deviceOrientation.beta = event.beta || 0;
+            this.deviceOrientation.gamma = event.gamma || 0;
+            this.processOrientation();
+        });
+    }
+    
+    processOrientation() {
+        if (!this.deviceOrientation.enabled || !this.deviceOrientation.calibrated) {
+            return;
+        }
+        
+        const { beta, gamma, neutralBeta, neutralGamma, deadzone, sensitivity } = this.deviceOrientation;
+        
+        // Calculate relative angles from neutral position
+        let relativeBeta = beta - neutralBeta;
+        let relativeGamma = gamma - neutralGamma;
+        
+        // Handle angle wrapping (shouldn't be needed for beta/gamma but safety first)
+        if (relativeBeta > 180) relativeBeta -= 360;
+        if (relativeBeta < -180) relativeBeta += 360;
+        if (relativeGamma > 180) relativeGamma -= 360;
+        if (relativeGamma < -180) relativeGamma += 360;
+        
+        // Apply deadzone
+        if (Math.abs(relativeBeta) < deadzone) relativeBeta = 0;
+        if (Math.abs(relativeGamma) < deadzone) relativeGamma = 0;
+        
+        // Map to control values
+        // Beta (forward/back tilt) -> Pitch (nose up/down)
+        // Positive beta (tilt back) -> negative pitch (nose up)
+        this.deviceOrientation.pitch = -relativeBeta * sensitivity / 90.0;
+        
+        // Gamma (left/right tilt) -> Turn
+        // Positive gamma (tilt right) -> negative turn (turn right)
+        this.deviceOrientation.turn = -relativeGamma * sensitivity / 90.0;
+        
+        // Clamp values
+        this.deviceOrientation.pitch = Math.max(-1, Math.min(1, this.deviceOrientation.pitch));
+        this.deviceOrientation.turn = Math.max(-1, Math.min(1, this.deviceOrientation.turn));
+    }
+    
+    enableDeviceOrientation() {
+        if (!this.deviceOrientation.supported || !this.deviceOrientation.permissionGranted) {
+            return false;
+        }
+        
+        this.deviceOrientation.enabled = true;
+        this.calibrateDeviceOrientation();
+        return true;
+    }
+    
+    disableDeviceOrientation() {
+        this.deviceOrientation.enabled = false;
+        this.deviceOrientation.pitch = 0;
+        this.deviceOrientation.turn = 0;
+    }
+    
+    calibrateDeviceOrientation() {
+        if (!this.deviceOrientation.enabled) return;
+        
+        // Set current orientation as neutral
+        this.deviceOrientation.neutralBeta = this.deviceOrientation.beta;
+        this.deviceOrientation.neutralGamma = this.deviceOrientation.gamma;
+        this.deviceOrientation.calibrated = true;
     }
     
     update() {
@@ -78,6 +216,12 @@ export class InputManager {
             const mouseSensitivity = 0.002; // Adjust as needed
             input.cameraYaw = -this.mouseDelta.x * mouseSensitivity;
             input.cameraPitch = -this.mouseDelta.y * mouseSensitivity;
+        }
+        
+        // Device orientation input replaces keyboard input if available
+        if (this.deviceOrientation.enabled && this.deviceOrientation.calibrated) {
+            input.pitch -= this.deviceOrientation.pitch * config.pitchSensitivity.value;
+            input.turn += this.deviceOrientation.turn * config.turnInputRate.value * deltaTime;
         }
         
         // Gamepad input (if active)
@@ -185,5 +329,126 @@ export class InputManager {
             active: this.gamepad.isActive(),
             // You could add gamepad name/id here if needed
         };
+    }
+    
+    getOrientationInfo() { // for UI display
+        return {
+            supported: this.deviceOrientation.supported,
+            permissionGranted: this.deviceOrientation.permissionGranted,
+            enabled: this.deviceOrientation.enabled,
+            calibrated: this.deviceOrientation.calibrated,
+            
+            // Current values for debugging
+            alpha: this.deviceOrientation.alpha.toFixed(1),
+            beta: this.deviceOrientation.beta.toFixed(1),
+            gamma: this.deviceOrientation.gamma.toFixed(1),
+            
+            // Processed control values
+            pitch: this.deviceOrientation.pitch.toFixed(2),
+            turn: this.deviceOrientation.turn.toFixed(2),
+            
+            // Settings
+            deadzone: this.deviceOrientation.deadzone,
+            sensitivity: this.deviceOrientation.sensitivity
+        };
+    }
+    
+    // Update device orientation settings
+    updateOrientationSettings(settings) {
+        if (settings.deadzone !== undefined) {
+            this.deviceOrientation.deadzone = Math.max(0, Math.min(45, settings.deadzone));
+        }
+        if (settings.sensitivity !== undefined) {
+            this.deviceOrientation.sensitivity = Math.max(0.1, Math.min(5.0, settings.sensitivity));
+        }
+    }
+    
+    // Initialize mobile UI controls
+    initializeMobileUI() {
+        // Make this instance globally accessible
+        window.inputManager = this;
+        
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.setupMobileUI());
+        } else {
+            this.setupMobileUI();
+        }
+    }
+    
+    setupMobileUI() {
+        const enableBtn = document.getElementById('enable-orientation');
+        const calibrateBtn = document.getElementById('calibrate-orientation');
+        const statusSpan = document.getElementById('orientation-state');
+        
+        // Check if elements exist (in case mobile UI isn't in the HTML)
+        if (!enableBtn || !statusSpan) {
+            console.log('Mobile UI elements not found in DOM');
+            return;
+        }
+        
+        // Update status display
+        const updateStatus = () => {
+            const info = this.getOrientationInfo();
+            
+            if (!info.supported) {
+                statusSpan.textContent = 'Not Supported';
+                enableBtn.style.display = 'none';
+            } else if (!info.permissionGranted) {
+                statusSpan.textContent = 'Permission Needed';
+                enableBtn.textContent = 'Enable Motion Controls';
+                enableBtn.style.display = 'block';
+            } else if (!info.enabled) {
+                statusSpan.textContent = 'Ready (Disabled)';
+                enableBtn.textContent = 'Enable Motion Controls';
+                enableBtn.style.display = 'block';
+            } else if (!info.calibrated) {
+                statusSpan.textContent = 'Enabled (Not Calibrated)';
+                if (calibrateBtn) calibrateBtn.style.display = 'block';
+            } else {
+                statusSpan.textContent = 'Active';
+                enableBtn.style.display = 'none';
+                if (calibrateBtn) calibrateBtn.style.display = 'block';
+            }
+        };
+        
+        // Enable orientation button
+        enableBtn.addEventListener('click', async () => {
+            enableBtn.textContent = 'Requesting Permission...';
+            enableBtn.disabled = true;
+            
+            try {
+                const result = await this.requestOrientationPermission();
+                
+                if (result.success) {
+                    this.enableDeviceOrientation();
+                    enableBtn.textContent = 'Motion Controls Enabled!';
+                    setTimeout(() => {
+                        updateStatus();
+                    }, 1000);
+                } else {
+                    enableBtn.textContent = 'Enable Motion Controls';
+                    enableBtn.disabled = false;
+                }
+            } catch (error) {
+                enableBtn.textContent = 'Enable Motion Controls';
+                enableBtn.disabled = false;
+            }
+        });
+        
+        // Calibrate button
+        if (calibrateBtn) {
+            calibrateBtn.addEventListener('click', () => {
+                this.calibrateDeviceOrientation();
+                calibrateBtn.textContent = 'Calibrated!';
+                setTimeout(() => {
+                    calibrateBtn.textContent = 'Recalibrate';
+                }, 1000);
+            });
+        }
+        
+        // Update status every 100ms
+        this.statusUpdateInterval = setInterval(updateStatus, 100);
+        updateStatus();
     }
 }

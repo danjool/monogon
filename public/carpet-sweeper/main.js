@@ -87,6 +87,8 @@ export class CarpetMinesweeperGame {
     initSystems() {
         // Input system
         this.inputManager = new InputManager();
+        window.inputManager = this.inputManager;
+        this.inputManager.initializeMobileUI();
         
         // Menu system  
         this.menuSystem = new MenuSystem(this.configs);
