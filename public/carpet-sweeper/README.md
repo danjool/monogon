@@ -115,3 +115,8 @@ const up = positionVector.normalize().negate(); // Up points toward sphere cente
 - Hot reload supported with any dev server
 - Extensive configuration system for real-time tweaking
 - Clean separation of concerns across modules
+
+### iOS Local Development
+```bash
+ngrok http http://localhost:<port>
+```

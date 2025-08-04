@@ -244,7 +244,7 @@ export class InputManager {
             
             // Mobile swipe input for camera control (always available)
             if (this.mobileSwipe.active) {
-                const swipeSensitivity = 0.005; // Similar to mouse sensitivity
+                const swipeSensitivity = 0.02; // Higher sensitivity for frame-to-frame deltas
                 input.cameraYaw = -this.mobileSwipe.deltaX * swipeSensitivity;
                 input.cameraPitch = -this.mobileSwipe.deltaY * swipeSensitivity;
             }
@@ -360,6 +360,11 @@ export class InputManager {
     consumeMouseDelta() {
         this.mouseDelta.x = 0;
         this.mouseDelta.y = 0;
+        
+        // Also clear mobile swipe deltas after input processing
+        if (this.isMobile) {
+            this.clearMobileSwipe();
+        }
     }
     
     // Handle window resize

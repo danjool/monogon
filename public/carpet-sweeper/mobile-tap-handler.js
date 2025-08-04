@@ -8,6 +8,7 @@ export class MobileTapHandler {
         // Swipe detection
         this.touchStart = null;
         this.touchCurrent = null;
+        this.touchPrevious = null;
         this.isSwipeActive = false;
         this.swipeDelta = { x: 0, y: 0 };
         this.swipeThreshold = 10; // minimum pixels to consider a swipe
@@ -35,6 +36,7 @@ export class MobileTapHandler {
             time: now
         };
         this.touchCurrent = { ...this.touchStart };
+        this.touchPrevious = { ...this.touchStart };
         this.isSwipeActive = false;
         this.swipeDelta = { x: 0, y: 0 };
         
@@ -64,7 +66,7 @@ export class MobileTapHandler {
     handleTouchMove(e) {
         e.preventDefault();
         
-        if (!this.touchStart) return;
+        if (!this.touchStart || !this.touchPrevious) return;
         
         const touch = e.touches[0];
         this.touchCurrent = {
@@ -73,22 +75,29 @@ export class MobileTapHandler {
             time: Date.now()
         };
         
-        // Calculate movement delta
-        const deltaX = this.touchCurrent.x - this.touchStart.x;
-        const deltaY = this.touchCurrent.y - this.touchStart.y;
-        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        // Calculate total distance from start to determine if we should start swiping
+        const totalDeltaX = this.touchCurrent.x - this.touchStart.x;
+        const totalDeltaY = this.touchCurrent.y - this.touchStart.y;
+        const totalDistance = Math.sqrt(totalDeltaX * totalDeltaX + totalDeltaY * totalDeltaY);
+        
+        // Calculate frame-to-frame movement delta for camera control
+        const frameDeltaX = this.touchCurrent.x - this.touchPrevious.x;
+        const frameDeltaY = this.touchCurrent.y - this.touchPrevious.y;
         
         // If we've moved beyond threshold and not on button, start swiping
-        if (distance > this.swipeThreshold && !this.touchStartOnButton) {
+        if (totalDistance > this.swipeThreshold && !this.touchStartOnButton) {
             this.isSwipeActive = true;
             
-            // Calculate swipe delta for camera control
-            this.swipeDelta.x = deltaX;
-            this.swipeDelta.y = deltaY;
+            // Use frame-to-frame delta for camera control (drag-to-rotate)
+            this.swipeDelta.x = frameDeltaX;
+            this.swipeDelta.y = frameDeltaY;
             
-            // Update input manager with swipe data
+            // Update input manager with movement delta
             this.inputManager.updateMobileSwipe(this.swipeDelta);
         }
+        
+        // Update previous position for next frame
+        this.touchPrevious = { ...this.touchCurrent };
     }
     
     handleTouchEnd(e) {
@@ -108,7 +117,6 @@ export class MobileTapHandler {
             if (timeSinceLastTap < this.doubleTapWindow) {
                 // Double tap - recalibrate orientation
                 this.inputManager.calibrateDeviceOrientation();
-                this.showCalibrationFeedback();
             } else {
                 // Single tap - minesweeper interaction
                 this.handleTapInteraction(this.touchStart);
@@ -118,6 +126,7 @@ export class MobileTapHandler {
         // Reset touch state
         this.touchStart = null;
         this.touchCurrent = null;
+        this.touchPrevious = null;
         this.isSwipeActive = false;
         this.swipeDelta = { x: 0, y: 0 };
         this.lastTap = now;
@@ -135,31 +144,4 @@ export class MobileTapHandler {
         this.inputManager.triggerTouchClick(event);
     }
     
-    showCalibrationFeedback() {
-        // Brief visual feedback for calibration
-        const feedback = document.createElement('div');
-        feedback.className = 'calibration-feedback';
-        feedback.textContent = 'Motion Controls Calibrated';
-        feedback.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 255, 0, 0.8);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            font-size: 18px;
-            font-family: monospace;
-            z-index: 10000;
-            pointer-events: none;
-        `;
-        document.body.appendChild(feedback);
-        
-        setTimeout(() => {
-            if (feedback.parentNode) {
-                feedback.parentNode.removeChild(feedback);
-            }
-        }, 2000);
-    }
 }
