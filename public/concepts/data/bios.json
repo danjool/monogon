@@ -1219,7 +1219,8 @@
 	{"id": "Jorge Luis Borges, or Why Understanding Is Not What It Seems to Be", "time": 1976, "type": "essay"},
 	{"id": "Postmodernity and its Discontents", "time": 1997, "type": "book"},
 	{"id": "Averroës’s Search", "time": 1947, "type": "short story"},
-	{"id": "Seven Years of Desire", "time": 1997, "type": "book"}
+	{"id": "Seven Years of Desire", "time": 1997, "type": "book"},
+	{"id": "Dune (Lynch Movie)", "time": 1984, "type": "movie"}
 
 ],"links":[
 	{"source": "Walter M. Miller Jr.", "target": "A Canticle for Leibowitz", "type": "wrote" },
