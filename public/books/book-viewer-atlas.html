@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Book Thumbnail Viewer - InstancedMesh Optimized</title>
+    <style> 
+        body { 
+            margin: 0; 
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        #3d-graph {
+            touch-action: none;
+            pointer-events: auto;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+    <script src="//cdn.jsdelivr.net/npm/3d-force-graph"></script>
+</head>
+
+<body>
+    <div id="3d-graph"></div>
+
+    <script type="module">
+        import * as THREE from 'https://esm.sh/three';
+
+        // Enhanced atlas material for instanced rendering with billboard support
+        const InstancedAtlasMaterial = class extends THREE.ShaderMaterial {
+            constructor(atlasTexture) {
+                super({
+                    uniforms: {
+                        atlasTexture: { value: atlasTexture },
+                        time: { value: 0 }
+                    },
+                    vertexShader: `
+                        // Three.js provides cameraPosition automatically, no need to declare it
+                        attribute vec4 uvBounds; // uMin, vMin, uMax, vMax per instance
+                        varying vec2 vUv;
+                        
+                        void main() {
+                            // Map standard UV (0-1) to atlas UV bounds for this instance
+                            vUv = vec2(
+                                mix(uvBounds.x, uvBounds.z, uv.x),
+                                mix(uvBounds.y, uvBounds.w, uv.y)
+                            );
+                            
+                            // Extract position and scale from instance matrix
+                            vec3 instancePosition = vec3(instanceMatrix[3]);
+                            vec3 instanceScale = vec3(
+                                length(instanceMatrix[0].xyz),
+                                length(instanceMatrix[1].xyz),
+                                length(instanceMatrix[2].xyz)
+                            );
+                            
+                            // Calculate billboard vectors using built-in cameraPosition
+                            vec3 toCamera = normalize(cameraPosition - instancePosition);
+                            vec3 up = vec3(0.0, 1.0, 0.0);
+                            vec3 right = normalize(cross(up, toCamera));
+                            up = cross(toCamera, right);
+                            
+                            // Build billboard matrix with instance position and scale
+                            mat4 billboardMatrix = mat4(
+                                vec4(right * instanceScale.x, 0.0),
+                                vec4(up * instanceScale.y, 0.0),
+                                vec4(toCamera, 0.0),
+                                vec4(instancePosition, 1.0)
+                            );
+                            
+                            // Apply billboard transform to vertex
+                            vec4 worldPosition = billboardMatrix * vec4(position, 1.0);
+                            gl_Position = projectionMatrix * viewMatrix * worldPosition;
+                        }
+                    `,
+                    fragmentShader: `
+                        uniform sampler2D atlasTexture;
+                        varying vec2 vUv;
+                        
+                        void main() {
+                            vec4 texColor = texture2D(atlasTexture, vUv);
+                            if (texColor.a < 0.001) discard;
+                            gl_FragColor = texColor;
+                        }
+                    `,
+                    transparent: true,
+                    alphaTest: 0.001
+                });
+            }
+        };
+
+        // Proxy object that updates the corresponding instance
+        class BookSpriteProxy extends THREE.Object3D {
+            constructor(instancedMesh, instanceIndex, uvBounds, scale) {
+                super();
+                this.instancedMesh = instancedMesh;
+                this.instanceIndex = instanceIndex;
+                this.scale.set(scale.x, scale.y, 1);
+                
+                // Set UV bounds for this instance
+                const uvBoundsAttr = instancedMesh.geometry.attributes.uvBounds;
+                uvBoundsAttr.setXYZW(instanceIndex, uvBounds[0], uvBounds[1], uvBounds[2], uvBounds[3]);
+                uvBoundsAttr.needsUpdate = true;
+            }
+            
+            updateMatrixWorld(force) {
+                super.updateMatrixWorld(force);
+                // Update the instance matrix in the instanced mesh
+                this.instancedMesh.setMatrixAt(this.instanceIndex, this.matrixWorld);
+                this.instancedMesh.instanceMatrix.needsUpdate = true;
+            }
+        }
+
+        // Book atlas manager
+        class BookAtlasManager {
+            constructor(atlasTexture, uvMap, maxInstances) {
+                this.geometry = new THREE.PlaneGeometry(1, 1);
+                this.material = new InstancedAtlasMaterial(atlasTexture);
+                this.instancedMesh = new THREE.InstancedMesh(this.geometry, this.material, maxInstances);
+                
+                // Add instanced UV bounds attribute
+                const uvBoundsAttribute = new THREE.InstancedBufferAttribute(
+                    new Float32Array(maxInstances * 4), 4
+                );
+                this.geometry.setAttribute('uvBounds', uvBoundsAttribute);
+                
+                this.uvMap = uvMap;
+                this.instanceIndex = 0;
+                this.proxies = [];
+            }
+            
+            createBookSprite(thumbnailKey) {
+                if (this.instanceIndex >= this.instancedMesh.count) {
+                    console.warn('Exceeded maximum instances');
+                    return new THREE.Object3D();
+                }
+                
+                const uvCoords = this.uvMap[thumbnailKey];
+                if (!uvCoords) {
+                    console.warn(`No UV coords for ${thumbnailKey}`);
+                    return new THREE.Object3D();
+                }
+                
+                // Calculate scale based on UV bounds
+                const [uMin, vMin, uMax, vMax] = uvCoords;
+                const uWidth = uMax - uMin;
+                const vHeight = vMax - vMin;
+                const atlasPixelWidth = uWidth * 3072;
+                const atlasPixelHeight = vHeight * 3072;
+                
+                // Scale to maintain aspect ratio with max dimension = 60px
+                const maxDimension = Math.max(atlasPixelWidth, atlasPixelHeight);
+                const scaleFactor = 60 / maxDimension;
+                const scale = {
+                    x: atlasPixelWidth * scaleFactor,
+                    y: atlasPixelHeight * scaleFactor
+                };
+                
+                const proxy = new BookSpriteProxy(this.instancedMesh, this.instanceIndex, uvCoords, scale);
+                this.proxies.push(proxy);
+                this.instanceIndex++;
+                
+                return proxy;
+            }
+            
+            getInstancedMesh() {
+                return this.instancedMesh;
+            }
+        }
+
+        async function fetchJson() {
+            const response = await fetch('./complete-book-database.json');
+            return await response.json();
+        }
+
+        async function loadAtlasData() {
+            try {
+                const response = await fetch('./atlas-uv-map.json');
+                const uvMap = await response.json();
+                
+                // Load atlas texture
+                const atlasTexture = new THREE.TextureLoader().load('./atlas_optimized_3072.png');
+                atlasTexture.generateMipmaps = true;
+                atlasTexture.minFilter = THREE.LinearMipmapLinearFilter;
+                atlasTexture.magFilter = THREE.LinearFilter;
+                atlasTexture.wrapS = THREE.ClampToEdgeWrap;
+                atlasTexture.wrapT = THREE.ClampToEdgeWrap;
+                
+                return { uvMap, atlasTexture };
+            } catch (error) {
+                console.error('Failed to load atlas data:', error);
+                return null;
+            }
+        }
+
+        async function thumbnailInAtlas(rowNumber, uvMap) {
+            const filename = `${rowNumber}.jpg`;
+            return filename in uvMap;
+        }
+
+        // Generate author succession links
+        function generateAuthorSuccessionLinks(nodes) {
+            const links = [];
+            const authorBooks = new Map();
+            
+            nodes.forEach(node => {
+                (node.authors || []).forEach(author => {
+                    if (author !== 'NA' && !authorBooks.has(author)) {
+                        authorBooks.set(author, []);
+                    }
+                    if (author !== 'NA') {
+                        authorBooks.get(author).push(node);
+                    }
+                });
+            });
+            
+            authorBooks.forEach((books, author) => {
+                if (books.length > 1) {
+                    books.sort((a, b) => {
+                        const yearA = parseInt(a.first_publish_year) || 9999;
+                        const yearB = parseInt(b.first_publish_year) || 9999;
+                        return yearA - yearB;
+                    });
+                    
+                    for (let i = 0; i < books.length - 1; i++) {
+                        links.push({
+                            source: books[i],
+                            target: books[i + 1],
+                            author: author,
+                            type: 'author-succession'
+                        });
+                    }
+                }
+            });
+            
+            return links;
+        }
+
+        // Compatible link force
+        function createCompatibleLinkForce(initialLinks, initialStrength = 1.0) {
+            let nodes;
+            let links = initialLinks || [];
+            let id = (d => d.id);
+            let distance = 30;
+            let strength = initialStrength;
+            let iterations = 1;
+            let count, bias, strengths, distances;
+
+            function initializeStrength() {
+                if (!nodes) return;
+                count = new Array(nodes.length);
+                for (let i = 0; i < nodes.length; ++i) count[i] = 0;
+                for (let i = 0; i < links.length; ++i) {
+                    const link = links[i];
+                    if (link.source && link.target) {
+                        count[link.source.index] = (count[link.source.index] || 0) + 1;
+                        count[link.target.index] = (count[link.target.index] || 0) + 1;
+                    }
+                }
+                
+                strengths = new Array(links.length);
+                for (let i = 0; i < links.length; ++i) {
+                    const link = links[i];
+                    let strengthValue = typeof strength === 'function' ? strength(link, i, links) : strength;
+                    strengths[i] = +strengthValue;
+                }
+            }
+
+            function initializeDistance() {
+                if (!nodes) return;
+                distances = new Array(links.length);
+                for (let i = 0; i < links.length; ++i) {
+                    distances[i] = typeof distance === 'function' ? distance(links[i], i, links) : distance;
+                }
+            }
+
+            function force(alpha) {
+                for (let k = 0; k < iterations; ++k) {
+                    for (let i = 0; i < links.length; ++i) {
+                        const link = links[i];
+                        const source = link.source;
+                        const target = link.target;
+                        
+                        if (source && target) {
+                            let x = target.x + (target.vx || 0) - source.x - (source.vx || 0) || 0;
+                            let y = target.y + (target.vy || 0) - source.y - (source.vy || 0) || 0; 
+                            let z = target.z + (target.vz || 0) - source.z - (source.vz || 0) || 0;
+                            let l = Math.sqrt(x * x + y * y + z * z);
+                            
+                            if (l) {
+                                l = (l - distances[i]) / l * alpha * strengths[i];
+                                x *= l; y *= l; z *= l;
+                            }
+
+                            const b = bias[i];
+                            target.vx = (target.vx || 0) - x * b;
+                            target.vy = (target.vy || 0) - y * b;
+                            target.vz = (target.vz || 0) - z * b;
+                            source.vx = (source.vx || 0) + x * (1 - b);
+                            source.vy = (source.vy || 0) + y * (1 - b);
+                            source.vz = (source.vz || 0) + z * (1 - b);
+                        }
+                    }
+                }
+            }
+
+            force.initialize = function(_nodes, ...args) {
+                nodes = _nodes;
+                
+                links.forEach((link, i) => {
+                    if (typeof link.source !== 'object') {
+                        link.source = nodes.find(n => id(n) === link.source);
+                    }
+                    if (typeof link.target !== 'object') {
+                        link.target = nodes.find(n => id(n) === link.target);
+                    }
+                    if (link.source) link.source.index = nodes.indexOf(link.source);
+                    if (link.target) link.target.index = nodes.indexOf(link.target);
+                });
+
+                bias = new Array(links.length);
+                count = new Array(nodes.length);
+                for (let i = 0; i < nodes.length; ++i) count[i] = 0;
+                for (let i = 0; i < links.length; ++i) {
+                    const link = links[i];
+                    if (link.source && link.target) {
+                        count[link.source.index]++;
+                        count[link.target.index]++;
+                    }
+                }
+                for (let i = 0; i < links.length; ++i) {
+                    const link = links[i];
+                    bias[i] = link.source && link.target ? 
+                        count[link.source.index] / (count[link.source.index] + count[link.target.index]) : 0;
+                }
+
+                initializeStrength();
+                initializeDistance();
+            };
+
+            force.links = function(_) {
+                return arguments.length ? (links = _, initializeStrength(), initializeDistance(), force) : links;
+            };
+
+            force.id = function(_) {
+                return arguments.length ? (id = _, force) : id;
+            };
+
+            force.iterations = function(_) {
+                return arguments.length ? (iterations = +_, force) : iterations;
+            };
+
+            force.strength = function(_) {
+                return arguments.length ? (strength = _, initializeStrength(), force) : strength;
+            };
+
+            force.distance = function(_) {
+                return arguments.length ? (distance = _, initializeDistance(), force) : distance;
+            };
+
+            return force;
+        }
+
+        // Fiction separation force
+        function createFictionSeparationForce(strength = 0.03, fictionTarget = 600, nonFictionTarget = -600) {
+            let nodes;
+            
+            function force(alpha) {
+                nodes.forEach(node => {
+                    if (node.fiction !== undefined) {
+                        const target = node.fiction ? fictionTarget : nonFictionTarget;
+                        const current = node.x || 0;
+                        node.vx += (target - current) * strength * alpha;
+                    }
+                });
+            }
+            
+            force.initialize = function(_nodes) {
+                nodes = _nodes;
+            };
+            
+            force.strength = function(_) {
+                return arguments.length ? (strength = +_, force) : strength;
+            };
+            
+            force.fictionTarget = function(_) {
+                return arguments.length ? (fictionTarget = +_, force) : fictionTarget;
+            };
+            
+            force.nonFictionTarget = function(_) {
+                return arguments.length ? (nonFictionTarget = +_, force) : nonFictionTarget;
+            };
+            
+            return force;
+        }
+
+        // Initialize the application
+        async function initApp() {
+            const atlasData = await loadAtlasData();
+            if (!atlasData) {
+                console.error('Failed to load atlas data');
+                return;
+            }
+            
+            const { uvMap, atlasTexture } = atlasData;
+            console.log(`Loaded atlas with ${Object.keys(uvMap).length} textures`);
+
+            const books = await fetchJson();
+            
+            // Count books that have atlas thumbnails
+            const atlasBooks = [];
+            for (const book of books) {
+                if (await thumbnailInAtlas(book.rowNumber, uvMap)) {
+                    atlasBooks.push(book);
+                }
+            }
+            
+            console.log(`Found ${atlasBooks.length} books in atlas out of ${books.length} total books`);
+            
+            // Create atlas manager with exact instance count needed
+            const atlasManager = new BookAtlasManager(atlasTexture, uvMap, atlasBooks.length);
+            
+            // Filter and create book nodes
+            const booksWithThumbnails = [];
+            const allTags = new Set();
+            
+            for (const book of atlasBooks) {
+                const node = {
+                    id: book.rowNumber,
+                    title: book.title,
+                    authors: book.authors || [],
+                    first_publish_year: book.first_publish_year,
+                    fiction: book.fiction || false,
+                    tags: book.tags || [],
+                    thumbnail: `${book.rowNumber}.jpg`,
+                    type: 'book'
+                };
+                
+                (book.tags || []).forEach(tag => allTags.add(tag));
+                booksWithThumbnails.push(node);
+            }
+            
+            // Create color mapping for tags
+            const tagColors = {};
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f7b731', '#5f27cd', '#00d2d3', '#ff9ff3', '#54a0ff'];
+            Array.from(allTags).forEach((tag, index) => {
+                tagColors[tag] = colors[index % colors.length];
+            });
+
+            // Create tag nodes
+            const tagNodes = Array.from(allTags).map(tag => ({
+                id: `tag-${tag}`,
+                type: 'tag',
+                color: tagColors[tag],
+                x: 0, y: 0, z: 0,
+                title: tag,
+                authors: []
+            }));
+            
+            // Calculate logarithmic Y positions
+            const yearsWithBooks = booksWithThumbnails.map(b => b.first_publish_year).filter(Boolean);
+            if (yearsWithBooks.length > 0) {
+                const actualMin = Math.min(...yearsWithBooks);
+                const actualMax = Math.max(...yearsWithBooks);
+                const shift = 500;
+                const shiftedMin = actualMin + shift;
+                const shiftedMax = actualMax + shift;
+                const logMin = Math.log(shiftedMin);
+                const logMax = Math.log(shiftedMax);
+                
+                console.log(`Year range: ${actualMin} - ${actualMax}`);
+                
+                booksWithThumbnails.forEach(node => {
+                    if (node.first_publish_year) {
+                        const year = node.first_publish_year;
+                        const reversedYear = actualMax - year + actualMin + shift;
+                        const yPos = shift - ((Math.log(reversedYear) - logMin) / (logMax - logMin)) * 4000;
+                        node.fy = yPos;
+                        node.first = yPos;
+                    }
+                });
+            }
+
+            const allNodes = [...booksWithThumbnails, ...tagNodes];
+            
+            console.log(`Total nodes: ${allNodes.length} (${booksWithThumbnails.length} books + ${tagNodes.length} tags)`);
+
+            // Generate links
+            const authorLinks = generateAuthorSuccessionLinks(booksWithThumbnails);
+            
+            const tagLinks = [];
+            booksWithThumbnails.forEach(bookNode => {
+                bookNode.tags.forEach(tag => {
+                    const tagNode = tagNodes.find(tn => tn.id === `tag-${tag}`);
+                    if (tagNode) {
+                        tagLinks.push({
+                            source: bookNode,
+                            target: tagNode,
+                            type: 'book-tag',
+                            tag: tag
+                        });
+                    }
+                });
+            });
+            
+            const links = [...authorLinks, ...tagLinks];
+
+            // Create the graph
+            const Graph = ForceGraph3D()(document.getElementById('3d-graph'))
+                .nodeThreeObject(node => {
+                    if (node.type === 'tag') {
+                        // Create text sprite for tag nodes
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.width = 512;
+                        canvas.height = 128;
+                        
+                        context.fillStyle = node.color || '#33ff33';
+                        context.fillRect(0, 0, canvas.width, canvas.height);
+                        context.fillStyle = '#ffffff';
+                        context.font = '40px Arial';
+                        context.textAlign = 'center';
+                        context.textBaseline = 'middle';
+                        context.fillText(node.title, canvas.width/2, canvas.height/2);
+                        
+                        const texture = new THREE.Texture(canvas);
+                        texture.needsUpdate = true;
+                        const material = new THREE.SpriteMaterial({ map: texture });
+                        const sprite = new THREE.Sprite(material);
+                        sprite.scale.set(240, 60, 1);
+                        return sprite;
+                        
+                    } else {
+                        // Create instanced atlas sprite for book nodes
+                        return atlasManager.createBookSprite(node.thumbnail);
+                    }
+                })
+                .nodeLabel(node => node.type === 'tag' ? 
+                    node.title : 
+                    `${node.title}<br/>${node.authors.join(', ')}<br/>${node.first_publish_year} (Row: ${node.id})`
+                )
+                .linkColor(link => {
+                    if (link.type === 'author-succession') {
+                        return 'rgba(255,255,255,1.0)';
+                    } else if (link.type === 'book-tag') {
+                        const color = tagColors[link.tag] || '#00ff00';
+                        const hex = color.replace('#', '');
+                        const r = parseInt(hex.substr(0, 2), 16);
+                        const g = parseInt(hex.substr(2, 2), 16);
+                        const b = parseInt(hex.substr(4, 2), 16);
+                        return `rgba(${r},${g},${b},1.0)`;
+                    }
+                    return 'rgba(255,255,255,1.0)';
+                })
+                .linkOpacity(1.0)
+                .linkWidth(link => link.type === 'author-succession' ? 2 : 1) 
+                .backgroundColor('#000000')
+                .showNavInfo(false);
+            
+            // Add the instanced mesh to the scene
+            // Add the instanced mesh to the scene
+            Graph.scene().add(atlasManager.getInstancedMesh());
+            
+            // Configure forces
+            const customLinkForce = createCompatibleLinkForce(links);
+            customLinkForce.strength(link => {
+                if (link.type === 'book-tag') {
+                    return 0.2;
+                } else if (link.type === 'author-succession') {
+                    return 1.0;
+                }
+                return 1.0;
+            });
+            
+            Graph.graphData({ nodes: allNodes, links });
+            
+            Graph.d3Force('link', null);
+            Graph.d3Force('link', customLinkForce);
+            
+            Graph.d3Force('fictionSeparation', createFictionSeparationForce());
+            Graph.d3Force('fictionSeparation').initialize(booksWithThumbnails);
+
+            Graph.d3Force("charge").strength(-900);
+
+            Graph.scene().fog = new THREE.FogExp2(0x111111, 0.000025);
+            
+            Graph.onNodeDrag((node, translate) => {
+                node.x += translate.x;
+                node.z += translate.z;
+                if (node.first === undefined) {
+                    node.y += translate.y;
+                } else {
+                    node.fy = node.first;
+                }
+            });
+
+            Graph.d3AlphaDecay(0.001)
+            Graph.d3VelocityDecay(0.9)
+
+            window.addEventListener("resize", () => {
+                let width = window.innerWidth;
+                let height = window.innerHeight;
+                Graph.camera().aspect = width / height;
+                Graph.camera().updateProjectionMatrix();
+                Graph.renderer().setSize(width, height);
+                Graph.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            });
+            
+            console.log('InstancedMesh 3D Force Graph initialized successfully!');
+        }
+
+        initApp().catch(console.error);
+    </script>
+</body>
+</html>
