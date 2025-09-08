@@ -1220,9 +1220,13 @@
 	{"id": "Postmodernity and its Discontents", "time": 1997, "type": "book"},
 	{"id": "Averroës’s Search", "time": 1947, "type": "short story"},
 	{"id": "Seven Years of Desire", "time": 1997, "type": "book"},
+	{"id": "Ian Watson", "time": 1943, "type": "author"},
+	{"id": "The Embedding", "time": 1973, "type": "book"},
 	{"id": "Dune (Lynch Movie)", "time": 1984, "type": "movie"}
 
 ],"links":[
+	{"source": "Ian Watson", "target": "The Embedding", "type": "wrote" },
+	{"source": "Ian Watson", "target": "Borges", "type": "references" },
 	{"source": "Walter M. Miller Jr.", "target": "A Canticle for Leibowitz", "type": "wrote" },
 	{"source": "Walter M. Miller Jr.", "target": "Judith Merril", "type": "lived with" },
 	{"source": "J. G. Ballard", "target": "The Crystal World", "type": "wrote" },
