@@ -37,6 +37,11 @@
         const tagShellRadiusSimulated = 900
         const tagShellRadiusRendered = 450
 
+        let flowerMaterials = [];
+        let hermiteFlowers = [];
+        let authorTendrils = [];
+        let tagCylinders = [];
+
         const InstancedAtlasMaterial = class extends THREE.ShaderMaterial {
             constructor(atlasTexture) {
                 super({
@@ -108,7 +113,6 @@
             updateMatrixWorld(force) {
                 super.updateMatrixWorld(force);
                 this.instancedMesh.setMatrixAt(this.instanceIndex, this.matrixWorld);
-                this.instancedMesh.instanceMatrix.needsUpdate = true;
             }
         }
 
@@ -162,6 +166,10 @@
             
             getInstancedMesh() {
                 return this.instancedMesh;
+            }
+            
+            updateAllMatrices() {
+                this.instancedMesh.instanceMatrix.needsUpdate = true;
             }
         }
 
@@ -361,222 +369,453 @@
             function force(alpha) {
                 nodes.forEach(node => {
                     if (node.shellRadius !== undefined) {
-                        // Get current distance from origin
                         const x = node.x || 0;
                         const y = node.y || 0;
                         const z = node.z || 0;
-                        const currentRadius = Math.sqrt(x * x + y * y + z * z);
+                        const currentRadius = Math.sqrt(x * x + y * y + z * z) || 1;
+                        const scaleFactor = node.shellRadius / currentRadius;
+                        node.x = x * scaleFactor;
+                        node.y = y * scaleFactor;
+                        node.z = z * scaleFactor;
+                    }
+                });
+            }
+            
+            force.initialize = function(_nodes) {
+                nodes = _nodes;
+            };
+            
+            force.strength = function(_) {
+                return arguments.length ? (strength = +_, force) : strength;
+            };
+            
+            return force;
+        }
+
+        class TendrilPool {
+            constructor(tagLinks, tagColors) {
+                this.pools = [];
+                this.distanceRanges = [];
+                
+                // Pre-calculate all distances and assign to ranges
+                const linkData = tagLinks.map(link => {
+                    const tagPos = new THREE.Vector3(link.target.x, link.target.y, link.target.z);
+                    const bookPos = new THREE.Vector3(
+                        link.source.x, 
+                        link.source.y + (link.source.spriteProxy ? link.source.spriteProxy.scale.y / 2 : 0), 
+                        link.source.z
+                    );
+                    return {
+                        link,
+                        distance: tagPos.distanceTo(bookPos)
+                    };
+                });
+                
+                const distances = linkData.map(d => d.distance);
+                const sortedDistances = [...distances].sort((a, b) => a - b);
+                const minDist = sortedDistances[0];
+                const maxDist = sortedDistances[sortedDistances.length - 1];
+                
+                console.log(`Distance range: ${minDist.toFixed(1)} to ${maxDist.toFixed(1)}`);
+                
+                // Create 8 distance-based ranges and count how many links fall into each
+                const rangeCount = 8;
+                const rangeCounts = new Array(rangeCount).fill(0);
+                
+                // Create ranges
+                for (let i = 0; i < rangeCount; i++) {
+                    const rangeStart = minDist + (i / rangeCount) * (maxDist - minDist);
+                    const rangeEnd = minDist + ((i + 1) / rangeCount) * (maxDist - minDist);
+                    const rangeMid = (rangeStart + rangeEnd) / 2;
+                    
+                    this.distanceRanges.push({
+                        min: rangeStart,
+                        max: rangeEnd,
+                        unitDistance: rangeMid,
+                        poolIndex: i,
+                        linksInRange: []
+                    });
+                }
+                
+                // Assign each link to its appropriate range and count
+                linkData.forEach(linkData => {
+                    const distance = linkData.distance;
+                    const rangeIndex = Math.min(
+                        Math.floor((distance - minDist) / (maxDist - minDist) * rangeCount),
+                        rangeCount - 1
+                    );
+                    this.distanceRanges[rangeIndex].linksInRange.push(linkData);
+                    rangeCounts[rangeIndex]++;
+                });
+                
+                // Create diverse tendril geometries for each distance range
+                this.distanceRanges.forEach((range, rangeIndex) => {
+                    if (range.linksInRange.length === 0) {
+                        console.log(`  Skipping empty range ${rangeIndex}`);
+                        return; // Skip empty ranges
+                    }
+                    
+                    // Create multiple geometry variations per range based on actual usage
+                    const linksInRange = range.linksInRange.length;
+                    const variationsPerRange = Math.min(6, Math.max(1, Math.ceil(linksInRange / 50))); // 1-6 variations based on usage
+                    const instancesPerPool = Math.ceil(linksInRange / variationsPerRange); // Exact fit
+                    
+                    console.log(`  Range ${rangeIndex}: ${linksInRange} links, ${variationsPerRange} variations, ${instancesPerPool} instances each`);
+                    
+                    for (let v = 0; v < variationsPerRange; v++) {
+                        const dna = {
+                            subdivisionLevels: 3 + Math.floor(Math.random() * 2),
+                            organicVariation: 0.4 + Math.random() * 0.5,
+                            startRadius: 1.2 + Math.random() * 0.6,
+                            endRadius: 0.3 + Math.random() * 0.4,
+                            tangentRandom: 0.8 + Math.random() * 1.0,
+                            resolution: 6 + Math.floor(Math.random() * 4),
+                            radialSegments: 4 + Math.floor(Math.random() * 3)
+                        };
                         
-                        if (currentRadius > 0) {
-                            // Hard constraint: set position exactly on the shell
-                            const targetRadius = node.shellRadius;
-                            const scaleFactor = targetRadius / currentRadius;
-                            
-                            node.x = x * scaleFactor;
-                            node.y = y * scaleFactor;
-                            node.z = z * scaleFactor;
-                        } else {
-                            // If at origin, place at a random point on the shell
-                            const theta = Math.random() * Math.PI * 2;
-                            const phi = Math.acos(2 * Math.random() - 1);
-                            const r = node.shellRadius;
-                            
-                            node.x = r * Math.sin(phi) * Math.cos(theta);
-                            node.y = r * Math.sin(phi) * Math.sin(theta);
-                            node.z = r * Math.cos(phi);
-                        }
+                        // Generate tendril at realistic distance for this range
+                        const unitStart = new THREE.Vector3(0, 0, 0);
+                        const unitEnd = new THREE.Vector3(0, range.unitDistance, 0);
+                        const pathPoints = genPathPointsRecursive(unitStart, unitEnd, dna);
+                        const geometry = this.createTubeFromPoints(pathPoints, dna);
+                    
+                        const material = new THREE.ShaderMaterial({
+                            vertexShader: `
+                                attribute vec3 instanceColor;
+                                varying vec2 vUv;
+                                varying vec3 vInstanceColor;
+                                
+                                void main() {
+                                    vUv = uv;
+                                    vInstanceColor = instanceColor;
+                                    gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+                                }
+                            `,
+                            fragmentShader: `
+                                varying vec2 vUv;
+                                varying vec3 vInstanceColor;
+                                uniform float time;
+                                uniform float offset;
+                                
+                                void main() {
+                                    float wave = sin(-time*2. + (vUv.y) * .01 + offset*100. ) * 0.5 + 0.5;
+                                    vec3 finalColor = vInstanceColor;
+                                    gl_FragColor = vec4(finalColor * 0.5, 0.7); 
+                                }
+                            `,
+                            uniforms: {
+                                time: { value: 0.0 },
+                                offset: { value: (rangeIndex * variationsPerRange + v) / (rangeCount * variationsPerRange) }
+                            },
+                            wireframe: false,
+                            side: THREE.DoubleSide,
+                            transparent: true,
+                        });
+                        
+                        const instancedMesh = new THREE.InstancedMesh(geometry, material, instancesPerPool);
+                        
+                        // Add per-instance color attribute
+                        const colors = new Float32Array(instancesPerPool * 3);
+                        geometry.setAttribute('instanceColor', new THREE.InstancedBufferAttribute(colors, 3));
+                        
+                        this.pools.push({
+                            geometry,
+                            material,
+                            instancedMesh,
+                            instanceCount: 0,
+                            maxInstances: instancesPerPool,
+                            dna,
+                            distanceRange: range,
+                            variationIndex: v
+                        });
+                        
+                        flowerMaterials.push(material);
                     }
                 });
             }
             
-            force.initialize = function(_nodes) {
-                nodes = _nodes;
-            };
-            
-            force.strength = function(_) {
-                return arguments.length ? (strength = +_, force) : strength;
-            };
-            
-            return force;
-        }
-
-        function createFictionSeparationForce(strength = 90., fictionTarget = 100, nonFictionTarget = -100) {
-            let nodes;
-            
-            function force(alpha) {
-                nodes.forEach(node => {
-                    if (node.fiction !== undefined) {
-                        const target = node.fiction ? fictionTarget : nonFictionTarget;
-                        const current = node.x || 0;
-                        node.vx += target/Math.abs(current+1) * strength * alpha;
+            createTubeFromPoints(points, dna) {
+                const allPoints = [];
+                
+                for (let i = 0; i < points.length - 1; i++) {
+                    const p0 = points[i];
+                    const p1 = points[i + 1];
+                    
+                    let t0, t1;
+                    if (i === 0) {
+                        const originalDirection = p1.clone().sub(p0).normalize();
+                        const radialBias = 1;
+                        const radialComponent = p0.clone().normalize();
+                        t0 = originalDirection.multiplyScalar(0.0).add(radialComponent.multiplyScalar(1.0)).normalize();
+                    } else {
+                        t0 = points[i + 1].clone().sub(points[i - 1]).normalize();
                     }
-                });
+                    
+                    if (i === points.length - 2) {
+                        t1 = p1.clone().sub(p0).normalize();
+                    } else {
+                        t1 = points[i + 2].clone().sub(points[i]).normalize();
+                    }
+                    
+                    t0 = this.addTangentRandomness(t0, dna.tangentRandom);
+                    t1 = this.addTangentRandomness(t1, dna.tangentRandom);
+                    
+                    const segmentPoints = this.generateHermiteSegment(p0, p1, t0, t1, dna.resolution);
+                    const pointsToAdd = i === 0 ? segmentPoints : segmentPoints.slice(1);
+                    allPoints.push(...pointsToAdd);
+                }
+                
+                const { radii, totalDistance } = this.calculateTaperedRadii(allPoints, dna.startRadius, dna.endRadius);
+                return this.createCustomTubeGeometry(allPoints, radii, dna.radialSegments || 6, totalDistance);
             }
             
-            force.initialize = function(_nodes) {
-                nodes = _nodes;
-            };
+            addTangentRandomness(tangent, randomness) {
+                return tangent.clone().add(new THREE.Vector3(
+                    (Math.random() - 0.5) * randomness,
+                    (Math.random() - 0.5) * randomness,
+                    (Math.random() - 0.5) * randomness
+                )).normalize();
+            }
             
-            force.strength = function(_) {
-                return arguments.length ? (strength = +_, force) : strength;
-            };
+            generateHermiteSegment(p0, p1, t0, t1, resolution) {
+                const points = [];
+                const length0 = p1.distanceTo(p0) * 0.5;
+                const length1 = p1.distanceTo(p0) * 0.5;
+                
+                for (let i = 0; i <= resolution; i++) {
+                    const t = i / resolution;
+                    const t2 = t * t;
+                    const t3 = t2 * t;
+                    
+                    const h00 = 2 * t3 - 3 * t2 + 1;
+                    const h10 = t3 - 2 * t2 + t;
+                    const h01 = -2 * t3 + 3 * t2;
+                    const h11 = t3 - t2;
+                    
+                    const point = p0.clone().multiplyScalar(h00)
+                        .add(t0.clone().multiplyScalar(h10 * length0))
+                        .add(p1.clone().multiplyScalar(h01))
+                        .add(t1.clone().multiplyScalar(h11 * length1));
+                    
+                    points.push(point);
+                }
+                
+                return points;
+            }
             
-            force.fictionTarget = function(_) {
-                return arguments.length ? (fictionTarget = +_, force) : fictionTarget;
-            };
+            calculateTaperedRadii(points, startRadius, endRadius) {
+                if (points.length === 0) return { radii: [], totalDistance: 0 };
+                
+                const distances = [0];
+                let totalDistance = 0;
+                for (let i = 1; i < points.length; i++) {
+                    const distance = points[i].distanceTo(points[i - 1]);
+                    totalDistance += distance;
+                    distances.push(totalDistance);
+                }
+                
+                const radii = [];
+                for (let i = 0; i < points.length; i++) {
+                    const t = totalDistance > 0 ? distances[i] / totalDistance : 0;
+                    const radius = startRadius + (endRadius - startRadius) * t;
+                    radii.push(radius);
+                }
+                
+                return { radii, totalDistance };
+            }
             
-            force.nonFictionTarget = function(_) {
-                return arguments.length ? (nonFictionTarget = +_, force) : nonFictionTarget;
-            };
+            createCustomTubeGeometry(points, radii, radialSegments, totalDistance) {
+                const geometry = new THREE.BufferGeometry();
+                const vertices = [];
+                const uvs = [];
+                const indices = [];
+                
+                const frames = createParallelTransportFrames(points);
+                
+                for (let i = 0; i < points.length; i++) {
+                    const point = points[i];
+                    const radius = radii[i];
+                    const frame = frames[i];
+                    
+                    for (let j = 0; j <= radialSegments; j++) {
+                        const angle = (j / radialSegments) * Math.PI * 2;
+                        const x = Math.cos(angle) * radius;
+                        const y = Math.sin(angle) * radius;
+                        
+                        const vertex = point.clone()
+                            .add(frame.right.clone().multiplyScalar(x))
+                            .add(frame.up.clone().multiplyScalar(y));
+                        
+                        vertices.push(vertex.x, vertex.y, vertex.z);
+                        
+                        const u = j / radialSegments;
+                        const v = i / (points.length - 1);
+                        uvs.push(u, v);
+                    }
+                }
+                
+                for (let i = 0; i < points.length - 1; i++) {
+                    for (let j = 0; j < radialSegments; j++) {
+                        const a = i * (radialSegments + 1) + j;
+                        const b = a + radialSegments + 1;
+                        const c = a + 1;
+                        const d = b + 1;
+                        indices.push(a, b, c);
+                        indices.push(b, d, c);
+                    }
+                }
+                
+                geometry.setIndex(indices);
+                geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+                geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+                geometry.computeVertexNormals();
+                
+                return geometry;
+            }
             
-            return force;
+            assignLinks(tagLinks, tagColors) {
+                const poolInstances = [];
+                
+                // Process each distance range
+                this.distanceRanges.forEach((range, rangeIndex) => {
+                    if (range.linksInRange.length === 0) return;
+                    
+                    // Get pools for this range  
+                    const rangePools = this.pools.filter(pool => pool.distanceRange === range);
+                    
+                    // Distribute links across pools in this range
+                    range.linksInRange.forEach((linkData, linkIndex) => {
+                        const poolIndex = linkIndex % rangePools.length;
+                        const pool = rangePools[poolIndex];
+                        const link = linkData.link;
+                        
+                        // Calculate positions
+                        const tagNode = link.target;
+                        const bookNode = link.source;
+                        const start = new THREE.Vector3(tagNode.x, tagNode.y, tagNode.z);
+                        const end = new THREE.Vector3(
+                            bookNode.x, 
+                            bookNode.y + (bookNode.spriteProxy ? bookNode.spriteProxy.scale.y / 2 : 0), 
+                            bookNode.z
+                        );
+                        
+                        const direction = end.clone().sub(start);
+                        const distance = linkData.distance;
+                        
+                        const matrix = new THREE.Matrix4();
+                        
+                        // Scale length to match actual distance vs unit distance  
+                        const scale = distance / range.unitDistance;
+                        matrix.makeScale(1, scale, 1);
+                        
+                        // Rotate to align with direction
+                        const unitDirection = new THREE.Vector3(0, 1, 0);
+                        const targetDirection = direction.normalize();
+                        const quaternion = new THREE.Quaternion();
+                        quaternion.setFromUnitVectors(unitDirection, targetDirection);
+                        
+                        const rotationMatrix = new THREE.Matrix4().makeRotationFromQuaternion(quaternion);
+                        matrix.multiplyMatrices(rotationMatrix, matrix);
+                        
+                        //  Translate to start position
+                        const translationMatrix = new THREE.Matrix4().makeTranslation(start.x, start.y, start.z);
+                        matrix.multiplyMatrices(translationMatrix, matrix);
+                        
+                        pool.instancedMesh.setMatrixAt(pool.instanceCount, matrix);
+                        
+                        // Set color for this instance based on genre
+                        const color = new THREE.Color(tagColors[link.tag] || '#ffffff');
+                        const colorAttr = pool.geometry.attributes.instanceColor;
+                        colorAttr.setXYZ(pool.instanceCount, color.r, color.g, color.b);
+                        
+                        pool.instanceCount++;
+                    });
+                });
+                
+                // Update all pools and collect used ones
+                this.pools.forEach(pool => {
+                    if (pool.instanceCount > 0) {
+                        pool.instancedMesh.instanceMatrix.needsUpdate = true;
+                        pool.geometry.attributes.instanceColor.needsUpdate = true;
+                        pool.instancedMesh.count = pool.instanceCount;
+                        poolInstances.push(pool.instancedMesh);
+                    }
+                });
+                
+                const totalRendered = this.pools.reduce((sum, pool) => sum + pool.instanceCount, 0);
+                console.log(`Rendered all ${totalRendered} tendrils across ${poolInstances.length} pools - no skipping.`);
+                
+                return poolInstances;
+            }
         }
-
-        // Improved tendril shader for caustics and wave effects
-        const tendrilShader = {
-            vertexShader: `
-                varying vec2 vUv;
-                void main() {
-                    vUv = uv;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                varying vec2 vUv;
-                uniform float time;
-                uniform float offset;
-                uniform vec3 color;
-                uniform float causticsIntensity;
-                uniform float causticsSpeed;
-                uniform float uvYScale;
-                
-                #define TAU 6.28318530718
-                
-                void main() {
-                    // float adjustedTime = time * causticsSpeed * 0.5 + 23.0 + offset;
-                    vec2 uv = vec2  (vUv.x, vUv.y * uvYScale);
-                    // vec2 p = mod(uv * TAU * 2.0, TAU) - 250.0;
-                    // vec2 i = vec2(p);
-                    // float c = 1.0;
-                    // float inten = 0.005 * causticsIntensity;
-                    
-                    // for (int n = 0; n < 8; n++) {
-                    //     float t = adjustedTime * (1.0 - (3.5 / float(n + 1)));
-                    //     i = p + vec2(
-                    //         cos(t - i.x) + sin(t + i.y), 
-                    //         sin(t - i.y) + cos(t + i.x)
-                    //     );
-                    //     c += 1.0 / length(vec2(
-                    //         p.x / (sin(i.x + t) / inten),
-                    //         p.y / (cos(i.y + t) / inten)
-                    //     ));
-                    // }
-                    
-                    // c /= float(maxIter);
-                    // c = 1.17 - pow(c, 1.4);
-                    
-                    // vec3 causticsColor = vec3(pow(abs(c), 8.0));
-                    // causticsColor = clamp(causticsColor * color, 0.0, 1.0);
-                    
-                    float wave = sin(-time*2. + (uv.y) * .01 + offset*100. ) * 0.5 + 0.5;
-                    // if (wave < .98) discard;
-                    
-                    // vec3 finalColor = mix(color * wave, causticsColor, 0.6);
-                    vec3 finalColor = color;
-                    // gl_FragColor = vec4(causticsColor, 1.0); 
-                    gl_FragColor = vec4(finalColor*.5, .8); 
-                }
-            `
-        };
-
-        let flowerMaterials = [];
 
         function generateHermiteFlowers(tagNodes, bookNodes, tagLinks, tagColors) {
-            const flowers = [];
-            
-            // Create one tendril from each tag to each connected book
-            tagNodes.forEach(tagNode => {
-                const connectedBooks = tagLinks
-                    .filter(link => link.target.id === tagNode.id)
-                    .map(link => link.source);
-                
-                const tagColor = tagColors[tagNode.title] || '#ffffff';
-                
-                const originalStartPos = new THREE.Vector3(tagNode.x, tagNode.y, tagNode.z);
-
-                const inwardStartPos = originalStartPos.clone().normalize().multiplyScalar(tagShellRadiusRendered)
-
-                const endPoints = connectedBooks.map(bookNode => {
-                    const spriteHeight = bookNode.spriteProxy ? bookNode.spriteProxy.scale.y : 0;
-                    const yOffset = spriteHeight / 2;
-                    return new THREE.Vector3(
-                        bookNode.x, 
-                        bookNode.y + (tagNode.y > bookNode.y ? yOffset : -yOffset), 
-                        bookNode.z
-                    );
-                });
-                
-                if (endPoints.length > 0) {
-                    const flowerTendrils = makeTendrilFlower(inwardStartPos, endPoints, tagColor, 'tag');
-                    flowerTendrils.forEach(tendril => flowers.push(tendril));
-                }
-            });
-            
-            return flowers;
+            const tendrilPool = new TendrilPool(tagLinks, tagColors);
+            return tendrilPool.assignLinks(tagLinks, tagColors);
         }
         
         function generateAuthorSuccessionTendrils(authorLinks) {
-            const tendrils = [];
+            if (authorLinks.length === 0) return [];
             
-            authorLinks.forEach(link => {
+            // Create single InstancedMesh for all author links
+            const geometry = new THREE.CylinderGeometry(1, 1, 1, 6); // Unit cylinder
+            const material = new THREE.MeshBasicMaterial({ 
+                color: 0xffffff, 
+                transparent: true, 
+                opacity: 1.
+            });
+            
+            const instancedMesh = new THREE.InstancedMesh(geometry, material, authorLinks.length);
+            
+            authorLinks.forEach((link, index) => {
                 const sourceHeight = link.source.spriteProxy ? link.source.spriteProxy.scale.y : 0;
                 const targetHeight = link.target.spriteProxy ? link.target.spriteProxy.scale.y : 0;
                 
                 // Get original positions
                 const originalStart = new THREE.Vector3(
                     link.source.x, 
-                    link.source.y, // + sourceHeight / 2, // offsets connection to top of book sprite, good for vertical layout
+                    link.source.y,
                     link.source.z,
                 );
                 const originalEnd = new THREE.Vector3(
                     link.target.x, 
-                    link.target.y, //- targetHeight / 2, 
+                    link.target.y,
                     link.target.z,
                 );
                 
-                // Move positions inward toward origin by 20 units
+                // Move positions inward toward origin by 20 units, looks better
                 const start = originalStart.clone().normalize().multiplyScalar(originalStart.length() - 20);
                 const end = originalEnd.clone().normalize().multiplyScalar(originalEnd.length() - 20);
                 
-                // Create simple cylinder geometry
+                // Calculate transform matrix
                 const direction = end.clone().sub(start);
                 const distance = direction.length();
                 const midpoint = start.clone().add(end).multiplyScalar(0.5);
                 
-                // Create cylinder with 3 quads (6 radial segments)
-                const geometry = new THREE.CylinderGeometry(1, 1, distance, 6);
-                const material = new THREE.MeshBasicMaterial({ 
-                    color: 0xffffff, 
-                    transparent: true, 
-                    opacity: 1.,
-                });
+                // Create matrix: scale by distance, rotate to align with direction, position at midpoint
+                const matrix = new THREE.Matrix4();
                 
-                const cylinder = new THREE.Mesh(geometry, material);
+                // Start with scaling (Y = length, X,Z = radius)
+                matrix.makeScale(1, distance, 1);
                 
-                // Position cylinder at midpoint
-                cylinder.position.copy(midpoint);
-                
-                // Orient cylinder to align with the direction vector
+                // Create rotation to align Y-axis with direction
                 const up = new THREE.Vector3(0, 1, 0);
                 const axis = direction.normalize();
                 const quaternion = new THREE.Quaternion();
                 quaternion.setFromUnitVectors(up, axis);
-                cylinder.quaternion.copy(quaternion);
                 
-                tendrils.push(cylinder);
+                // Apply rotation, then  translation
+                const rotationMatrix = new THREE.Matrix4().makeRotationFromQuaternion(quaternion);
+                matrix.premultiply(rotationMatrix);
+                const translationMatrix = new THREE.Matrix4().makeTranslation(midpoint.x, midpoint.y, midpoint.z);
+                matrix.premultiply(translationMatrix);
+                
+                instancedMesh.setMatrixAt(index, matrix);
             });
             
-            return tendrils;
+            instancedMesh.instanceMatrix.needsUpdate = true;
+            
+            return [instancedMesh]; // Return array with single instanced mesh
         }
         
         function genPathPointsRecursive(start, end, dna) {
@@ -634,124 +873,6 @@
             return points;
         }
         
-        function addTangentRandomness(tangent, randomness) {
-            return tangent.clone().add(new THREE.Vector3(
-                (Math.random() - 0.5) * randomness,
-                (Math.random() - 0.5) * randomness,
-                (Math.random() - 0.5) * randomness
-            )).normalize();
-        }
-        
-        function addSpiral(current, end, spiralPhase, dna) {
-            const toEnd = end.clone().sub(current);
-            const distance = toEnd.length();
-            const axis = toEnd.normalize();
-            
-            const perp1 = new THREE.Vector3().crossVectors(axis, new THREE.Vector3(0, 1, 0)).normalize();
-            const perp2 = new THREE.Vector3().crossVectors(axis, perp1).normalize();
-            
-            const angle = spiralPhase * Math.PI * 2 * dna.spiralTightness;
-            const radius = distance * dna.spiralRadius * (1 - spiralPhase * 0.5);
-            
-            const spiralOffset = perp1.clone().multiplyScalar(Math.cos(angle) * radius)
-                .add(perp2.clone().multiplyScalar(Math.sin(angle) * radius));
-            
-            return current.add(spiralOffset);
-        }
-        
-        function createTube(points, dna, colorHex) {
-            const allPoints = [];
-            
-            let currentLength = 0;
-            for (let i = 0; i < points.length - 1; i++) {
-                const p0 = points[i];
-                const p1 = points[i + 1];
-                const segmentLength = p0.distanceTo(p1);
-                
-                let t0, t1;
-                if (i === 0) {
-                    const originalDirection = p1.clone().sub(p0).normalize();
-                    
-                    // Calculate radial bias for initial tangent direction
-                    const startRadial = p0.clone().normalize();
-                    const endRadial = p1.clone().normalize();
-                    const radialDot = startRadial.dot(endRadial);
-                    
-                    // Create radial component: outward if book is further, inward if closer
-                    const radialBias = radialDot > 0 ? 1 : -1;
-                    const radialComponent = startRadial.clone().multiplyScalar(radialBias);
-                    
-                    t0 = originalDirection.multiplyScalar(0.0).add(radialComponent.multiplyScalar(1.0)).normalize();
-                } else {
-                    t0 = points[i + 1].clone().sub(points[i - 1]).normalize();
-                }
-                
-                if (i === points.length - 2) {
-                    t1 = p1.clone().sub(p0).normalize();
-                } else {
-                    t1 = points[i + 2].clone().sub(points[i]).normalize();
-                }
-                
-                t0 = addTangentRandomness(t0, dna.tangentRandom);
-                t1 = addTangentRandomness(t1, dna.tangentRandom);
-                
-                const segmentPoints = generateHermiteSegment(p0, p1, t0, t1, dna.resolution);
-                const pointsToAdd = i === 0 ? segmentPoints : segmentPoints.slice(1);
-                allPoints.push(...pointsToAdd);
-                
-                currentLength += segmentLength;
-            }
-            
-            return createTubeFromPoints(allPoints, dna, colorHex);
-        }
-        
-        function generateHermiteSegment(p0, p1, t0, t1, resolution) {
-            const points = [];
-            const length0 = p1.distanceTo(p0) * 0.5;
-            const length1 = p1.distanceTo(p0) * 0.5;
-            
-            for (let i = 0; i <= resolution; i++) {
-                const t = i / resolution;
-                const t2 = t * t;
-                const t3 = t2 * t;
-                
-                const h00 = 2 * t3 - 3 * t2 + 1;
-                const h10 = t3 - 2 * t2 + t;
-                const h01 = -2 * t3 + 3 * t2;
-                const h11 = t3 - t2;
-                
-                const point = p0.clone().multiplyScalar(h00)
-                    .add(t0.clone().multiplyScalar(h10 * length0))
-                    .add(p1.clone().multiplyScalar(h01))
-                    .add(t1.clone().multiplyScalar(h11 * length1));
-                
-                points.push(point);
-            }
-            
-            return points;
-        }
-        
-        function calculateTaperedRadii(points, startRadius, endRadius) {
-            if (points.length === 0) return { radii: [], totalDistance: 0 };
-            
-            const distances = [0];
-            let totalDistance = 0;
-            for (let i = 1; i < points.length; i++) {
-                const distance = points[i].distanceTo(points[i - 1]);
-                totalDistance += distance;
-                distances.push(totalDistance);
-            }
-            
-            const radii = [];
-            for (let i = 0; i < points.length; i++) {
-                const t = totalDistance > 0 ? distances[i] / totalDistance : 0;
-                const radius = startRadius + (endRadius - startRadius) * t;
-                radii.push(radius);
-            }
-            
-            return { radii, totalDistance };
-        }
-        
         function createParallelTransportFrames(points) {
             if (points.length < 2) return [];
             
@@ -797,141 +918,6 @@
             
             return frames;
         }
-        
-        function createCustomTubeGeometry(points, radii, color, radialSegments, offset, totalDistance) {
-            const geometry = new THREE.BufferGeometry();
-            const vertices = [];
-            const uvs = [];
-            const indices = [];
-            
-            const frames = createParallelTransportFrames(points);
-            
-            for (let i = 0; i < points.length; i++) {
-                const point = points[i];
-                const radius = radii[i];
-                const frame = frames[i];
-                
-                for (let j = 0; j <= radialSegments; j++) {
-                    const angle = (j / radialSegments) * Math.PI * 2;
-                    const x = Math.cos(angle) * radius;
-                    const y = Math.sin(angle) * radius;
-                    
-                    const vertex = point.clone()
-                        .add(frame.right.clone().multiplyScalar(x))
-                        .add(frame.up.clone().multiplyScalar(y));
-                    
-                    vertices.push(vertex.x, vertex.y, vertex.z);
-                    
-                    const u = j / radialSegments;
-                    const v = i / (points.length - 1);
-                    uvs.push(u, v);
-                }
-            }
-            
-            for (let i = 0; i < points.length - 1; i++) {
-                for (let j = 0; j < radialSegments; j++) {
-                    const a = i * (radialSegments + 1) + j;
-                    const b = a + radialSegments + 1;
-                    const c = a + 1;
-                    const d = b + 1;
-                    indices.push(a, b, c);
-                    indices.push(b, d, c);
-                }
-            }
-            
-            geometry.setIndex(indices);
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-            geometry.computeVertexNormals();
-            
-            // Calculate uvYScale based on totalDistance - normalize to reasonable range
-            const uvYScale = Math.max(.5, Math.min(500.0, totalDistance * 0.2));
-            
-            const material = new THREE.ShaderMaterial({
-                vertexShader: tendrilShader.vertexShader,
-                fragmentShader: tendrilShader.fragmentShader,
-                uniforms: {
-                    time: { value: 0.0 },
-                    color: { value: new THREE.Color(color) },
-                    offset: { value: offset },
-                    causticsIntensity: { value: 2.0 },
-                    causticsSpeed: { value: 1.0 },
-                    uvYScale: { value: uvYScale }
-                },
-                wireframe: false,
-                side: THREE.DoubleSide,
-                transparent: true, 
-                opacity: .3,
-            });
-            flowerMaterials.push(material);
-            
-            return new THREE.Mesh(geometry, material);
-        }
-        
-        function createTubeWithUVs(points, dna, offset) {
-            const allPoints = [];
-            
-            for (let i = 0; i < points.length - 1; i++) {
-                const p0 = points[i];
-                const p1 = points[i + 1];
-                
-                let t0, t1;
-                if (i === 0) {
-                    t0 = p1.clone().sub(p0).normalize();
-                } else {
-                    t0 = points[i + 1].clone().sub(points[i - 1]).normalize();
-                }
-                
-                if (i === points.length - 2) {
-                    t1 = p1.clone().sub(p0).normalize();
-                } else {
-                    t1 = points[i + 2].clone().sub(points[i]).normalize();
-                }
-                
-                t0 = addTangentRandomness(t0, dna.tangentRandom);
-                t1 = addTangentRandomness(t1, dna.tangentRandom);
-                
-                const segmentPoints = generateHermiteSegment(p0, p1, t0, t1, dna.resolution);
-                const pointsToAdd = i === 0 ? segmentPoints : segmentPoints.slice(1);
-                allPoints.push(...pointsToAdd);
-            }
-            
-            const { radii, totalDistance } = calculateTaperedRadii(allPoints, dna.startRadius, dna.endRadius);
-            return createCustomTubeGeometry(allPoints, radii, dna.color, dna.radialSegments || 6, offset, totalDistance);
-        }
-        
-        function makeTendrilFlower(centerPos, endPoints, color, type = 'tag') {
-            const dna = type === 'author' ? 
-                {
-                    subdivisionLevels: 3,
-                    organicVariation: 0.5,
-                    startRadius: 2,
-                    endRadius: 0.3,
-                    tangentRandom: 0.1,
-                    resolution: 8,
-                    radialSegments: 4,
-                    color: parseInt(color.replace('#', '0x'))
-                } : 
-                {
-                    subdivisionLevels: 4,
-                    organicVariation: 0.6,
-                    startRadius: 1.5,
-                    endRadius: .5,
-                    tangentRandom: 1.5,
-                    resolution: 8,
-                    radialSegments: 6,
-                    color: parseInt(color.replace('#', '0x'))
-                };
-
-            const tendrils = [];
-            endPoints.forEach((endPoint, index) => {
-                const pathPoints = genPathPointsRecursive(centerPos, endPoint, dna);
-                const tendril = createTubeWithUVs(pathPoints, dna, index / endPoints.length);
-                tendrils.push(tendril);
-            });
-
-            return tendrils;
-        }
 
         async function initApp() {
             const atlasData = await loadAtlasData();
@@ -973,40 +959,40 @@
             const tagColors = {};
 
             function generateDistinctPalette(count) {
-    const colors = [];
-    const hueStep = 360 / count;
-    
-    for (let i = 0; i < count; i++) {
-        const hue = (i * hueStep) % 360;
-        // Use high saturation and brightness for maximum distinctness
-        const color = hsvToHex(hue, 1., 1.0);
-        colors.push(color);
-    }
-    
-    return colors;
-}
+                const colors = [];
+                const hueStep = 360 / count;
+                
+                for (let i = 0; i < count; i++) {
+                    const hue = (i * hueStep) % 360;
+                    // Use high saturation and brightness for maximum distinctness
+                    const color = hsvToHex(hue, 1., 1.0);
+                    colors.push(color);
+                }
+                
+                return colors;
+            }
 
-function hsvToHex(h, s, v) {
-    const c = v * s;
-    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-    const m = v - c;
-    
-    let r, g, b;
-    if (h < 60) [r, g, b] = [c, x, 0];
-    else if (h < 120) [r, g, b] = [x, c, 0];
-    else if (h < 180) [r, g, b] = [0, c, x];
-    else if (h < 240) [r, g, b] = [0, x, c];
-    else if (h < 300) [r, g, b] = [x, 0, c];
-    else [r, g, b] = [c, 0, x];
-    
-    r = Math.round((r + m) * 255);
-    g = Math.round((g + m) * 255);
-    b = Math.round((b + m) * 255);
-    
-    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-}
+            function hsvToHex(h, s, v) {
+                const c = v * s;
+                const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+                const m = v - c;
+                
+                let r, g, b;
+                if (h < 60) [r, g, b] = [c, x, 0];
+                else if (h < 120) [r, g, b] = [x, c, 0];
+                else if (h < 180) [r, g, b] = [0, c, x];
+                else if (h < 240) [r, g, b] = [0, x, c];
+                else if (h < 300) [r, g, b] = [x, 0, c];
+                else [r, g, b] = [c, 0, x];
+                
+                r = Math.round((r + m) * 255);
+                g = Math.round((g + m) * 255);
+                b = Math.round((b + m) * 255);
+                
+                return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+            }
 
-const colors = generateDistinctPalette(18)
+            const colors = generateDistinctPalette(18)
 
             Array.from(allTags).forEach((tag, index) => {
                 tagColors[tag] = colors[index % colors.length];
@@ -1067,22 +1053,18 @@ const colors = generateDistinctPalette(18)
             
             const links = [...authorLinks, ...tagLinks];
             
+            // Debug logging
+            console.log('Total book sprites:', booksWithThumbnails.length);
+            console.log('Author succession links:', authorLinks.length);
+            console.log('Genre to book links:', tagLinks.length);
+            console.log('Total links:', links.length);
+            
             const tagStats = {};
             tagLinks.forEach(link => {
                 const tagName = link.tag;
                 tagStats[tagName] = (tagStats[tagName] || 0) + 1;
             });
-            
-            
-            // Tags will float freely, no fixed positioning needed
-            
-            let hermiteFlowers = [];
-            
-            let authorTendrils = [];
-            
-            let tagCylinders = [];
 
-            // Create the graph
             const Graph = ForceGraph3D(
                 {
                     rendererConfig:{ antialias: true, alpha: true, clearColor: "black" }, 
@@ -1165,6 +1147,7 @@ const colors = generateDistinctPalette(18)
                 .showNavInfo(false);
             
             Graph.scene().add(atlasManager.getInstancedMesh());
+            console.log('Added InstancedMesh to scene with', atlasManager.instanceIndex, 'instances');
             Graph.cameraPosition({
                 x: 0, 
                 y: 0, 
@@ -1190,9 +1173,6 @@ const colors = generateDistinctPalette(18)
             
             Graph.d3Force('sphericalShell', createSphericalShellForce(0.8));
             Graph.d3Force('sphericalShell').initialize(allNodes);
-            
-            // Graph.d3Force('fictionSeparation', createFictionSeparationForce());
-            // Graph.d3Force('fictionSeparation').initialize(booksWithThumbnails);
 
             Graph.d3Force("charge").strength(-1900);
             Graph.d3Force('center', null);
@@ -1256,7 +1236,7 @@ const colors = generateDistinctPalette(18)
                 } else if (event.key === 'c') {
                     autoCam = !autoCam
                 } else if (event.key === 's') {
-                    // Save book positions to complete-book-database.json
+                    // save the book data with current positions to 'bake' them in for a static version of the layout
                     const updatedBooks = books.map(book => {
                         const bookNode = booksWithThumbnails.find(node => node.id === book.rowNumber);
                         if (bookNode && bookNode.x !== undefined && bookNode.z !== undefined) {
@@ -1281,6 +1261,9 @@ const colors = generateDistinctPalette(18)
                     URL.revokeObjectURL(url);
                     
                     console.log('Book positions saved to complete-book-database.json');
+                } else if (event.key === 'd') {
+                    // want to make these lower
+                    console.log('Draw calls:', Graph.renderer().info.render.calls);
                 }
             });
             
@@ -1327,6 +1310,8 @@ const colors = generateDistinctPalette(18)
                         cylinder.rotation.setFromRotationMatrix(matrix);
                     }
                 });
+
+                atlasManager.updateAllMatrices();
                 
                 if(autoCam){
                     const aheadAngle=.01
@@ -1357,7 +1342,7 @@ const colors = generateDistinctPalette(18)
                 Graph.renderer().setSize(width, height);
                 Graph.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 2));
             });
-            
+
         }
 
         initApp().catch(console.error);
