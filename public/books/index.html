@@ -31,7 +31,12 @@
     <script type="module">
         import * as THREE from 'https://esm.sh/three';
 
-        // Enhanced atlas material for instanced rendering with billboard support
+        const cookTimeMs = 40000
+        const centerMargin = 500.
+        const maxR = 1500.
+        const tagShellRadiusSimulated = 900
+        const tagShellRadiusRendered = 450
+
         const InstancedAtlasMaterial = class extends THREE.ShaderMaterial {
             constructor(atlasTexture) {
                 super({
@@ -40,18 +45,15 @@
                         time: { value: 0 }
                     },
                     vertexShader: `
-                        // Three.js provides cameraPosition automatically, no need to declare it
-                        attribute vec4 uvBounds; // uMin, vMin, uMax, vMax per instance
+                        attribute vec4 uvBounds;
                         varying vec2 vUv;
                         
                         void main() {
-                            // Map standard UV (0-1) to atlas UV bounds for this instance
                             vUv = vec2(
                                 mix(uvBounds.x, uvBounds.z, uv.x),
                                 mix(uvBounds.y, uvBounds.w, uv.y)
                             );
                             
-                            // Extract position and scale from instance matrix
                             vec3 instancePosition = vec3(instanceMatrix[3]);
                             vec3 instanceScale = vec3(
                                 length(instanceMatrix[0].xyz),
@@ -59,13 +61,11 @@
                                 length(instanceMatrix[2].xyz)
                             );
                             
-                            // Calculate billboard vectors using built-in cameraPosition
                             vec3 toCamera = normalize(cameraPosition - instancePosition);
                             vec3 up = vec3(0.0, 1.0, 0.0);
                             vec3 right = normalize(cross(up, toCamera));
                             up = cross(toCamera, right);
                             
-                            // Build billboard matrix with instance position and scale
                             mat4 billboardMatrix = mat4(
                                 vec4(right * instanceScale.x, 0.0),
                                 vec4(up * instanceScale.y, 0.0),
@@ -73,7 +73,6 @@
                                 vec4(instancePosition, 1.0)
                             );
                             
-                            // Apply billboard transform to vertex
                             vec4 worldPosition = billboardMatrix * vec4(position, 1.0);
                             gl_Position = projectionMatrix * viewMatrix * worldPosition;
                         }
@@ -94,7 +93,6 @@
             }
         };
 
-        // Proxy object that updates the corresponding instance
         class BookSpriteProxy extends THREE.Object3D {
             constructor(instancedMesh, instanceIndex, uvBounds, scale) {
                 super();
@@ -102,7 +100,6 @@
                 this.instanceIndex = instanceIndex;
                 this.scale.set(scale.x, scale.y, 1);
                 
-                // Set UV bounds for this instance
                 const uvBoundsAttr = instancedMesh.geometry.attributes.uvBounds;
                 uvBoundsAttr.setXYZW(instanceIndex, uvBounds[0], uvBounds[1], uvBounds[2], uvBounds[3]);
                 uvBoundsAttr.needsUpdate = true;
@@ -110,20 +107,17 @@
             
             updateMatrixWorld(force) {
                 super.updateMatrixWorld(force);
-                // Update the instance matrix in the instanced mesh
                 this.instancedMesh.setMatrixAt(this.instanceIndex, this.matrixWorld);
                 this.instancedMesh.instanceMatrix.needsUpdate = true;
             }
         }
 
-        // Book atlas manager
         class BookAtlasManager {
             constructor(atlasTexture, uvMap, maxInstances) {
                 this.geometry = new THREE.PlaneGeometry(1, 1);
                 this.material = new InstancedAtlasMaterial(atlasTexture);
                 this.instancedMesh = new THREE.InstancedMesh(this.geometry, this.material, maxInstances);
                 
-                // Add instanced UV bounds attribute
                 const uvBoundsAttribute = new THREE.InstancedBufferAttribute(
                     new Float32Array(maxInstances * 4), 4
                 );
@@ -146,14 +140,12 @@
                     return new THREE.Object3D();
                 }
                 
-                // Calculate scale based on UV bounds
                 const [uMin, vMin, uMax, vMax] = uvCoords;
                 const uWidth = uMax - uMin;
                 const vHeight = vMax - vMin;
                 const atlasPixelWidth = uWidth * 3072;
                 const atlasPixelHeight = vHeight * 3072;
                 
-                // Scale to maintain aspect ratio with max dimension = 60px
                 const maxDimension = Math.max(atlasPixelWidth, atlasPixelHeight);
                 const scaleFactor = 60 / maxDimension;
                 const scale = {
@@ -164,7 +156,7 @@
                 const proxy = new BookSpriteProxy(this.instancedMesh, this.instanceIndex, uvCoords, scale);
                 this.proxies.push(proxy);
                 this.instanceIndex++;
-                
+
                 return proxy;
             }
             
@@ -183,7 +175,6 @@
                 const response = await fetch('./atlas-uv-map.json');
                 const uvMap = await response.json();
                 
-                // Load atlas texture
                 const atlasTexture = new THREE.TextureLoader().load('./atlas_optimized_3072.png');
                 atlasTexture.generateMipmaps = true;
                 atlasTexture.minFilter = THREE.LinearMipmapLinearFilter;
@@ -203,7 +194,6 @@
             return filename in uvMap;
         }
 
-        // Generate author succession links
         function generateAuthorSuccessionLinks(nodes) {
             const links = [];
             const authorBooks = new Map();
@@ -241,7 +231,6 @@
             return links;
         }
 
-        // Compatible link force
         function createCompatibleLinkForce(initialLinks, initialStrength = 1.0) {
             let nodes;
             let links = initialLinks || [];
@@ -366,8 +355,52 @@
             return force;
         }
 
-        // Fiction separation force
-        function createFictionSeparationForce(strength = 0.03, fictionTarget = 600, nonFictionTarget = -600) {
+        function createSphericalShellForce(strength = 1.0) {
+            let nodes;
+            
+            function force(alpha) {
+                nodes.forEach(node => {
+                    if (node.shellRadius !== undefined) {
+                        // Get current distance from origin
+                        const x = node.x || 0;
+                        const y = node.y || 0;
+                        const z = node.z || 0;
+                        const currentRadius = Math.sqrt(x * x + y * y + z * z);
+                        
+                        if (currentRadius > 0) {
+                            // Hard constraint: set position exactly on the shell
+                            const targetRadius = node.shellRadius;
+                            const scaleFactor = targetRadius / currentRadius;
+                            
+                            node.x = x * scaleFactor;
+                            node.y = y * scaleFactor;
+                            node.z = z * scaleFactor;
+                        } else {
+                            // If at origin, place at a random point on the shell
+                            const theta = Math.random() * Math.PI * 2;
+                            const phi = Math.acos(2 * Math.random() - 1);
+                            const r = node.shellRadius;
+                            
+                            node.x = r * Math.sin(phi) * Math.cos(theta);
+                            node.y = r * Math.sin(phi) * Math.sin(theta);
+                            node.z = r * Math.cos(phi);
+                        }
+                    }
+                });
+            }
+            
+            force.initialize = function(_nodes) {
+                nodes = _nodes;
+            };
+            
+            force.strength = function(_) {
+                return arguments.length ? (strength = +_, force) : strength;
+            };
+            
+            return force;
+        }
+
+        function createFictionSeparationForce(strength = 90., fictionTarget = 100, nonFictionTarget = -100) {
             let nodes;
             
             function force(alpha) {
@@ -375,7 +408,7 @@
                     if (node.fiction !== undefined) {
                         const target = node.fiction ? fictionTarget : nonFictionTarget;
                         const current = node.x || 0;
-                        node.vx += (target - current) * strength * alpha;
+                        node.vx += target/Math.abs(current+1) * strength * alpha;
                     }
                 });
             }
@@ -399,7 +432,507 @@
             return force;
         }
 
-        // Initialize the application
+        // Improved tendril shader for caustics and wave effects
+        const tendrilShader = {
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                varying vec2 vUv;
+                uniform float time;
+                uniform float offset;
+                uniform vec3 color;
+                uniform float causticsIntensity;
+                uniform float causticsSpeed;
+                uniform float uvYScale;
+                
+                #define TAU 6.28318530718
+                
+                void main() {
+                    // float adjustedTime = time * causticsSpeed * 0.5 + 23.0 + offset;
+                    vec2 uv = vec2  (vUv.x, vUv.y * uvYScale);
+                    // vec2 p = mod(uv * TAU * 2.0, TAU) - 250.0;
+                    // vec2 i = vec2(p);
+                    // float c = 1.0;
+                    // float inten = 0.005 * causticsIntensity;
+                    
+                    // for (int n = 0; n < 8; n++) {
+                    //     float t = adjustedTime * (1.0 - (3.5 / float(n + 1)));
+                    //     i = p + vec2(
+                    //         cos(t - i.x) + sin(t + i.y), 
+                    //         sin(t - i.y) + cos(t + i.x)
+                    //     );
+                    //     c += 1.0 / length(vec2(
+                    //         p.x / (sin(i.x + t) / inten),
+                    //         p.y / (cos(i.y + t) / inten)
+                    //     ));
+                    // }
+                    
+                    // c /= float(maxIter);
+                    // c = 1.17 - pow(c, 1.4);
+                    
+                    // vec3 causticsColor = vec3(pow(abs(c), 8.0));
+                    // causticsColor = clamp(causticsColor * color, 0.0, 1.0);
+                    
+                    float wave = sin(-time*2. + (uv.y) * .01 + offset*100. ) * 0.5 + 0.5;
+                    // if (wave < .98) discard;
+                    
+                    // vec3 finalColor = mix(color * wave, causticsColor, 0.6);
+                    vec3 finalColor = color;
+                    // gl_FragColor = vec4(causticsColor, 1.0); 
+                    gl_FragColor = vec4(finalColor*.5, .8); 
+                }
+            `
+        };
+
+        let flowerMaterials = [];
+
+        function generateHermiteFlowers(tagNodes, bookNodes, tagLinks, tagColors) {
+            const flowers = [];
+            
+            // Create one tendril from each tag to each connected book
+            tagNodes.forEach(tagNode => {
+                const connectedBooks = tagLinks
+                    .filter(link => link.target.id === tagNode.id)
+                    .map(link => link.source);
+                
+                const tagColor = tagColors[tagNode.title] || '#ffffff';
+                
+                const originalStartPos = new THREE.Vector3(tagNode.x, tagNode.y, tagNode.z);
+
+                const inwardStartPos = originalStartPos.clone().normalize().multiplyScalar(tagShellRadiusRendered)
+
+                const endPoints = connectedBooks.map(bookNode => {
+                    const spriteHeight = bookNode.spriteProxy ? bookNode.spriteProxy.scale.y : 0;
+                    const yOffset = spriteHeight / 2;
+                    return new THREE.Vector3(
+                        bookNode.x, 
+                        bookNode.y + (tagNode.y > bookNode.y ? yOffset : -yOffset), 
+                        bookNode.z
+                    );
+                });
+                
+                if (endPoints.length > 0) {
+                    const flowerTendrils = makeTendrilFlower(inwardStartPos, endPoints, tagColor, 'tag');
+                    flowerTendrils.forEach(tendril => flowers.push(tendril));
+                }
+            });
+            
+            return flowers;
+        }
+        
+        function generateAuthorSuccessionTendrils(authorLinks) {
+            const tendrils = [];
+            
+            authorLinks.forEach(link => {
+                const sourceHeight = link.source.spriteProxy ? link.source.spriteProxy.scale.y : 0;
+                const targetHeight = link.target.spriteProxy ? link.target.spriteProxy.scale.y : 0;
+                
+                // Get original positions
+                const originalStart = new THREE.Vector3(
+                    link.source.x, 
+                    link.source.y, // + sourceHeight / 2, // offsets connection to top of book sprite, good for vertical layout
+                    link.source.z,
+                );
+                const originalEnd = new THREE.Vector3(
+                    link.target.x, 
+                    link.target.y, //- targetHeight / 2, 
+                    link.target.z,
+                );
+                
+                // Move positions inward toward origin by 20 units
+                const start = originalStart.clone().normalize().multiplyScalar(originalStart.length() - 20);
+                const end = originalEnd.clone().normalize().multiplyScalar(originalEnd.length() - 20);
+                
+                // Create simple cylinder geometry
+                const direction = end.clone().sub(start);
+                const distance = direction.length();
+                const midpoint = start.clone().add(end).multiplyScalar(0.5);
+                
+                // Create cylinder with 3 quads (6 radial segments)
+                const geometry = new THREE.CylinderGeometry(1, 1, distance, 6);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: 0xffffff, 
+                    transparent: true, 
+                    opacity: 1.,
+                });
+                
+                const cylinder = new THREE.Mesh(geometry, material);
+                
+                // Position cylinder at midpoint
+                cylinder.position.copy(midpoint);
+                
+                // Orient cylinder to align with the direction vector
+                const up = new THREE.Vector3(0, 1, 0);
+                const axis = direction.normalize();
+                const quaternion = new THREE.Quaternion();
+                quaternion.setFromUnitVectors(up, axis);
+                cylinder.quaternion.copy(quaternion);
+                
+                tendrils.push(cylinder);
+            });
+            
+            return tendrils;
+        }
+        
+        function genPathPointsRecursive(start, end, dna) {
+            let points = [start.clone(), end.clone()];
+            
+            const subdivisionLevels = dna.subdivisionLevels || 4;
+            const organicVariation = dna.organicVariation || .9;
+            
+            // Recursively subdivide and add organic variation
+            for (let level = 0; level < subdivisionLevels; level++) {
+                const newPoints = [];
+                for (let i = 0; i < points.length - 1; i++) {
+                    newPoints.push(points[i].clone());
+                    
+                    const midpoint = points[i].clone().lerp(points[i + 1], 0.5);
+                    const distance = points[i].distanceTo(points[i + 1]);
+                    const variation = distance * organicVariation / Math.pow(2, level);
+                    
+                    // Add perpendicular displacement
+                    const direction = points[i + 1].clone().sub(points[i]).normalize();
+                    let perp1 = new THREE.Vector3().crossVectors(direction, new THREE.Vector3(0, 1, 0));
+                    if (perp1.length() < 0.001) {
+                        perp1 = new THREE.Vector3().crossVectors(direction, new THREE.Vector3(1, 0, 0));
+                    }
+                    perp1.normalize();
+                    const perp2 = new THREE.Vector3().crossVectors(direction, perp1).normalize();
+                    
+                    // Add radial bias for spherical context
+                    const t = i / (points.length - 1);
+                    
+                    // Calculate radial bias based on book position relative to tag
+                    const startRadial = start.clone().normalize();
+                    const endRadial = end.clone().normalize();
+                    const radialDot = startRadial.dot(endRadial);
+                    
+                    // If dot > 0, book is outward from tag; if dot < 0, book is inward
+                    const radialBias = radialDot > 0 ? 1 : -1;
+                    const radialInfluence = Math.exp(-t * 2) * variation * 0.5;
+                    
+                    // Create radial direction from origin to current point
+                    const currentPoint = points[i].clone().lerp(points[i + 1], 0.5);
+                    const radialDirection = currentPoint.clone().normalize();
+                    
+                    const displacement = perp1.clone().multiplyScalar((Math.random() - 0.5) * variation)
+                        .add(perp2.clone().multiplyScalar((Math.random() - 0.5) * variation))
+                        .add(radialDirection.clone().multiplyScalar(radialBias * radialInfluence));
+                    
+                    midpoint.add(displacement);
+                    newPoints.push(midpoint);
+                }
+                newPoints.push(points[points.length - 1].clone());
+                points = newPoints;
+            }
+            
+            return points;
+        }
+        
+        function addTangentRandomness(tangent, randomness) {
+            return tangent.clone().add(new THREE.Vector3(
+                (Math.random() - 0.5) * randomness,
+                (Math.random() - 0.5) * randomness,
+                (Math.random() - 0.5) * randomness
+            )).normalize();
+        }
+        
+        function addSpiral(current, end, spiralPhase, dna) {
+            const toEnd = end.clone().sub(current);
+            const distance = toEnd.length();
+            const axis = toEnd.normalize();
+            
+            const perp1 = new THREE.Vector3().crossVectors(axis, new THREE.Vector3(0, 1, 0)).normalize();
+            const perp2 = new THREE.Vector3().crossVectors(axis, perp1).normalize();
+            
+            const angle = spiralPhase * Math.PI * 2 * dna.spiralTightness;
+            const radius = distance * dna.spiralRadius * (1 - spiralPhase * 0.5);
+            
+            const spiralOffset = perp1.clone().multiplyScalar(Math.cos(angle) * radius)
+                .add(perp2.clone().multiplyScalar(Math.sin(angle) * radius));
+            
+            return current.add(spiralOffset);
+        }
+        
+        function createTube(points, dna, colorHex) {
+            const allPoints = [];
+            
+            let currentLength = 0;
+            for (let i = 0; i < points.length - 1; i++) {
+                const p0 = points[i];
+                const p1 = points[i + 1];
+                const segmentLength = p0.distanceTo(p1);
+                
+                let t0, t1;
+                if (i === 0) {
+                    const originalDirection = p1.clone().sub(p0).normalize();
+                    
+                    // Calculate radial bias for initial tangent direction
+                    const startRadial = p0.clone().normalize();
+                    const endRadial = p1.clone().normalize();
+                    const radialDot = startRadial.dot(endRadial);
+                    
+                    // Create radial component: outward if book is further, inward if closer
+                    const radialBias = radialDot > 0 ? 1 : -1;
+                    const radialComponent = startRadial.clone().multiplyScalar(radialBias);
+                    
+                    t0 = originalDirection.multiplyScalar(0.0).add(radialComponent.multiplyScalar(1.0)).normalize();
+                } else {
+                    t0 = points[i + 1].clone().sub(points[i - 1]).normalize();
+                }
+                
+                if (i === points.length - 2) {
+                    t1 = p1.clone().sub(p0).normalize();
+                } else {
+                    t1 = points[i + 2].clone().sub(points[i]).normalize();
+                }
+                
+                t0 = addTangentRandomness(t0, dna.tangentRandom);
+                t1 = addTangentRandomness(t1, dna.tangentRandom);
+                
+                const segmentPoints = generateHermiteSegment(p0, p1, t0, t1, dna.resolution);
+                const pointsToAdd = i === 0 ? segmentPoints : segmentPoints.slice(1);
+                allPoints.push(...pointsToAdd);
+                
+                currentLength += segmentLength;
+            }
+            
+            return createTubeFromPoints(allPoints, dna, colorHex);
+        }
+        
+        function generateHermiteSegment(p0, p1, t0, t1, resolution) {
+            const points = [];
+            const length0 = p1.distanceTo(p0) * 0.5;
+            const length1 = p1.distanceTo(p0) * 0.5;
+            
+            for (let i = 0; i <= resolution; i++) {
+                const t = i / resolution;
+                const t2 = t * t;
+                const t3 = t2 * t;
+                
+                const h00 = 2 * t3 - 3 * t2 + 1;
+                const h10 = t3 - 2 * t2 + t;
+                const h01 = -2 * t3 + 3 * t2;
+                const h11 = t3 - t2;
+                
+                const point = p0.clone().multiplyScalar(h00)
+                    .add(t0.clone().multiplyScalar(h10 * length0))
+                    .add(p1.clone().multiplyScalar(h01))
+                    .add(t1.clone().multiplyScalar(h11 * length1));
+                
+                points.push(point);
+            }
+            
+            return points;
+        }
+        
+        function calculateTaperedRadii(points, startRadius, endRadius) {
+            if (points.length === 0) return { radii: [], totalDistance: 0 };
+            
+            const distances = [0];
+            let totalDistance = 0;
+            for (let i = 1; i < points.length; i++) {
+                const distance = points[i].distanceTo(points[i - 1]);
+                totalDistance += distance;
+                distances.push(totalDistance);
+            }
+            
+            const radii = [];
+            for (let i = 0; i < points.length; i++) {
+                const t = totalDistance > 0 ? distances[i] / totalDistance : 0;
+                const radius = startRadius + (endRadius - startRadius) * t;
+                radii.push(radius);
+            }
+            
+            return { radii, totalDistance };
+        }
+        
+        function createParallelTransportFrames(points) {
+            if (points.length < 2) return [];
+            
+            const frames = [];
+            const initialForward = points[1].clone().sub(points[0]).normalize();
+            
+            let initialUp = new THREE.Vector3(0, 1, 0);
+            if (Math.abs(initialForward.dot(initialUp)) > 0.9) {
+                initialUp = new THREE.Vector3(1, 0, 0);
+            }
+            
+            const initialRight = new THREE.Vector3().crossVectors(initialForward, initialUp).normalize();
+            initialUp = new THREE.Vector3().crossVectors(initialRight, initialForward).normalize();
+            
+            frames.push({
+                forward: initialForward.clone(),
+                right: initialRight.clone(),
+                up: initialUp.clone()
+            });
+            
+            for (let i = 1; i < points.length; i++) {
+                const prevFrame = frames[i - 1];
+                
+                let newForward;
+                if (i === points.length - 1) {
+                    newForward = points[i].clone().sub(points[i - 1]).normalize();
+                } else {
+                    newForward = points[i + 1].clone().sub(points[i - 1]).normalize();
+                }
+                
+                const rotationQuat = new THREE.Quaternion();
+                rotationQuat.setFromUnitVectors(prevFrame.forward, newForward);
+                
+                const newRight = prevFrame.right.clone().applyQuaternion(rotationQuat);
+                const newUp = prevFrame.up.clone().applyQuaternion(rotationQuat);
+                
+                frames.push({
+                    forward: newForward.clone(),
+                    right: newRight.clone(),
+                    up: newUp.clone()
+                });
+            }
+            
+            return frames;
+        }
+        
+        function createCustomTubeGeometry(points, radii, color, radialSegments, offset, totalDistance) {
+            const geometry = new THREE.BufferGeometry();
+            const vertices = [];
+            const uvs = [];
+            const indices = [];
+            
+            const frames = createParallelTransportFrames(points);
+            
+            for (let i = 0; i < points.length; i++) {
+                const point = points[i];
+                const radius = radii[i];
+                const frame = frames[i];
+                
+                for (let j = 0; j <= radialSegments; j++) {
+                    const angle = (j / radialSegments) * Math.PI * 2;
+                    const x = Math.cos(angle) * radius;
+                    const y = Math.sin(angle) * radius;
+                    
+                    const vertex = point.clone()
+                        .add(frame.right.clone().multiplyScalar(x))
+                        .add(frame.up.clone().multiplyScalar(y));
+                    
+                    vertices.push(vertex.x, vertex.y, vertex.z);
+                    
+                    const u = j / radialSegments;
+                    const v = i / (points.length - 1);
+                    uvs.push(u, v);
+                }
+            }
+            
+            for (let i = 0; i < points.length - 1; i++) {
+                for (let j = 0; j < radialSegments; j++) {
+                    const a = i * (radialSegments + 1) + j;
+                    const b = a + radialSegments + 1;
+                    const c = a + 1;
+                    const d = b + 1;
+                    indices.push(a, b, c);
+                    indices.push(b, d, c);
+                }
+            }
+            
+            geometry.setIndex(indices);
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+            geometry.computeVertexNormals();
+            
+            // Calculate uvYScale based on totalDistance - normalize to reasonable range
+            const uvYScale = Math.max(.5, Math.min(500.0, totalDistance * 0.2));
+            
+            const material = new THREE.ShaderMaterial({
+                vertexShader: tendrilShader.vertexShader,
+                fragmentShader: tendrilShader.fragmentShader,
+                uniforms: {
+                    time: { value: 0.0 },
+                    color: { value: new THREE.Color(color) },
+                    offset: { value: offset },
+                    causticsIntensity: { value: 2.0 },
+                    causticsSpeed: { value: 1.0 },
+                    uvYScale: { value: uvYScale }
+                },
+                wireframe: false,
+                side: THREE.DoubleSide,
+                transparent: true, 
+                opacity: .3,
+            });
+            flowerMaterials.push(material);
+            
+            return new THREE.Mesh(geometry, material);
+        }
+        
+        function createTubeWithUVs(points, dna, offset) {
+            const allPoints = [];
+            
+            for (let i = 0; i < points.length - 1; i++) {
+                const p0 = points[i];
+                const p1 = points[i + 1];
+                
+                let t0, t1;
+                if (i === 0) {
+                    t0 = p1.clone().sub(p0).normalize();
+                } else {
+                    t0 = points[i + 1].clone().sub(points[i - 1]).normalize();
+                }
+                
+                if (i === points.length - 2) {
+                    t1 = p1.clone().sub(p0).normalize();
+                } else {
+                    t1 = points[i + 2].clone().sub(points[i]).normalize();
+                }
+                
+                t0 = addTangentRandomness(t0, dna.tangentRandom);
+                t1 = addTangentRandomness(t1, dna.tangentRandom);
+                
+                const segmentPoints = generateHermiteSegment(p0, p1, t0, t1, dna.resolution);
+                const pointsToAdd = i === 0 ? segmentPoints : segmentPoints.slice(1);
+                allPoints.push(...pointsToAdd);
+            }
+            
+            const { radii, totalDistance } = calculateTaperedRadii(allPoints, dna.startRadius, dna.endRadius);
+            return createCustomTubeGeometry(allPoints, radii, dna.color, dna.radialSegments || 6, offset, totalDistance);
+        }
+        
+        function makeTendrilFlower(centerPos, endPoints, color, type = 'tag') {
+            const dna = type === 'author' ? 
+                {
+                    subdivisionLevels: 3,
+                    organicVariation: 0.5,
+                    startRadius: 2,
+                    endRadius: 0.3,
+                    tangentRandom: 0.1,
+                    resolution: 8,
+                    radialSegments: 4,
+                    color: parseInt(color.replace('#', '0x'))
+                } : 
+                {
+                    subdivisionLevels: 4,
+                    organicVariation: 0.6,
+                    startRadius: 1.5,
+                    endRadius: .5,
+                    tangentRandom: 1.5,
+                    resolution: 8,
+                    radialSegments: 6,
+                    color: parseInt(color.replace('#', '0x'))
+                };
+
+            const tendrils = [];
+            endPoints.forEach((endPoint, index) => {
+                const pathPoints = genPathPointsRecursive(centerPos, endPoint, dna);
+                const tendril = createTubeWithUVs(pathPoints, dna, index / endPoints.length);
+                tendrils.push(tendril);
+            });
+
+            return tendrils;
+        }
+
         async function initApp() {
             const atlasData = await loadAtlasData();
             if (!atlasData) {
@@ -408,11 +941,7 @@
             }
             
             const { uvMap, atlasTexture } = atlasData;
-            console.log(`Loaded atlas with ${Object.keys(uvMap).length} textures`);
-
             const books = await fetchJson();
-            
-            // Count books that have atlas thumbnails
             const atlasBooks = [];
             for (const book of books) {
                 if (await thumbnailInAtlas(book.rowNumber, uvMap)) {
@@ -420,12 +949,8 @@
                 }
             }
             
-            console.log(`Found ${atlasBooks.length} books in atlas out of ${books.length} total books`);
-            
-            // Create atlas manager with exact instance count needed
             const atlasManager = new BookAtlasManager(atlasTexture, uvMap, atlasBooks.length);
             
-            // Filter and create book nodes
             const booksWithThumbnails = [];
             const allTags = new Set();
             
@@ -445,52 +970,84 @@
                 booksWithThumbnails.push(node);
             }
             
-            // Create color mapping for tags
             const tagColors = {};
-            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f7b731', '#5f27cd', '#00d2d3', '#ff9ff3', '#54a0ff'];
+
+            function generateDistinctPalette(count) {
+    const colors = [];
+    const hueStep = 360 / count;
+    
+    for (let i = 0; i < count; i++) {
+        const hue = (i * hueStep) % 360;
+        // Use high saturation and brightness for maximum distinctness
+        const color = hsvToHex(hue, 1., 1.0);
+        colors.push(color);
+    }
+    
+    return colors;
+}
+
+function hsvToHex(h, s, v) {
+    const c = v * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = v - c;
+    
+    let r, g, b;
+    if (h < 60) [r, g, b] = [c, x, 0];
+    else if (h < 120) [r, g, b] = [x, c, 0];
+    else if (h < 180) [r, g, b] = [0, c, x];
+    else if (h < 240) [r, g, b] = [0, x, c];
+    else if (h < 300) [r, g, b] = [x, 0, c];
+    else [r, g, b] = [c, 0, x];
+    
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+    
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+const colors = generateDistinctPalette(18)
+
             Array.from(allTags).forEach((tag, index) => {
                 tagColors[tag] = colors[index % colors.length];
             });
 
-            // Create tag nodes
             const tagNodes = Array.from(allTags).map(tag => ({
                 id: `tag-${tag}`,
                 type: 'tag',
                 color: tagColors[tag],
                 x: 0, y: 0, z: 0,
                 title: tag,
-                authors: []
+                authors: [],
+                shellRadius: tagShellRadiusSimulated
             }));
+            console.log("tag count", tagNodes.length)
             
-            // Calculate logarithmic Y positions
             const yearsWithBooks = booksWithThumbnails.map(b => b.first_publish_year).filter(Boolean);
             if (yearsWithBooks.length > 0) {
                 const actualMin = Math.min(...yearsWithBooks);
                 const actualMax = Math.max(...yearsWithBooks);
-                const shift = 500;
-                const shiftedMin = actualMin + shift;
-                const shiftedMax = actualMax + shift;
-                const logMin = Math.log(shiftedMin);
-                const logMax = Math.log(shiftedMax);
                 
-                console.log(`Year range: ${actualMin} - ${actualMax}`);
                 
+
                 booksWithThumbnails.forEach(node => {
                     if (node.first_publish_year) {
                         const year = node.first_publish_year;
-                        const reversedYear = actualMax - year + actualMin + shift;
-                        const yPos = shift - ((Math.log(reversedYear) - logMin) / (logMax - logMin)) * 4000;
-                        node.fy = yPos;
-                        node.first = yPos;
-                    }
+                        // const radius = 10 + ((year - actualMin) / (actualMax - actualMin)) * (2000 - 10);
+                        const radius =
+                            ( -Math.log ( 
+                                1.01 - 
+                                    ( (year - actualMin) / (actualMax - actualMin) ) 
+                                )
+                                / 2.0 ) 
+                            * (maxR - centerMargin) + centerMargin
+                        
+                        node.shellRadius = radius;
+                    } 
                 });
             }
 
             const allNodes = [...booksWithThumbnails, ...tagNodes];
-            
-            console.log(`Total nodes: ${allNodes.length} (${booksWithThumbnails.length} books + ${tagNodes.length} tags)`);
-
-            // Generate links
             const authorLinks = generateAuthorSuccessionLinks(booksWithThumbnails);
             
             const tagLinks = [];
@@ -509,39 +1066,84 @@
             });
             
             const links = [...authorLinks, ...tagLinks];
+            
+            const tagStats = {};
+            tagLinks.forEach(link => {
+                const tagName = link.tag;
+                tagStats[tagName] = (tagStats[tagName] || 0) + 1;
+            });
+            
+            
+            // Tags will float freely, no fixed positioning needed
+            
+            let hermiteFlowers = [];
+            
+            let authorTendrils = [];
+            
+            let tagCylinders = [];
 
             // Create the graph
-            const Graph = ForceGraph3D()(document.getElementById('3d-graph'))
+            const Graph = ForceGraph3D(
+                {
+                    rendererConfig:{ antialias: true, alpha: true, clearColor: "black" }, 
+                    controlType:'orbit' 
+                }
+            )(document.getElementById('3d-graph'))
                 .nodeThreeObject(node => {
                     if (node.type === 'tag') {
-                        // Create text sprite for tag nodes
                         const canvas = document.createElement('canvas');
                         const context = canvas.getContext('2d');
-                        canvas.width = 512;
+                        canvas.width = 1536;
                         canvas.height = 128;
                         
-                        context.fillStyle = node.color || '#33ff33';
+                        context.fillStyle = 'rgba(0,0,0,0)';
                         context.fillRect(0, 0, canvas.width, canvas.height);
-                        context.fillStyle = '#ffffff';
                         context.font = '40px Arial';
                         context.textAlign = 'center';
                         context.textBaseline = 'middle';
-                        context.fillText(node.title, canvas.width/2, canvas.height/2);
+                        
+                        for(let i = 0; i < 3; i++) {
+                            const x = (canvas.width / 6) + (i * canvas.width / 3);
+                            
+                            context.strokeStyle = '#000000';
+                            context.lineWidth = 4;
+                            context.strokeText(node.title, x, canvas.height / 2);
+                            
+                            context.fillStyle = '#ffffff';
+                            context.fillText(node.title, x, canvas.height / 2);
+                        }
                         
                         const texture = new THREE.Texture(canvas);
                         texture.needsUpdate = true;
-                        const material = new THREE.SpriteMaterial({ map: texture });
-                        const sprite = new THREE.Sprite(material);
-                        sprite.scale.set(240, 60, 1);
-                        return sprite;
+                        texture.wrapS = THREE.RepeatWrapping;
+                        
+                        const cylinderGeometry = new THREE.CylinderGeometry(
+                            50, 50, 30, 16, 1, true
+                        );
+                        
+                        const material = new THREE.MeshBasicMaterial({
+                            map: texture,
+                            color: parseInt(node.color.replace('#', '0x')),
+                            transparent: true,
+                            side: THREE.FrontSide
+                        });
+                        
+                        const cylinder = new THREE.Mesh(cylinderGeometry, material);
+                        
+                        // Store cylinder with node reference for orientation updates
+                        cylinder.userData.node = node;
+                        tagCylinders.push(cylinder);
+                        
+                        return cylinder;
                         
                     } else {
-                        // Create instanced atlas sprite for book nodes
-                        return atlasManager.createBookSprite(node.thumbnail);
+                        const spriteProxy = atlasManager.createBookSprite(node.thumbnail);
+                        node.spriteProxy = spriteProxy;
+                        return spriteProxy;
                     }
                 })
                 .nodeLabel(node => node.type === 'tag' ? 
-                    node.title : 
+                    `${node.title}<br/>${node.y}` : 
                     `${node.title}<br/>${node.authors.join(', ')}<br/>${node.first_publish_year} (Row: ${node.id})`
                 )
                 .linkColor(link => {
@@ -558,21 +1160,25 @@
                     return 'rgba(255,255,255,1.0)';
                 })
                 .linkOpacity(1.0)
-                .linkWidth(link => link.type === 'author-succession' ? 2 : 1) 
+                .linkWidth(link => link.type === 'author-succession' ? 4 : 2.) 
                 .backgroundColor('#000000')
                 .showNavInfo(false);
             
-            // Add the instanced mesh to the scene
-            // Add the instanced mesh to the scene
             Graph.scene().add(atlasManager.getInstancedMesh());
+            Graph.cameraPosition({
+                x: 0, 
+                y: 0, 
+                z: 6000
+            }, {
+                x: 0, y: 0, z:0
+            })
             
-            // Configure forces
             const customLinkForce = createCompatibleLinkForce(links);
             customLinkForce.strength(link => {
                 if (link.type === 'book-tag') {
-                    return 0.2;
+                    return 0.03;
                 } else if (link.type === 'author-succession') {
-                    return 1.0;
+                    return 0.5;
                 }
                 return 1.0;
             });
@@ -582,25 +1188,166 @@
             Graph.d3Force('link', null);
             Graph.d3Force('link', customLinkForce);
             
-            Graph.d3Force('fictionSeparation', createFictionSeparationForce());
-            Graph.d3Force('fictionSeparation').initialize(booksWithThumbnails);
+            Graph.d3Force('sphericalShell', createSphericalShellForce(0.8));
+            Graph.d3Force('sphericalShell').initialize(allNodes);
+            
+            // Graph.d3Force('fictionSeparation', createFictionSeparationForce());
+            // Graph.d3Force('fictionSeparation').initialize(booksWithThumbnails);
 
-            Graph.d3Force("charge").strength(-900);
+            Graph.d3Force("charge").strength(-1900);
+            Graph.d3Force('center', null);
 
-            Graph.scene().fog = new THREE.FogExp2(0x111111, 0.000025);
             
             Graph.onNodeDrag((node, translate) => {
-                node.x += translate.x;
-                node.z += translate.z;
-                if (node.first === undefined) {
-                    node.y += translate.y;
-                } else {
-                    node.fy = node.first;
+                if (hermiteFlowers && hermiteFlowers.length > 0) {
+                    hermiteFlowers.forEach(flower => {
+                        Graph.scene().remove(flower);
+                        flower.geometry.dispose();
+                        flower.material.dispose();
+                    });
+                    hermiteFlowers = [];
                 }
+                
+                if (authorTendrils && authorTendrils.length > 0) {
+                    authorTendrils.forEach(tendril => {
+                        Graph.scene().remove(tendril);
+                        tendril.geometry.dispose();
+                        tendril.material.dispose();
+                    });
+                    authorTendrils = [];
+                }
+                
+                Graph.cooldownTime(25000);
+                Graph.linkVisibility(true)
+                
+                node.x += translate.x;
+                node.y += translate.y;
+                node.z += translate.z;
+                // Spherical constraint will be handled by the sphericalShell force
             });
 
-            Graph.d3AlphaDecay(0.001)
+            Graph.d3AlphaDecay(0.0001)
             Graph.d3VelocityDecay(0.9)
+
+            const ambientLight = new THREE.AmbientLight(0xffffff)
+            Graph.lights([ambientLight])
+            
+            let t = 0
+            
+            function toggleLinkFlowersOn(){
+                if(hermiteFlowers && hermiteFlowers.length === 0){
+                    hermiteFlowers = generateHermiteFlowers(tagNodes, booksWithThumbnails, tagLinks, tagColors);
+                    hermiteFlowers.forEach(flower => Graph.scene().add(flower));
+                }
+                
+                if(authorTendrils && authorTendrils.length === 0){
+                    authorTendrils = generateAuthorSuccessionTendrils(authorLinks);
+                    authorTendrils.forEach(tendril => Graph.scene().add(tendril));
+                }
+            }
+
+            Graph.cooldownTime(cookTimeMs);
+            let autoCam = false
+            window.addEventListener('keydown', (event) => {
+                if (event.key === 'h' || event.key === 'H') {
+                    Graph.cooldownTime(0);
+                    Graph.linkVisibility(false)
+                    toggleLinkFlowersOn() 
+                } else if (event.key === 'c') {
+                    autoCam = !autoCam
+                } else if (event.key === 's') {
+                    // Save book positions to complete-book-database.json
+                    const updatedBooks = books.map(book => {
+                        const bookNode = booksWithThumbnails.find(node => node.id === book.rowNumber);
+                        if (bookNode && bookNode.x !== undefined && bookNode.z !== undefined) {
+                            return {
+                                ...book,
+                                x: Math.round(bookNode.x * 10) / 10,
+                                z: Math.round(bookNode.z * 10) / 10
+                            };
+                        }
+                        return book;
+                    });
+                    
+                    const dataStr = JSON.stringify(updatedBooks, null, 2);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'complete-book-database.json';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    
+                    console.log('Book positions saved to complete-book-database.json');
+                }
+            });
+            
+            setInterval(()=>{
+                t += .0008
+                const elapsedTime = performance.now() * 0.001;
+                
+                // Update shader time uniforms
+                flowerMaterials.forEach(material => {
+                    if (material.uniforms && material.uniforms.time) {
+                        material.uniforms.time.value = elapsedTime;
+                    }
+                });
+                
+                tagCylinders.forEach(cylinder => {
+                    // Keep the spinning animation but slower - accumulate rotation
+                    if (!cylinder.userData.accumulatedRotation) {
+                        cylinder.userData.accumulatedRotation = 0;
+                    }
+                    cylinder.userData.accumulatedRotation += 0.005;
+                    
+                    // Orient cylinder to point toward origin (radial orientation)
+                    if (cylinder.userData.node) {
+                        const node = cylinder.userData.node;
+                        const position = new THREE.Vector3(node.x || 0, node.y || 0, node.z || 0);
+                        
+                        // Calculate direction from node to origin
+                        const toOrigin = position.clone().negate().normalize();
+                        
+                        // Create look-at matrix so cylinder's -Y axis points toward origin
+                        const up = new THREE.Vector3(0, 1, 0);
+                        const matrix = new THREE.Matrix4();
+                        matrix.lookAt(position, new THREE.Vector3(0, 0, 0), up);
+                        
+                        // Apply 90 degree rotation so cylinder's -Y points toward origin instead of -Z
+                        const rotationMatrix = new THREE.Matrix4().makeRotationX(Math.PI / 2);
+                        matrix.multiply(rotationMatrix);
+                        
+                        // Apply accumulated Y rotation on top of radial orientation
+                        const yRotationMatrix = new THREE.Matrix4().makeRotationY(cylinder.userData.accumulatedRotation);
+                        matrix.multiply(yRotationMatrix);
+                        
+                        // Set only the rotation part, preserve position
+                        cylinder.rotation.setFromRotationMatrix(matrix);
+                    }
+                });
+                
+                if(autoCam){
+                    const aheadAngle=.01
+                    const r2 = 3000 + Math.cos(t)
+                    const r1 = 4000 + 3000*(1.+Math.sin(t))
+                    Graph.cameraPosition({
+                        x: r1*Math.sin(t),
+                        y: r2*Math.cos(t),
+                        z: 0., 
+                    }, {
+                        x: .3*r1*Math.sin(t + Math.PI*aheadAngle),
+                        y: 0.,
+                        z: .5*3000*Math.cos(t + Math.PI*aheadAngle),
+                    })
+                }
+            }, 10)
+            
+            setTimeout(()=>{
+                Graph.linkVisibility(false)
+                toggleLinkFlowersOn()          
+            }, cookTimeMs + 1000)
 
             window.addEventListener("resize", () => {
                 let width = window.innerWidth;
@@ -611,7 +1358,6 @@
                 Graph.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 2));
             });
             
-            console.log('InstancedMesh 3D Force Graph initialized successfully!');
         }
 
         initApp().catch(console.error);
