@@ -1,0 +1,186 @@
+<style>
+  body {
+    background-color: cadetblue;
+    margin: 66px;
+  }
+  img {
+    max-width: 80%;
+    display: block;
+    margin: auto;
+  }
+  h4 {
+    font-style: italic;
+    text-align: center;
+    color: #555555; 
+  }
+  pre {
+    background-color: bisque;
+  }
+</style><h1>Creating a 3D Virtual Library</h1>
+<h2>Problems</h2>
+<ul>
+<li>We fled the New World to escape our fellow Americans, but the emigre lifestyle is light and books are heavy</li>
+<li>Time is too short to gather all the appropriate metadata as we&#39;d like, so we must be &#39;AGILE&#39;</li>
+<li>Existing book data we&#39;re interested in takes the form of partly overlapping sets from three different sources</li>
+</ul>
+<p><img src="books-boxed.JPG" alt="Boooo boxed books, boo!" title="Boooo boxed books, boo!"></p>
+<h4>Boooo boxed books, boo!</h4>
+<h2>Solution</h2>
+<p>Create a 3D representation of owned books, to be followed by the majority of books ever read.</p>
+<h2>Tools and Dependencies</h2>
+<ul>
+<li>Three.js</li>
+<li>3d-force-graph</li>
+<li>Airtable</li>
+<li>Node</li>
+<li>ImageMagick</li>
+<li>Desmos</li>
+</ul>
+<h2>The Plan</h2>
+<ol>
+<li>Scan and box books</li>
+<li>Export Airtable</li>
+<li>Script download of cover thumbnails from Open Library</li>
+<li>Prototype 3d-force-graph of books</li>
+</ol>
+<p>Easy, right? Right?</p>
+<h2>Reality, Implementation and Iteration, and Iteration, and Iteration</h2>
+<p>To start off we export the book data from AirTable as a csv including columns for row, box, ISBN, title, and temporary urls that may accessed to download the photos taken.  The row will end up being our &#39;primary key&#39; for many of the books going forward.  The boxes aren&#39;t terribly important for now, many ISBN&#39;s are incorrect, and the titles are mostly missing, and some of the books do not have images.  </p>
+<pre><code>Title,ISBN,Photo,Box id,Digital
+The Utopia of Rules,9781612195186,,1,checked
+The Great Mathematicians,,&quot;2025-06-21 12.43.00.jpg (https://v5.airtableusercontent.com/v3/u/44/44/17558784...ugUB8),...&quot;,1,
+...
+</code></pre>
+<p>To take advantage of the AirTable urls, a node script reads the csv, downloads the images to a directory, and keeps an image-mappings.json so we do not lose track of which local images map to which csv entries.</p>
+<pre><code class="language-json">[
+  {
+    &quot;rowNumber&quot;: 11,
+    &quot;title&quot;: &quot;&quot;,
+    &quot;isbn&quot;: &quot;9780201150254&quot;,
+    &quot;totalPhotos&quot;: 1,
+    &quot;downloadedPhotos&quot;: [
+      {
+        &quot;originalFilename&quot;: &quot;2025-06-21 12.31.25.jpg&quot;,
+        &quot;originalUrl&quot;: &quot;https://v5.airtableusercontent.com/v3/u/44/44/1755878400000/...&quot;,
+        &quot;localFilename&quot;: &quot;row11_9780201150254_1.jpg&quot;,
+        &quot;localPath&quot;: &quot;airtable-images/row11_9780201150254_1.jpg&quot;
+      }
+    ]
+  }
+]
+</code></pre>
+<p>Another node script takes the valid looking ISBN&#39;s to use Open Library to fill out missing titles and authors.</p>
+<p>This means Data Reconciliation. Having learned from one of my first professional software development behemoths, Mintrak, a good data reconciliation tool can turn a month long slog into a few hours. Mintrak allow financial types interested in discrepant loan data to quickly select or edit values across a large corpus of mortgages in a few hours. Similarly, we ought to be able to whip up a simple web view of our metadata, make it easily editable.</p>
+<p>The amount of metadata from Open Library, Library Thing, Google Books, Goodreads and the internet at large is a cursed blessing. Of course having no data to cross reference would be the worst possibility, but none of these sources can be trusted to have everything we need. Imperfect data: Let us Reconcile!</p>
+<p>Enter the Virtual Library Viewer, a quick and dirty html table of our existing book data. The columns are sortable, filterable by missing, and we can save the new dataset as a json to replace the old.</p>
+<p><img src="virtual-library-1.png" alt="Virtual Library Viewer"></p>
+<h4>If only the data was good</h4>
+<h3>Images</h3>
+<p>While our script pulled Open Library metadata, it also downloaded their cover thumbnails. At least a few, until it quickly becomes clear to me that I do not want Open Library&#39;s thumbnails. They aren&#39;t my books, really. So I cancel the script, remove the thumbnail fetching and just rely on Open Library to fill out titles. Accuracy here ends up being about 80-90% for those entries with good ISBN.</p>
+<p>The photos taken will be useful for ISBN clarification and fixing errors, but do not serve well for making thumbnails. I discover this after a few attempts at skewing and cropping the images with Krita prove to be too labor intensive and too poor quality. For a time I search the broader internet for pre existing thumbnails of the book covers that match my own, also pretty labor intensive.</p>
+<p>Until I notice LibraryThing&#39;s comprehensive book cover database. (Side adventure attempting to scrape LibraryThing&#39;s thumbnails omitted for brevity.)</p>
+<p><img src="library-thing-covers-earth-to-moon.png" alt="Library Thing Covers"></p>
+<h4>This is just From the Earth to the Moon</h4>
+<h3>Layout</h3>
+<p>Our first implementation using 3d-force-graph to display our thumbnails includes two of our original layout behaviors: </p>
+<ul>
+<li>pin books to a y value based on their first published date</li>
+<li>link books by &#39;successive authorship&#39;, for example we expect to see: Hobbit -&gt; Fellowship -&gt; Towers -&gt; King</li>
+</ul>
+<p>Combined, these behaviors ought to give us something like:</p>
+<pre><code>   King
+    ^
+    |
+  Towers
+    ^
+    |
+Fellowship
+    ^
+    |
+  Hobbit
+</code></pre>
+<p>The pinning to the y axis succeeds, but also reveals a layout issue.  Compared to Plato, most books live in a sliver of the 20th Century.  So they clump up into a pancake with a few streamers.  I used the same trick from the &#39;concepts&#39; project, logarithmic chronological inversion!</p>
+<p>Graphically, </p>
+<p><img src="log-math.png" alt="Desmos plot of how we shift the book distribution"></p>
+<h4>Desmos helps us pick math shapes</h4>
+<p>in pseudo-code </p>
+<pre><code class="language-pseudo">( -Math.log ( 
+      1.01 - 
+          ( (year - actualMin) / (actualMax - actualMin) ) 
+      )
+      / 2.0 ) 
+  * (maxRange - margin) + margin
+</code></pre>
+<p><img src="graph-1-author-succession.png" alt="Force graph layout"></p>
+<h4>Shame on that cloud of books lacking date data!</h4>
+<p>The log let&#39;s us zoom in on the books near the present, shifted and scaled to taste, and to ensure we don&#39;t take the log of a negative. Ancient books sink to the bottom, modern books rise up with logarithmic spacing that gives breathing room to the crowded recent centuries.</p>
+<p>Third arbitrary behavior added was adding a &#39;fictitious&#39; force nudging fiction books negative and non-fiction books positive along the x-axis.</p>
+<p><img src="graph-2-lungs.png" alt="Book lungs fiction/non-fiction"></p>
+<h4>&quot;You made book lungs!&quot; -wife</h4>
+<p>Then proved out connecting books with links to tag nodes, starting off with just Math and Science</p>
+<p><img src="graph-3-math-science-tags.png" alt="Math and Science tags"></p>
+<h4>Concepts are getting proved</h4>
+<p>Eventually getting tags:
+computer, economics, epic, fantasy, history, horror, language, literature, math, mystery, philosophy, poetry, science, sf, social, visual, war</p>
+<h3>More books</h3>
+<p><img src="graph-4-combined-half.webp" alt="Combined graph"></p>
+<h4>It&#39;s like they organize themselves.</h4>
+<p>With more of the books entered and about a dozen &#39;genre&#39;s tagging, the data accuracy approaching tolerable, the idea is starting to take form.  The tags were create what a mathist might call a &#39;bipartite graph&#39; or a &#39;hypergraph&#39; - which is when we nodes to group nodes.  Visually it wasn&#39;t a complete mess, yet.</p>
+<h3>Too Many Books? Texture Atlas</h3>
+<p>Once I had enough thumbnails saved, iterating on the graph slowed down a bit because every refresh required loading all those images. Then once the images are loaded we&#39;re making that many draw calls to the gpu per frame of animation. We can solve both with a texture atlas.</p>
+<p>To get a texture atlas we make another node script which uses ImageMagick to analyze, resize, and combine the thumbnails using the Skyline algorithm to pack the covers into a single square image. Because book covers are already so similar in aspect ratio anyway, merely sorting the images by height gets us a very well packed texture atlas without having to search for the very best next sized book to pack. A single image downloads quickly, gets passed to the gpu once. The same script also keeps track of where the individual thumbnails ended up and save that to a easy to read json of locations and dimensions.</p>
+<p>With a texture atlas of all our book covers, and a corresponding json keeping track of the &#39;uv&#39; coordinates of each cover in the atlas, we can extend the Three.ShaderMaterial to expect uv boundaries and pass them in as attributes per BookSprite. Because we&#39;re tossing out the built in THREE.Sprite we have to re-implement the &#39;billboarding&#39; effect of pointing the plane of geometry at the camera every frame in the vertex shader also.</p>
+<p>A downside of this approach is that the raycast 3d-force-graph was giving us from the mouse to intersect any nodes now passes right through the books, so we lose some diagnostic on-hover information. A tweak brought the raycast intersections back to life, but that bug was hiding an even subtler bug: by pointing the sprites at the camera in the vertex shader for draw call savings, all of the instanced quads remained fixed pointing forwards. Raycasts slip right past! Updating the geometry every frame to re orient each towards the camera would bring back all our saved draw calls. Solved this issue by placing a static invisible sphere around the books and the genre nodes to raycast against.</p>
+<p><img src="atlas_optimized_1024.png" alt="Texture atlas"></p>
+<h4>A free fun game: &quot;Spot the Duplicates&quot;</h4>
+<h3>More Metadata!</h3>
+<p>Tagging the books meant another pass of the book metadata editor.  By this point I knew the pain points of the reconciling process, so to speed up the workflow I included lazy-loaded thumbnails, and an auto-save on change with rolling backups of the book data jsons in case I borked something.  </p>
+<p><img src="virtual-library-final.png" alt="Virtual library final"></p>
+<h4>2001 was not written 2000, that&#39;s how William Gibson scifi&#39;s</h4>
+<h3>Pretty Diversions</h3>
+<p>Getting tired of reconciling data and scrubbing thumbnails, I dawdled by making the genre bundles more interesting.</p>
+<p>I&#39;ve wanted to play with Hermite splines myself since viewing Freya Holmer&#39;s review of splines:
+<a href="https://youtu.be/jvPPXbo87ds?t=3683">https://youtu.be/jvPPXbo87ds?t=3683</a></p>
+<p><img src="yt-splines-freya.png" alt="Freya Holmer splines video"></p>
+<h4>Freya&#39;s quaternion visualization is top tier, too.</h4>
+<p>So I put together a few proofs of concept of hermite spline driven three js tubes joined together into a bundle, reaching out for random points to form &#39;flowers&#39;.  I made a little garden of them to see if any variation of parameters might work well with the book graph.</p>
+<p><img src="hermite-flower2-1.png" alt="Hermite flower"></p>
+<h4>I would visit this botanical garden.</h4>
+<p>The overall shape I liked right away, but there were a few defects as the tendrils twisted more than a half turn. This I resolved with a &#39;Parallel Transport Frames&#39; approach, basically keeping track of the orientation change of the curve point by point, and applying that same change to a persistent &#39;up&#39; and &#39;right&#39;.</p>
+<p><img src="hermite-flower-2-half.webp" alt="Hermite flower animation"></p>
+<h4>Before Tranport Frames you can spot kinks in the squiddicales</h4>
+<p>Wanting to label the genres&#39; tags, I ended up wrapping the node in a cylindrical hula hoop marquee with the genre&#39;s name on it, slowly spinning. Then I biased the tendrils to start growing vertically so they wouldn&#39;t clip through the new label so much.</p>
+<p><img src="look-at-banner-michael.png" alt="Labeling Banners"></p>
+<h4>Thankfully these got removed before I had to fix z-ordering.</h4>
+<p>A second pass at tendril layout uses recursive fractal nudging I prefer, and while there I added a fragment shader that looks like the caustic effects of light on disturbed water. Eventually I tossed the caustics due to performance and the effect was distracting visually from the books.</p>
+<h3>Sphere</h3>
+<p>A rogue Sunday morning &#39;what if?&#39; replaced the vertical pinning by published date with a more spherical shell approach, publish date driving radius from center. I had the notion that since the surface area of a shell increases quadratically with the radius, there should be plenty of room for the later books near the &#39;surface&#39;, burying older books in the &#39;core&#39;. This was partly true. The over representation of the present (really late 1900&#39;s) still creates a thin crust reminiscent of the ecosphere&#39;s relative thickness compared to the Earth.</p>
+<p><img src="spherical-1.png" alt="A new spherical layout"></p>
+<h4>Probe away</h4>
+<p>Experimenting with math some more I again settled on the -log(1-normalizedSpread) to spread out the more recent books even more.</p>
+<p>The spherical view has the benefit of highlighting the successive authorship chains. Asimov and Stephenson&#39;s chains both visibly snake around sci fi until zig zagging when the authors later put out some non fiction essays. The spherical approach has also proved a better visualization for spotting errors in the data.  </p>
+<p>The genre tags&#39; cylindrical banners became too unreadable in this layout, yoinked.</p>
+<h3>The Last 10%</h3>
+<p>I simplified the html down to a static version by baking (saving to json) the layout positions into a book database json, and likewise for the genre tags&#39; positions. That way we can remove the force graph simulation, and get the final html down to under 400 lines of code.</p>
+<p>At this point I noticed the neat genre tag banners did not work so well in the spherical layout.</p>
+<p>To give the tendrils a neat effect I tried a few implementations of the xbox-era bloom filter. Blooming out the tendrils while leaving the books unaffected was a challenge. Ultimately the shader code combining the effect is half way between the three js example:</p>
+<p><a href="https://threejs.org/examples/?q=bloom#webgpu_postprocessing_bloom_selective">https://threejs.org/examples/?q=bloom#webgpu_postprocessing_bloom_selective</a></p>
+<p>with some custom calculating of the book distances from the camera figured in their vertex shader and passed to the mix shader in the alpha channel. Experimenting with this distance alpha I eventually managed to both filter out the tendrils&#39; bloom and fade out the books further from the camera for a simple but effective way of ensuring the books stay visible at all distances and clear up close.</p>
+<pre><code class="language-glsl">vec3 mixed = bloomColor.xyz + (baseColor.xyz - bloomColor.xyz) * min(baseColor.a, 1.0);
+</code></pre>
+<p>There is no basis for why I am mixing colors this way other than it looks right to me. There isn&#39;t any basis for having tendrils reach out radially to floating books, either.</p>
+<p>The fragment shader picked up some pulses in color to give them some life.</p>
+<p><img src="mixShader.png" alt="Mix shader"></p>
+<h4>This Sphere has Sphere in it.</h4>
+<p>More pulses in the vertex shader drive engorging the base of the genre tendrils, grounding the volume where the genres&#39; hover tags live. Without these &#39;undulating bulbs&#39; there isn&#39;t an obvious grounding for the genre&#39;s origins where their hover labels live.</p>
+<h2>Lessons Learned</h2>
+<ul>
+<li><p>I could have avoided some automatic metadata scraping, considering all of the hand curation required anyways. Even more of a &quot;1) Make it work, 2) Make it good&quot; philosophy probably would have saved a day.</p>
+</li>
+<li><p>The texture atlas was a nice performance improvement, but had I managed with the approximately 1,000 sprites during the 3d-force-graph layout stage, and saved the atlas for the final static layout would have avoided unnecessary integration pain with 3d-force-graph&#39;s nodes. I can see myself reusing this solution for future force graph projects, so I&#39;m okay with the code rash.</p>
+</li>
+<li><p>Library Thing does not want to be scraped. Fair enough. Manual review of the books was a necessary part of data reconciliation anyway.</p>
+</li>
+<li><p>Dang at some point I must&#39;ve read too much Orson Scott Card.</p>
+</li>
+</ul>

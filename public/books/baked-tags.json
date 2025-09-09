@@ -1,0 +1,173 @@
+[
+  {
+    "id": "tag-science fiction",
+    "title": "science fiction",
+    "type": "tag",
+    "color": "#ff0000",
+    "x": -142.4,
+    "y": -51.4,
+    "z": 580.6
+  },
+  {
+    "id": "tag-war",
+    "title": "war",
+    "type": "tag",
+    "color": "#ff5500",
+    "x": -288.8,
+    "y": 466.2,
+    "z": 243.4
+  },
+  {
+    "id": "tag-epic",
+    "title": "epic",
+    "type": "tag",
+    "color": "#ffaa00",
+    "x": -148.8,
+    "y": -468.8,
+    "z": -343.6
+  },
+  {
+    "id": "tag-fantasy",
+    "title": "fantasy",
+    "type": "tag",
+    "color": "#ffff00",
+    "x": -36.2,
+    "y": -598.9,
+    "z": 6.1
+  },
+  {
+    "id": "tag-poetry",
+    "title": "poetry",
+    "type": "tag",
+    "color": "#aaff00",
+    "x": 93.5,
+    "y": -493.3,
+    "z": -328.5
+  },
+  {
+    "id": "tag-history",
+    "title": "history",
+    "type": "tag",
+    "color": "#55ff00",
+    "x": -264.7,
+    "y": 311.2,
+    "z": -439.4
+  },
+  {
+    "id": "tag-horror",
+    "title": "horror",
+    "type": "tag",
+    "color": "#00ff00",
+    "x": -427.8,
+    "y": -384.3,
+    "z": 171.1
+  },
+  {
+    "id": "tag-mystery",
+    "title": "mystery",
+    "type": "tag",
+    "color": "#00ff55",
+    "x": -518.4,
+    "y": -92.1,
+    "z": 287.7
+  },
+  {
+    "id": "tag-social",
+    "title": "social",
+    "type": "tag",
+    "color": "#00ffaa",
+    "x": -111,
+    "y": 585.9,
+    "z": 66.3
+  },
+  {
+    "id": "tag-drama",
+    "title": "drama",
+    "type": "tag",
+    "color": "#00ffff",
+    "x": -562.4,
+    "y": 178.6,
+    "z": -108.4
+  },
+  {
+    "id": "tag-science",
+    "title": "science",
+    "type": "tag",
+    "color": "#00aaff",
+    "x": -46.1,
+    "y": 173,
+    "z": -572.7
+  },
+  {
+    "id": "tag-philosophy",
+    "title": "philosophy",
+    "type": "tag",
+    "color": "#0055ff",
+    "x": 249.6,
+    "y": 412.4,
+    "z": -357.3
+  },
+  {
+    "id": "tag-visual",
+    "title": "visual",
+    "type": "tag",
+    "color": "#0000ff",
+    "x": 408,
+    "y": -412.5,
+    "z": -152.8
+  },
+  {
+    "id": "tag-comedy",
+    "title": "comedy",
+    "type": "tag",
+    "color": "#5500ff",
+    "x": -541.2,
+    "y": -216.6,
+    "z": -142
+  },
+  {
+    "id": "tag-economics",
+    "title": "economics",
+    "type": "tag",
+    "color": "#aa00ff",
+    "x": -43.1,
+    "y": 448.5,
+    "z": -396.2
+  },
+  {
+    "id": "tag-literature",
+    "title": "literature",
+    "type": "tag",
+    "color": "#ff00ff",
+    "x": 197.2,
+    "y": -223.3,
+    "z": -520.8
+  },
+  {
+    "id": "tag-technical",
+    "title": "technical",
+    "type": "tag",
+    "color": "#ff00aa",
+    "x": 464.9,
+    "y": 260.3,
+    "z": 275.9
+  },
+  {
+    "id": "tag-math",
+    "title": "math",
+    "type": "tag",
+    "color": "#ff0055",
+    "x": 544.2,
+    "y": -44.6,
+    "z": -248.7
+  },
+  {
+    "id": "tag-language",
+    "title": "language",
+    "type": "tag",
+    "color": "#ff0000",
+    "x": 406.7,
+    "y": 180.3,
+    "z": -402.6
+  }
+]

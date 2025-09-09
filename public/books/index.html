@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Book Thumbnail Viewer - InstancedMesh Optimized</title>
+    <title>3D Book Thumbnail Viewer - Static Spherical Layout</title>
     <style> 
         body { 
             margin: 0; 
@@ -15,32 +15,38 @@
             -ms-user-select: none;
             user-select: none;
         }
-        #3d-graph {
-            touch-action: none;
-            pointer-events: auto;
+        #container {
             width: 100vw;
             height: 100vh;
         }
     </style>
-    <script src="//cdn.jsdelivr.net/npm/3d-force-graph"></script>
 </head>
 
 <body>
-    <div id="3d-graph"></div>
+    <div id="container"></div>
 
     <script type="module">
         import * as THREE from 'https://esm.sh/three';
+        import { OrbitControls } from 'https://esm.sh/three/examples/jsm/controls/OrbitControls.js';
+        import { EffectComposer } from 'https://esm.sh/three/examples/jsm/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'https://esm.sh/three/examples/jsm/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'https://esm.sh/three/examples/jsm/postprocessing/UnrealBloomPass.js';
+        import { ShaderPass } from 'https://esm.sh/three/examples/jsm/postprocessing/ShaderPass.js';
 
-        const cookTimeMs = 40000
-        const centerMargin = 500.
-        const maxR = 1500.
-        const tagShellRadiusSimulated = 900
-        const tagShellRadiusRendered = 450
+        const tagShellRadiusRendered = 600;
 
         let flowerMaterials = [];
         let hermiteFlowers = [];
         let authorTendrils = [];
-        let tagCylinders = [];
+        let tagHoverSpheres = [];
+        let bookHoverSpheres = [];
+        let scene, bloomOnlyScene, camera, renderer, controls;
+
+        let bloomComposer, finalComposer;
+
+        let autoCam = false;
+        let t = 0;
+        let atlasManager;
 
         const InstancedAtlasMaterial = class extends THREE.ShaderMaterial {
             constructor(atlasTexture) {
@@ -52,6 +58,7 @@
                     vertexShader: `
                         attribute vec4 uvBounds;
                         varying vec2 vUv;
+                        varying float depth;
                         
                         void main() {
                             vUv = vec2(
@@ -79,21 +86,25 @@
                             );
                             
                             vec4 worldPosition = billboardMatrix * vec4(position, 1.0);
+                            depth = 2000./distance(cameraPosition, instancePosition);
                             gl_Position = projectionMatrix * viewMatrix * worldPosition;
                         }
                     `,
                     fragmentShader: `
                         uniform sampler2D atlasTexture;
                         varying vec2 vUv;
+                        varying float depth;
                         
                         void main() {
                             vec4 texColor = texture2D(atlasTexture, vUv);
-                            if (texColor.a < 0.001) discard;
-                            gl_FragColor = texColor;
+                            if (texColor.a < 0.001) {
+                                discard; // Completely discard pixels where no book
+                            } else {
+                                gl_FragColor = vec4(texColor.rgb, depth);
+                            }
                         }
                     `,
-                    transparent: true,
-                    alphaTest: 0.001
+                    transparent: false
                 });
             }
         };
@@ -173,8 +184,14 @@
             }
         }
 
-        async function fetchJson() {
-            const response = await fetch('./complete-book-database.json');
+        async function loadBakedBooks() {
+            const response = await fetch('./baked-books.json');
+            return await response.json();
+        }
+
+
+        async function loadBakedTags() {
+            const response = await fetch('./baked-tags.json');
             return await response.json();
         }
 
@@ -183,7 +200,7 @@
                 const response = await fetch('./atlas-uv-map.json');
                 const uvMap = await response.json();
                 
-                const atlasTexture = new THREE.TextureLoader().load('./atlas_optimized_3072.png');
+                const atlasTexture = new THREE.TextureLoader().load('./atlas_optimized_4096.png');
                 atlasTexture.generateMipmaps = true;
                 atlasTexture.minFilter = THREE.LinearMipmapLinearFilter;
                 atlasTexture.magFilter = THREE.LinearFilter;
@@ -239,167 +256,22 @@
             return links;
         }
 
-        function createCompatibleLinkForce(initialLinks, initialStrength = 1.0) {
-            let nodes;
-            let links = initialLinks || [];
-            let id = (d => d.id);
-            let distance = 30;
-            let strength = initialStrength;
-            let iterations = 1;
-            let count, bias, strengths, distances;
-
-            function initializeStrength() {
-                if (!nodes) return;
-                count = new Array(nodes.length);
-                for (let i = 0; i < nodes.length; ++i) count[i] = 0;
-                for (let i = 0; i < links.length; ++i) {
-                    const link = links[i];
-                    if (link.source && link.target) {
-                        count[link.source.index] = (count[link.source.index] || 0) + 1;
-                        count[link.target.index] = (count[link.target.index] || 0) + 1;
-                    }
-                }
-                
-                strengths = new Array(links.length);
-                for (let i = 0; i < links.length; ++i) {
-                    const link = links[i];
-                    let strengthValue = typeof strength === 'function' ? strength(link, i, links) : strength;
-                    strengths[i] = +strengthValue;
-                }
-            }
-
-            function initializeDistance() {
-                if (!nodes) return;
-                distances = new Array(links.length);
-                for (let i = 0; i < links.length; ++i) {
-                    distances[i] = typeof distance === 'function' ? distance(links[i], i, links) : distance;
-                }
-            }
-
-            function force(alpha) {
-                for (let k = 0; k < iterations; ++k) {
-                    for (let i = 0; i < links.length; ++i) {
-                        const link = links[i];
-                        const source = link.source;
-                        const target = link.target;
-                        
-                        if (source && target) {
-                            let x = target.x + (target.vx || 0) - source.x - (source.vx || 0) || 0;
-                            let y = target.y + (target.vy || 0) - source.y - (source.vy || 0) || 0; 
-                            let z = target.z + (target.vz || 0) - source.z - (source.vz || 0) || 0;
-                            let l = Math.sqrt(x * x + y * y + z * z);
-                            
-                            if (l) {
-                                l = (l - distances[i]) / l * alpha * strengths[i];
-                                x *= l; y *= l; z *= l;
-                            }
-
-                            const b = bias[i];
-                            target.vx = (target.vx || 0) - x * b;
-                            target.vy = (target.vy || 0) - y * b;
-                            target.vz = (target.vz || 0) - z * b;
-                            source.vx = (source.vx || 0) + x * (1 - b);
-                            source.vy = (source.vy || 0) + y * (1 - b);
-                            source.vz = (source.vz || 0) + z * (1 - b);
-                        }
-                    }
-                }
-            }
-
-            force.initialize = function(_nodes, ...args) {
-                nodes = _nodes;
-                
-                links.forEach((link, i) => {
-                    if (typeof link.source !== 'object') {
-                        link.source = nodes.find(n => id(n) === link.source);
-                    }
-                    if (typeof link.target !== 'object') {
-                        link.target = nodes.find(n => id(n) === link.target);
-                    }
-                    if (link.source) link.source.index = nodes.indexOf(link.source);
-                    if (link.target) link.target.index = nodes.indexOf(link.target);
-                });
-
-                bias = new Array(links.length);
-                count = new Array(nodes.length);
-                for (let i = 0; i < nodes.length; ++i) count[i] = 0;
-                for (let i = 0; i < links.length; ++i) {
-                    const link = links[i];
-                    if (link.source && link.target) {
-                        count[link.source.index]++;
-                        count[link.target.index]++;
-                    }
-                }
-                for (let i = 0; i < links.length; ++i) {
-                    const link = links[i];
-                    bias[i] = link.source && link.target ? 
-                        count[link.source.index] / (count[link.source.index] + count[link.target.index]) : 0;
-                }
-
-                initializeStrength();
-                initializeDistance();
-            };
-
-            force.links = function(_) {
-                return arguments.length ? (links = _, initializeStrength(), initializeDistance(), force) : links;
-            };
-
-            force.id = function(_) {
-                return arguments.length ? (id = _, force) : id;
-            };
-
-            force.iterations = function(_) {
-                return arguments.length ? (iterations = +_, force) : iterations;
-            };
-
-            force.strength = function(_) {
-                return arguments.length ? (strength = _, initializeStrength(), force) : strength;
-            };
-
-            force.distance = function(_) {
-                return arguments.length ? (distance = _, initializeDistance(), force) : distance;
-            };
-
-            return force;
-        }
-
-        function createSphericalShellForce(strength = 1.0) {
-            let nodes;
-            
-            function force(alpha) {
-                nodes.forEach(node => {
-                    if (node.shellRadius !== undefined) {
-                        const x = node.x || 0;
-                        const y = node.y || 0;
-                        const z = node.z || 0;
-                        const currentRadius = Math.sqrt(x * x + y * y + z * z) || 1;
-                        const scaleFactor = node.shellRadius / currentRadius;
-                        node.x = x * scaleFactor;
-                        node.y = y * scaleFactor;
-                        node.z = z * scaleFactor;
-                    }
-                });
-            }
-            
-            force.initialize = function(_nodes) {
-                nodes = _nodes;
-            };
-            
-            force.strength = function(_) {
-                return arguments.length ? (strength = +_, force) : strength;
-            };
-            
-            return force;
-        }
-
         class TendrilPool {
             constructor(tagLinks, tagColors) {
                 this.pools = [];
                 this.distanceRanges = [];
                 
+                // Handle empty tag links
+                if (!tagLinks || tagLinks.length === 0) {
+                    console.log('No tag links provided to TendrilPool');
+                    return;
+                }
+                
                 // Pre-calculate all distances and assign to ranges
                 const linkData = tagLinks.map(link => {
-                    const tagPos = new THREE.Vector3(link.target.x, link.target.y, link.target.z);
+                    // Use rendered position for distance calculation
+                    const tagSimulatedPos = new THREE.Vector3(link.target.x, link.target.y, link.target.z);
+                    const tagPos = tagSimulatedPos.clone().normalize().multiplyScalar(tagShellRadiusRendered);
                     const bookPos = new THREE.Vector3(
                         link.source.x, 
                         link.source.y + (link.source.spriteProxy ? link.source.spriteProxy.scale.y / 2 : 0), 
@@ -415,6 +287,11 @@
                 const sortedDistances = [...distances].sort((a, b) => a - b);
                 const minDist = sortedDistances[0];
                 const maxDist = sortedDistances[sortedDistances.length - 1];
+                
+                if (minDist === undefined || maxDist === undefined) {
+                    console.log('No valid distances calculated for TendrilPool');
+                    return;
+                }
                 
                 console.log(`Distance range: ${minDist.toFixed(1)} to ${maxDist.toFixed(1)}`);
                 
@@ -437,7 +314,7 @@
                     });
                 }
                 
-                // Assign each link to its appropriate range and count
+                // Assign each link to its range and count
                 linkData.forEach(linkData => {
                     const distance = linkData.distance;
                     const rangeIndex = Math.min(
@@ -466,8 +343,8 @@
                         const dna = {
                             subdivisionLevels: 3 + Math.floor(Math.random() * 2),
                             organicVariation: 0.4 + Math.random() * 0.5,
-                            startRadius: 1.2 + Math.random() * 0.6,
-                            endRadius: 0.3 + Math.random() * 0.4,
+                            startRadius: 2.2,
+                            endRadius: 1.2,
                             tangentRandom: 0.8 + Math.random() * 1.0,
                             resolution: 6 + Math.floor(Math.random() * 4),
                             radialSegments: 4 + Math.floor(Math.random() * 3)
@@ -484,11 +361,16 @@
                                 attribute vec3 instanceColor;
                                 varying vec2 vUv;
                                 varying vec3 vInstanceColor;
+                                uniform float time;
+                                uniform float offset;
                                 
                                 void main() {
                                     vUv = uv;
                                     vInstanceColor = instanceColor;
-                                    gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+                                    float d = length(position);
+                                    float wave = sin(time*10. + offset*17.)*.5 + .5;
+                                    vec3 pos = normalize(position)*max(d, 100.*wave);
+                                    gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(pos, 1.0);
                                 }
                             `,
                             fragmentShader: `
@@ -498,18 +380,15 @@
                                 uniform float offset;
                                 
                                 void main() {
-                                    float wave = sin(-time*2. + (vUv.y) * .01 + offset*100. ) * 0.5 + 0.5;
-                                    vec3 finalColor = vInstanceColor;
-                                    gl_FragColor = vec4(finalColor * 0.5, 0.7); 
+                                    float wave = sin(-time*20. + (vUv.y) * 11.1 + offset*100. ) * 0.5 + 0.7; // + pow(sin(time*100. + (vUv.y) * 111.1 + offset*77. ), 2.) * 0.5;
+                                    vec3 finalColor = vInstanceColor*wave;
+                                    gl_FragColor = vec4(finalColor * 0.5, 1.0); 
                                 }
                             `,
                             uniforms: {
                                 time: { value: 0.0 },
                                 offset: { value: (rangeIndex * variationsPerRange + v) / (rangeCount * variationsPerRange) }
                             },
-                            wireframe: false,
-                            side: THREE.DoubleSide,
-                            transparent: true,
                         });
                         
                         const instancedMesh = new THREE.InstancedMesh(geometry, material, instancesPerPool);
@@ -676,6 +555,12 @@
             assignLinks(tagLinks, tagColors) {
                 const poolInstances = [];
                 
+                // Handle case where no pools were created (empty constructor)
+                if (this.pools.length === 0) {
+                    console.log('No tendril pools available for assignment');
+                    return poolInstances;
+                }
+                
                 // Process each distance range
                 this.distanceRanges.forEach((range, rangeIndex) => {
                     if (range.linksInRange.length === 0) return;
@@ -689,10 +574,10 @@
                         const pool = rangePools[poolIndex];
                         const link = linkData.link;
                         
-                        // Calculate positions
                         const tagNode = link.target;
                         const bookNode = link.source;
-                        const start = new THREE.Vector3(tagNode.x, tagNode.y, tagNode.z);
+                        const tagPos = new THREE.Vector3(tagNode.x, tagNode.y, tagNode.z);
+                        const start = tagPos.clone().normalize().multiplyScalar(tagShellRadiusRendered);
                         const end = new THREE.Vector3(
                             bookNode.x, 
                             bookNode.y + (bookNode.spriteProxy ? bookNode.spriteProxy.scale.y / 2 : 0), 
@@ -758,7 +643,7 @@
             if (authorLinks.length === 0) return [];
             
             // Create single InstancedMesh for all author links
-            const geometry = new THREE.CylinderGeometry(1, 1, 1, 6); // Unit cylinder
+            const geometry = new THREE.CylinderGeometry(1, 1, 1, 6);
             const material = new THREE.MeshBasicMaterial({ 
                 color: 0xffffff, 
                 transparent: true, 
@@ -815,7 +700,7 @@
             
             instancedMesh.instanceMatrix.needsUpdate = true;
             
-            return [instancedMesh]; // Return array with single instanced mesh
+            return [instancedMesh]; // an array of the instanced mesh, this used to be plain meshes
         }
         
         function genPathPointsRecursive(start, end, dna) {
@@ -919,433 +804,380 @@
             return frames;
         }
 
-        async function initApp() {
-            const atlasData = await loadAtlasData();
+        function generateDistinctPalette(count) {
+            const colors = [];
+            const hueStep = 360 / count;
+            
+            for (let i = 0; i < count; i++) {
+                const hue = (i * hueStep) % 360;
+                const color = hsvToHex(hue, 1., 1.0);
+                colors.push(color);
+            }
+            
+            return colors;
+        }
+
+        function hsvToHex(h, s, v) {
+            const c = v * s;
+            const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+            const m = v - c;
+            
+            let r, g, b;
+            if (h < 60) [r, g, b] = [c, x, 0];
+            else if (h < 120) [r, g, b] = [x, c, 0];
+            else if (h < 180) [r, g, b] = [0, c, x];
+            else if (h < 240) [r, g, b] = [0, x, c];
+            else if (h < 300) [r, g, b] = [x, 0, c];
+            else [r, g, b] = [c, 0, x];
+            
+            r = Math.round((r + m) * 255);
+            g = Math.round((g + m) * 255);
+            b = Math.round((b + m) * 255);
+            
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+
+        function setupBloomEffect() {
+            const bloomScenePass = new RenderPass(bloomOnlyScene, camera);
+            
+            const bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                .9,  // strength
+                .4,  // radius  
+                0.0  // threshold
+            );
+            
+            bloomComposer = new EffectComposer(renderer);
+            bloomComposer.renderToScreen = false;
+            bloomComposer.addPass(bloomScenePass);
+            bloomComposer.addPass(bloomPass);
+            
+            const mainScenePass = new RenderPass(scene, camera);
+            const mixPass = new ShaderPass(
+                new THREE.ShaderMaterial({
+                    uniforms: {
+                        baseTexture: { value: null },
+                        bloomTexture: { value: bloomComposer.renderTarget2.texture }
+                    },
+                    vertexShader: `
+                        varying vec2 vUv;
+                        void main() {
+                            vUv = uv;
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }`,
+                    fragmentShader: `
+                        uniform sampler2D baseTexture;
+                        uniform sampler2D bloomTexture;
+                        varying vec2 vUv;
+                        void main() {
+                            vec4 baseColor = texture2D(baseTexture, vUv);
+                            vec4 bloomColor = texture2D(bloomTexture, vUv);
+                            
+                            // baseColor.a has the depth of the baseColor (books)
+
+                            vec3 mixed = bloomColor.xyz + (baseColor.xyz - bloomColor.xyz) * min(baseColor.a, 1.0);
+                            gl_FragColor = vec4(mixed.xyz, 1.);
+
+                        }`
+                }), 'baseTexture'
+            );
+            mixPass.needsSwap = true;
+            
+            finalComposer = new EffectComposer(renderer);
+            finalComposer.addPass(mainScenePass);
+            finalComposer.addPass(mixPass);
+        }
+
+
+        async function initStaticApp() {
+            const container = document.getElementById('container');
+            
+            scene = new THREE.Scene();
+            bloomOnlyScene = new THREE.Scene(); // Create bloom scene early
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setClearColor(0x000000, 0.0); // Clear with transparent background, required for bloom mixing
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            camera.position.set(0, 0, 5000);
+            controls.update();
+
+            const [atlasData, bakedBooks, bakedTags] = await Promise.all([
+                loadAtlasData(),
+                loadBakedBooks(),
+                loadBakedTags()
+            ]);
+
             if (!atlasData) {
                 console.error('Failed to load atlas data');
                 return;
             }
-            
+
             const { uvMap, atlasTexture } = atlasData;
-            const books = await fetchJson();
-            const atlasBooks = [];
-            for (const book of books) {
-                if (await thumbnailInAtlas(book.rowNumber, uvMap)) {
-                    atlasBooks.push(book);
-                }
-            }
             
-            const atlasManager = new BookAtlasManager(atlasTexture, uvMap, atlasBooks.length);
-            
-            const booksWithThumbnails = [];
+            // Filter books that have thumbnails in atlas and baked positions
+            const booksWithPositions = [];
             const allTags = new Set();
-            
-            for (const book of atlasBooks) {
-                const node = {
-                    id: book.rowNumber,
-                    title: book.title,
-                    authors: book.authors || [],
-                    first_publish_year: book.first_publish_year,
-                    fiction: book.fiction || false,
-                    tags: book.tags || [],
-                    thumbnail: `${book.rowNumber}.jpg`,
-                    type: 'book'
-                };
-                
-                (book.tags || []).forEach(tag => allTags.add(tag));
-                booksWithThumbnails.push(node);
-            }
-            
-            const tagColors = {};
 
-            function generateDistinctPalette(count) {
-                const colors = [];
-                const hueStep = 360 / count;
-                
-                for (let i = 0; i < count; i++) {
-                    const hue = (i * hueStep) % 360;
-                    // Use high saturation and brightness for maximum distinctness
-                    const color = hsvToHex(hue, 1., 1.0);
-                    colors.push(color);
+            for (const book of bakedBooks) {
+                if (book.x !== undefined && book.y !== undefined && book.z !== undefined && 
+                    await thumbnailInAtlas(book.rowNumber, uvMap)) {
+                    const node = {
+                        id: book.rowNumber,
+                        title: book.title,
+                        authors: book.authors || [],
+                        first_publish_year: book.first_publish_year,
+                        fiction: book.fiction || false,
+                        tags: book.tags || [],
+                        thumbnail: `${book.rowNumber}.jpg`,
+                        type: 'book',
+                        x: book.x,
+                        y: book.y,
+                        z: book.z
+                    };
+                    
+                    (book.tags || []).forEach(tag => allTags.add(tag));
+                    booksWithPositions.push(node);
                 }
-                
-                return colors;
             }
 
-            function hsvToHex(h, s, v) {
-                const c = v * s;
-                const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-                const m = v - c;
-                
-                let r, g, b;
-                if (h < 60) [r, g, b] = [c, x, 0];
-                else if (h < 120) [r, g, b] = [x, c, 0];
-                else if (h < 180) [r, g, b] = [0, c, x];
-                else if (h < 240) [r, g, b] = [0, x, c];
-                else if (h < 300) [r, g, b] = [x, 0, c];
-                else [r, g, b] = [c, 0, x];
-                
-                r = Math.round((r + m) * 255);
-                g = Math.round((g + m) * 255);
-                b = Math.round((b + m) * 255);
-                
-                return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-            }
+            console.log('Books with positions:', booksWithPositions.length);
 
-            const colors = generateDistinctPalette(18)
-
+            // Generate color palette for tags
+            const tagColors = {};
+            const colors = generateDistinctPalette(allTags.size);
             Array.from(allTags).forEach((tag, index) => {
                 tagColors[tag] = colors[index % colors.length];
             });
 
-            const tagNodes = Array.from(allTags).map(tag => ({
-                id: `tag-${tag}`,
-                type: 'tag',
-                color: tagColors[tag],
-                x: 0, y: 0, z: 0,
-                title: tag,
-                authors: [],
-                shellRadius: tagShellRadiusSimulated
-            }));
-            console.log("tag count", tagNodes.length)
+            atlasManager = new BookAtlasManager(atlasTexture, uvMap, booksWithPositions.length);
+
+            booksWithPositions.forEach(book => {
+                const spriteProxy = atlasManager.createBookSprite(book.thumbnail);
+                book.spriteProxy = spriteProxy;
+                
+                spriteProxy.position.set(book.x, book.y, book.z);
+                spriteProxy.updateMatrixWorld(true);
+            });
             
-            const yearsWithBooks = booksWithThumbnails.map(b => b.first_publish_year).filter(Boolean);
-            if (yearsWithBooks.length > 0) {
-                const actualMin = Math.min(...yearsWithBooks);
-                const actualMax = Math.max(...yearsWithBooks);
-                
-                
+            atlasManager.updateAllMatrices();
 
-                booksWithThumbnails.forEach(node => {
-                    if (node.first_publish_year) {
-                        const year = node.first_publish_year;
-                        // const radius = 10 + ((year - actualMin) / (actualMax - actualMin)) * (2000 - 10);
-                        const radius =
-                            ( -Math.log ( 
-                                1.01 - 
-                                    ( (year - actualMin) / (actualMax - actualMin) ) 
-                                )
-                                / 2.0 ) 
-                            * (maxR - centerMargin) + centerMargin
-                        
-                        node.shellRadius = radius;
-                    } 
-                });
-            }
+            scene.add(atlasManager.getInstancedMesh());
+            console.log('Added InstancedMesh to scene with', atlasManager.instanceIndex, 'instances');
 
-            const allNodes = [...booksWithThumbnails, ...tagNodes];
-            const authorLinks = generateAuthorSuccessionLinks(booksWithThumbnails);
+            const authorLinks = generateAuthorSuccessionLinks(booksWithPositions);
             
             const tagLinks = [];
-            booksWithThumbnails.forEach(bookNode => {
+            booksWithPositions.forEach(bookNode => {
                 bookNode.tags.forEach(tag => {
-                    const tagNode = tagNodes.find(tn => tn.id === `tag-${tag}`);
-                    if (tagNode) {
+                    const tagData = bakedTags.find(t => t.title === tag);
+                    if (tagData) {
                         tagLinks.push({
                             source: bookNode,
-                            target: tagNode,
+                            target: tagData,
                             type: 'book-tag',
                             tag: tag
                         });
                     }
                 });
             });
-            
-            const links = [...authorLinks, ...tagLinks];
-            
-            // Debug logging
-            console.log('Total book sprites:', booksWithThumbnails.length);
+
             console.log('Author succession links:', authorLinks.length);
             console.log('Genre to book links:', tagLinks.length);
-            console.log('Total links:', links.length);
-            
-            const tagStats = {};
-            tagLinks.forEach(link => {
-                const tagName = link.tag;
-                tagStats[tagName] = (tagStats[tagName] || 0) + 1;
+
+            hermiteFlowers = generateHermiteFlowers(bakedTags, booksWithPositions, tagLinks, tagColors);
+            hermiteFlowers.forEach(flower => {
+                bloomOnlyScene.add(flower); // Add tendrils to bloom-only scene
             });
 
-            const Graph = ForceGraph3D(
-                {
-                    rendererConfig:{ antialias: true, alpha: true, clearColor: "black" }, 
-                    controlType:'orbit' 
-                }
-            )(document.getElementById('3d-graph'))
-                .nodeThreeObject(node => {
-                    if (node.type === 'tag') {
-                        const canvas = document.createElement('canvas');
-                        const context = canvas.getContext('2d');
-                        canvas.width = 1536;
-                        canvas.height = 128;
-                        
-                        context.fillStyle = 'rgba(0,0,0,0)';
-                        context.fillRect(0, 0, canvas.width, canvas.height);
-                        context.font = '40px Arial';
-                        context.textAlign = 'center';
-                        context.textBaseline = 'middle';
-                        
-                        for(let i = 0; i < 3; i++) {
-                            const x = (canvas.width / 6) + (i * canvas.width / 3);
-                            
-                            context.strokeStyle = '#000000';
-                            context.lineWidth = 4;
-                            context.strokeText(node.title, x, canvas.height / 2);
-                            
-                            context.fillStyle = '#ffffff';
-                            context.fillText(node.title, x, canvas.height / 2);
-                        }
-                        
-                        const texture = new THREE.Texture(canvas);
-                        texture.needsUpdate = true;
-                        texture.wrapS = THREE.RepeatWrapping;
-                        
-                        const cylinderGeometry = new THREE.CylinderGeometry(
-                            50, 50, 30, 16, 1, true
-                        );
-                        
-                        const material = new THREE.MeshBasicMaterial({
-                            map: texture,
-                            color: parseInt(node.color.replace('#', '0x')),
-                            transparent: true,
-                            side: THREE.FrontSide
-                        });
-                        
-                        const cylinder = new THREE.Mesh(cylinderGeometry, material);
-                        
-                        // Store cylinder with node reference for orientation updates
-                        cylinder.userData.node = node;
-                        tagCylinders.push(cylinder);
-                        
-                        return cylinder;
-                        
-                    } else {
-                        const spriteProxy = atlasManager.createBookSprite(node.thumbnail);
-                        node.spriteProxy = spriteProxy;
-                        return spriteProxy;
-                    }
-                })
-                .nodeLabel(node => node.type === 'tag' ? 
-                    `${node.title}<br/>${node.y}` : 
-                    `${node.title}<br/>${node.authors.join(', ')}<br/>${node.first_publish_year} (Row: ${node.id})`
-                )
-                .linkColor(link => {
-                    if (link.type === 'author-succession') {
-                        return 'rgba(255,255,255,1.0)';
-                    } else if (link.type === 'book-tag') {
-                        const color = tagColors[link.tag] || '#00ff00';
-                        const hex = color.replace('#', '');
-                        const r = parseInt(hex.substr(0, 2), 16);
-                        const g = parseInt(hex.substr(2, 2), 16);
-                        const b = parseInt(hex.substr(4, 2), 16);
-                        return `rgba(${r},${g},${b},1.0)`;
-                    }
-                    return 'rgba(255,255,255,1.0)';
-                })
-                .linkOpacity(1.0)
-                .linkWidth(link => link.type === 'author-succession' ? 4 : 2.) 
-                .backgroundColor('#000000')
-                .showNavInfo(false);
-            
-            Graph.scene().add(atlasManager.getInstancedMesh());
-            console.log('Added InstancedMesh to scene with', atlasManager.instanceIndex, 'instances');
-            Graph.cameraPosition({
-                x: 0, 
-                y: 0, 
-                z: 6000
-            }, {
-                x: 0, y: 0, z:0
-            })
-            
-            const customLinkForce = createCompatibleLinkForce(links);
-            customLinkForce.strength(link => {
-                if (link.type === 'book-tag') {
-                    return 0.03;
-                } else if (link.type === 'author-succession') {
-                    return 0.5;
-                }
-                return 1.0;
-            });
-            
-            Graph.graphData({ nodes: allNodes, links });
-            
-            Graph.d3Force('link', null);
-            Graph.d3Force('link', customLinkForce);
-            
-            Graph.d3Force('sphericalShell', createSphericalShellForce(0.8));
-            Graph.d3Force('sphericalShell').initialize(allNodes);
-
-            Graph.d3Force("charge").strength(-1900);
-            Graph.d3Force('center', null);
-
-            
-            Graph.onNodeDrag((node, translate) => {
-                if (hermiteFlowers && hermiteFlowers.length > 0) {
-                    hermiteFlowers.forEach(flower => {
-                        Graph.scene().remove(flower);
-                        flower.geometry.dispose();
-                        flower.material.dispose();
-                    });
-                    hermiteFlowers = [];
-                }
-                
-                if (authorTendrils && authorTendrils.length > 0) {
-                    authorTendrils.forEach(tendril => {
-                        Graph.scene().remove(tendril);
-                        tendril.geometry.dispose();
-                        tendril.material.dispose();
-                    });
-                    authorTendrils = [];
-                }
-                
-                Graph.cooldownTime(25000);
-                Graph.linkVisibility(true)
-                
-                node.x += translate.x;
-                node.y += translate.y;
-                node.z += translate.z;
-                // Spherical constraint will be handled by the sphericalShell force
+            authorTendrils = generateAuthorSuccessionTendrils(authorLinks);
+            authorTendrils.forEach(tendril => {
+                bloomOnlyScene.add(tendril); // Add tendrils to bloom-only scene
             });
 
-            Graph.d3AlphaDecay(0.0001)
-            Graph.d3VelocityDecay(0.9)
+            // Create hover detection spheres for books, this avoids us having to 
+            booksWithPositions.forEach((book, index) => {
+                const radius = Math.min(book.spriteProxy.scale.x, book.spriteProxy.scale.y) * 0.7;
+                const sphereGeometry = new THREE.SphereGeometry(radius, 4, 3);
+                const sphereMaterial = new THREE.MeshBasicMaterial({ visible: false });
+                const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                sphere.position.set(book.x, book.y, book.z);
+                sphere.userData.bookData = book;
+                sphere.userData.bookIndex = index;
+                sphere.userData.isBookSphere = true;
+                scene.add(sphere);
+                bookHoverSpheres.push(sphere);
+            });
+            console.log(`Created ${bookHoverSpheres.length} book hover detection spheres`);
 
-            const ambientLight = new THREE.AmbientLight(0xffffff)
-            Graph.lights([ambientLight])
-            
-            let t = 0
-            
-            function toggleLinkFlowersOn(){
-                if(hermiteFlowers && hermiteFlowers.length === 0){
-                    hermiteFlowers = generateHermiteFlowers(tagNodes, booksWithThumbnails, tagLinks, tagColors);
-                    hermiteFlowers.forEach(flower => Graph.scene().add(flower));
-                }
-                
-                if(authorTendrils && authorTendrils.length === 0){
-                    authorTendrils = generateAuthorSuccessionTendrils(authorLinks);
-                    authorTendrils.forEach(tendril => Graph.scene().add(tendril));
-                }
-            }
+            // Create hover detection spheres for tags
+            bakedTags.forEach(tagData => {
+                const sphereGeometry = new THREE.SphereGeometry(70, 8, 6);
+                const sphereMaterial = new THREE.MeshBasicMaterial({ 
+                    visible: false
+                });
+                const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                sphere.position.set(tagData.x, tagData.y, tagData.z);
+                sphere.userData.tagData = tagData;
+                sphere.userData.isTagSphere = true;
+                scene.add(sphere);
+                tagHoverSpheres.push(sphere);
+            });
 
-            Graph.cooldownTime(cookTimeMs);
-            let autoCam = false
+            setupBloomEffect();
+
+            setupHoverDetection(booksWithPositions, atlasManager);
+
+            window.addEventListener('resize', onWindowResize);
             window.addEventListener('keydown', (event) => {
-                if (event.key === 'h' || event.key === 'H') {
-                    Graph.cooldownTime(0);
-                    Graph.linkVisibility(false)
-                    toggleLinkFlowersOn() 
-                } else if (event.key === 'c') {
-                    autoCam = !autoCam
-                } else if (event.key === 's') {
-                    // save the book data with current positions to 'bake' them in for a static version of the layout
-                    const updatedBooks = books.map(book => {
-                        const bookNode = booksWithThumbnails.find(node => node.id === book.rowNumber);
-                        if (bookNode && bookNode.x !== undefined && bookNode.z !== undefined) {
-                            return {
-                                ...book,
-                                x: Math.round(bookNode.x * 10) / 10,
-                                z: Math.round(bookNode.z * 10) / 10
-                            };
-                        }
-                        return book;
-                    });
-                    
-                    const dataStr = JSON.stringify(updatedBooks, null, 2);
-                    const blob = new Blob([dataStr], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = 'complete-book-database.json';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    
-                    console.log('Book positions saved to complete-book-database.json');
-                } else if (event.key === 'd') {
-                    // want to make these lower
-                    console.log('Draw calls:', Graph.renderer().info.render.calls);
+                if (event.key === 'c' || event.key === 'C') {
+                    autoCam = !autoCam;
+                    console.log('Auto camera:', autoCam);
                 }
             });
-            
-            setInterval(()=>{
-                t += .0008
-                const elapsedTime = performance.now() * 0.001;
-                
-                // Update shader time uniforms
-                flowerMaterials.forEach(material => {
-                    if (material.uniforms && material.uniforms.time) {
-                        material.uniforms.time.value = elapsedTime;
-                    }
-                });
-                
-                tagCylinders.forEach(cylinder => {
-                    // Keep the spinning animation but slower - accumulate rotation
-                    if (!cylinder.userData.accumulatedRotation) {
-                        cylinder.userData.accumulatedRotation = 0;
-                    }
-                    cylinder.userData.accumulatedRotation += 0.005;
-                    
-                    // Orient cylinder to point toward origin (radial orientation)
-                    if (cylinder.userData.node) {
-                        const node = cylinder.userData.node;
-                        const position = new THREE.Vector3(node.x || 0, node.y || 0, node.z || 0);
-                        
-                        // Calculate direction from node to origin
-                        const toOrigin = position.clone().negate().normalize();
-                        
-                        // Create look-at matrix so cylinder's -Y axis points toward origin
-                        const up = new THREE.Vector3(0, 1, 0);
-                        const matrix = new THREE.Matrix4();
-                        matrix.lookAt(position, new THREE.Vector3(0, 0, 0), up);
-                        
-                        // Apply 90 degree rotation so cylinder's -Y points toward origin instead of -Z
-                        const rotationMatrix = new THREE.Matrix4().makeRotationX(Math.PI / 2);
-                        matrix.multiply(rotationMatrix);
-                        
-                        // Apply accumulated Y rotation on top of radial orientation
-                        const yRotationMatrix = new THREE.Matrix4().makeRotationY(cylinder.userData.accumulatedRotation);
-                        matrix.multiply(yRotationMatrix);
-                        
-                        // Set only the rotation part, preserve position
-                        cylinder.rotation.setFromRotationMatrix(matrix);
-                    }
-                });
 
-                atlasManager.updateAllMatrices();
-                
-                if(autoCam){
-                    const aheadAngle=.01
-                    const r2 = 3000 + Math.cos(t)
-                    const r1 = 4000 + 3000*(1.+Math.sin(t))
-                    Graph.cameraPosition({
-                        x: r1*Math.sin(t),
-                        y: r2*Math.cos(t),
-                        z: 0., 
-                    }, {
-                        x: .3*r1*Math.sin(t + Math.PI*aheadAngle),
-                        y: 0.,
-                        z: .5*3000*Math.cos(t + Math.PI*aheadAngle),
-                    })
-                }
-            }, 10)
-            
-            setTimeout(()=>{
-                Graph.linkVisibility(false)
-                toggleLinkFlowersOn()          
-            }, cookTimeMs + 1000)
-
-            window.addEventListener("resize", () => {
-                let width = window.innerWidth;
-                let height = window.innerHeight;
-                Graph.camera().aspect = width / height;
-                Graph.camera().updateProjectionMatrix();
-                Graph.renderer().setSize(width, height);
-                Graph.renderer().setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            });
-
+            animate();
         }
 
-        initApp().catch(console.error);
+        function setupHoverDetection(booksWithPositions, atlasManager) {
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+            let hoveredInstance = null;
+            let hoverLabel = null;
+            
+            function createHoverLabel(text, x, y) {
+                if (hoverLabel) {
+                    document.body.removeChild(hoverLabel);
+                }
+                hoverLabel = document.createElement('div');
+                hoverLabel.innerHTML = text;
+                hoverLabel.style.position = 'absolute';
+                hoverLabel.style.left = x + 'px';
+                hoverLabel.style.top = y + 'px';
+                hoverLabel.style.background = 'rgba(0,0,0,0.8)';
+                hoverLabel.style.color = 'white';
+                hoverLabel.style.padding = '5px';
+                hoverLabel.style.borderRadius = '3px';
+                hoverLabel.style.pointerEvents = 'none';
+                hoverLabel.style.fontSize = '12px';
+                hoverLabel.style.zIndex = '1000';
+                document.body.appendChild(hoverLabel);
+            }
+            
+            function removeHoverLabel() {
+                if (hoverLabel) {
+                    document.body.removeChild(hoverLabel);
+                    hoverLabel = null;
+                }
+            }
+            
+            renderer.domElement.addEventListener('mousemove', (event) => {
+                const rect = event.target.getBoundingClientRect();
+                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                
+                raycaster.setFromCamera(mouse, camera);
+                
+                // Check for tag sphere intersections first
+                const tagSphereIntersects = raycaster.intersectObjects(tagHoverSpheres);
+                if (tagSphereIntersects.length > 0) {
+                    const tagSphere = tagSphereIntersects[0].object;
+                    const tagData = tagSphere.userData.tagData;
+                    
+                    if (tagData && hoveredInstance !== `tag-${tagData.id}`) {
+                        hoveredInstance = `tag-${tagData.id}`;
+                        
+                        // Count books with this tag
+                        const bookCount = booksWithPositions.filter(book => 
+                            book.tags.includes(tagData.title)
+                        ).length;
+                        
+                        const labelText = `<strong>${tagData.title}</strong><br/>${bookCount} books`;
+                        createHoverLabel(labelText, event.clientX + 10, event.clientY - 10);
+                    }
+                    return;
+                }
+                
+                const bookSphereIntersects = raycaster.intersectObjects(bookHoverSpheres);
+                if (bookSphereIntersects.length > 0) {
+                    const bookSphere = bookSphereIntersects[0].object;
+                    const bookData = bookSphere.userData.bookData;
+                    const bookIndex = bookSphere.userData.bookIndex;
+                    
+                    if (bookData && hoveredInstance !== `book-${bookIndex}`) {
+                        hoveredInstance = `book-${bookIndex}`;
+                        
+                        const labelText = `${bookData.title}<br/>${bookData.authors.join(', ')}<br/>${bookData.first_publish_year} (Row: ${bookData.id})<br/>${bookData.tags.join(', ')}`;
+                        createHoverLabel(labelText, event.clientX + 10, event.clientY - 10);
+                    }
+                    return;
+                }
+                
+                // No intersections found - clear hover state
+                if (hoveredInstance !== null) {
+                    hoveredInstance = null;
+                    removeHoverLabel();
+                }
+            });
+            
+            renderer.domElement.addEventListener('mouseleave', () => {
+                hoveredInstance = null;
+                removeHoverLabel();
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = performance.now() * 0.0001;
+            flowerMaterials.forEach(material => {
+                if (material.uniforms && material.uniforms.time) {
+                    material.uniforms.time.value = elapsedTime;
+                }
+            });
+                
+                if (autoCam) {
+                    const aheadAngle = 0.01;
+                    const r2 = 3000 + Math.cos(elapsedTime);
+                    const r1 = 4000 + 300 * (1 + Math.sin(elapsedTime*1.3));
+                    
+                    camera.position.set(
+                        r1 * Math.sin(elapsedTime),
+                        0,
+                        r2 * Math.cos(elapsedTime),
+                    );
+                    
+                    camera.lookAt(
+                        0.3 * r1 * Math.sin(elapsedTime + Math.PI * aheadAngle),
+                        0.5 * 3000 * Math.cos(elapsedTime + Math.PI * aheadAngle),
+                        0,
+                    );
+                }
+            controls.update();
+            bloomComposer.render();
+            finalComposer.render();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            
+            if (bloomComposer) {
+                bloomComposer.setSize(window.innerWidth, window.innerHeight);
+            }
+            if (finalComposer) {
+                finalComposer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+
+        initStaticApp().catch(console.error);
     </script>
 </body>
 </html>
