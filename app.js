@@ -63,6 +63,8 @@ app.use('/', express.static(path.join(__dirname, 'public')))
 // JSON body parser with size limits to prevent DoS attacks
 app.use(express.json({ limit: '1mb' }))
 
+let hasSSL = false
+
 try {
 	const privateKey = fs.readFileSync('/etc/letsencrypt/live/monogon.net-0001/privkey.pem', 'utf8')
 	const certificate = fs.readFileSync('/etc/letsencrypt/live/monogon.net-0001/cert.pem', 'utf8')
@@ -72,8 +74,10 @@ try {
 		cert: certificate,
 		ca: ca,
 	}
+	hasSSL = true
+	console.log('SSL certificates loaded successfully')
 } catch(err) {
-	console.error(err)
+	console.log('SSL certificates not found - running in HTTP-only mode')
 }
 
 // Input validation helper
@@ -163,7 +167,7 @@ app.get('/db', async (req, res) => {
 	}
 })
 
-const PORT = process.env.PORT || 80
+const PORT = process.env.PORT || 3000
 
 
 // Parse URL-encoded bodies with size limits
@@ -173,7 +177,11 @@ app.use(express.urlencoded({
 }))
 
 const httpServer = http.createServer(app)
-const httpsServer = https.createServer(credentials, app);
+let httpsServer = null
+
+if (hasSSL) {
+	httpsServer = https.createServer(credentials, app)
+}
 
 // Configure Socket.IO with security options
 const io = socketio({
@@ -188,7 +196,9 @@ const io = socketio({
 });
 
 io.attach(httpServer);
-io.attach(httpsServer);
+if (httpsServer) {
+	io.attach(httpsServer);
+}
 
 require('./public/wat/subapp')(io)
 
@@ -217,8 +227,10 @@ cardsNsp.on('connection', (socket) => {
 	})
 })
 
-httpServer.listen(PORT, () => console.log(`Listening on port ${PORT}`))
+httpServer.listen(PORT, () => console.log(`HTTP Server listening on port ${PORT}`))
 
-httpsServer.listen(443, ()=>{
-    console.log('HTTPS Server running on port 443')
-})
+if (httpsServer) {
+	httpsServer.listen(443, () => {
+		console.log('HTTPS Server running on port 443')
+	})
+}
