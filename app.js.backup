@@ -17,7 +17,8 @@ app.use((req, res, next) => {
   // Enables browser XSS filtering
   res.setHeader('X-XSS-Protection', '1; mode=block');
   
-  // HSTS header removed - nginx-proxy handles HTTPS
+  // Forces browsers to use HTTPS for a specified period
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   
   next();
 });
@@ -62,8 +63,22 @@ app.use('/', express.static(path.join(__dirname, 'public')))
 // JSON body parser with size limits to prevent DoS attacks
 app.use(express.json({ limit: '1mb' }))
 
-// SSL handling removed - nginx-proxy handles SSL termination
-console.log('Running in HTTP mode - nginx-proxy handles SSL termination')
+let hasSSL = false
+
+try {
+	const privateKey = fs.readFileSync('/etc/letsencrypt/live/monogon.net-0001/privkey.pem', 'utf8')
+	const certificate = fs.readFileSync('/etc/letsencrypt/live/monogon.net-0001/cert.pem', 'utf8')
+	const ca = fs.readFileSync('/etc/letsencrypt/live/monogon.net-0001/chain.pem', 'utf8')
+	credentials = {
+		key: privateKey,
+		cert: certificate,
+		ca: ca,
+	}
+	hasSSL = true
+	console.log('SSL certificates loaded successfully')
+} catch(err) {
+	console.log('SSL certificates not found - running in HTTP-only mode')
+}
 
 // Input validation helper
 const validateInput = (input, pattern) => {
@@ -161,8 +176,12 @@ app.use(express.urlencoded({
 	limit: '1mb'
 }))
 
-// Only HTTP server needed - nginx-proxy handles HTTPS
 const httpServer = http.createServer(app)
+let httpsServer = null
+
+if (hasSSL) {
+	httpsServer = https.createServer(credentials, app)
+}
 
 // Configure Socket.IO with security options
 const io = socketio({
@@ -176,8 +195,10 @@ const io = socketio({
   pingInterval: 25000
 });
 
-// Attach Socket.IO to HTTP server only
 io.attach(httpServer);
+if (httpsServer) {
+	io.attach(httpsServer);
+}
 
 require('./public/wat/subapp')(io)
 
@@ -206,7 +227,10 @@ cardsNsp.on('connection', (socket) => {
 	})
 })
 
-// Start HTTP server only - nginx-proxy forwards requests here
-httpServer.listen(PORT, () => {
-	console.log(`HTTP Server listening on port ${PORT} - nginx-proxy handles HTTPS`)
-})
+httpServer.listen(PORT, () => console.log(`HTTP Server listening on port ${PORT}`))
+
+if (httpsServer) {
+	httpsServer.listen(443, () => {
+		console.log('HTTPS Server running on port 443')
+	})
+}
