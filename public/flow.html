@@ -65,8 +65,15 @@
   })();
 </script>
 </head>
+<script type="importmap">
+    {
+      "imports": {
+        "three": "/js/three/build/three.module.js"
+      }
+    }
+</script>
 <body>
-  <div id="controls">
+  <div id="controls" style="display:none;">
     <div class="slider-container">
         <label for="simSpeed">Simulation Speed:</label>
         <input type="range" id="simSpeed" min="0.1" max="32.0" step="0.01" value="1.0">
@@ -107,8 +114,10 @@
       <input type="range" id="simulationSize" min="128" max="1024" step="1" value="512">
       <span id="simulationSizeValue">512</span>
   </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script>
+
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script> -->
+  <script type="module">
+import * as THREE from 'three';
     // Global parameters
     const PARAMS = {
       // Size of the simulation (width×height = total particle count)
@@ -116,7 +125,7 @@
       simulationSize: 512, // simulationSize * simulationSize = # particles
       bounds: 620.0,
       time: 0,
-      particleSize: 1.5,
+      particleSize: 2.5,
       colorIntensity: 1.0,
       flowSpeed: 1.0,
       turbulence: 4.5,
@@ -145,7 +154,7 @@
     const computeScene = new THREE.Scene();
     const computeCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     const computeQuad = new THREE.Mesh(
-      new THREE.PlaneBufferGeometry(2, 2),
+      new THREE.PlaneGeometry(2, 2),
       null
     );
     computeScene.add(computeQuad);
@@ -154,6 +163,8 @@
     let particleSystem;
     let positionTexture1, positionTexture2;
     let velocityTexture1, velocityTexture2;
+    let positionRenderTarget1, positionRenderTarget2;
+    let velocityRenderTarget1, velocityRenderTarget2;
     let currentTexture = 0; // 0 = first set, 1 = second set
 
     // Shaders for compute passes

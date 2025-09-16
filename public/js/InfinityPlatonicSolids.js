@@ -4,6 +4,8 @@
  * Adapted from inf-platonic.html
  */
 
+import * as THREE from 'three';
+
 class InfinityPlatonicSolid {
     constructor(options = {}) {
         // Default options

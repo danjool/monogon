@@ -25,15 +25,14 @@
 </head>
 
 <body>
-<script src="js/three.min.js"></script>
-<script src="js/Detector.js"></script>
-<script src="js/OrbitControls.js"></script>
-<script src="js/THREEx.KeyboardState.js"></script>
-<script src="js/THREEx.FullScreen.js"></script>
-<script src="js/THREEx.WindowResize.js"></script>
-<script src="js/shaders/CopyShader.js"></script>
-<script src="js/shaders/BokehShader.js"></script>
-<script src="js/tween.min.js"></script>
+<script type="importmap">
+{
+    "imports": {
+        "three": "/js/three/build/three.module.js",
+        "three/examples/jsm/controls/OrbitControls.js": "/js/three/examples/jsm/controls/OrbitControls.js"
+    }
+}
+</script>
 
 <div id="ThreeJS" style="overflow: hidden; position: fixed; left:0px; top:0px;  width:100%; height:100%;">
   <canvas id="threejscanvas"></canvas>
@@ -475,7 +474,7 @@
 <script src="js/bootstrap.min.js"></script>
 
 <!-- indexbg.js animates the background of revolving platonic solids -->
-<script src="js/indexbg.js"></script>
+<script type="module" src="js/indexbg.js"></script>
 
 </body>
 </html>

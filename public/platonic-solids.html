@@ -21,10 +21,21 @@
   })();
 </script>
 </head>
+<script type="importmap">
+      {
+          "imports": {
+              "three": "/js/three/build/three.module.js",
+            "three/addons/": "/js/three/examples/jsm/",
+            "InfinityPlatonicSolids": "/js/InfinityPlatonicSolids.js"
+        }
+    }
+    </script>
+</head>
 <body>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
-  <script type="module">
-    import InfinityPlatonicSolid from './js/InfinityPlatonicSolids.js';
+    <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import InfinityPlatonicSolid from 'InfinityPlatonicSolids';
 
     let scene, camera, renderer;
     let solids = [];
