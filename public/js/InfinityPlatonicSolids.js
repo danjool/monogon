@@ -1,9 +1,8 @@
 /**
  * InfinityPlatonicSolids.js
  * Three.js implementation of platonic solids with infinity mirror shader effects
- * Adapted from inf-platonic.html for use in neuromancer-inspired cyberspace
+ * Adapted from inf-platonic.html
  */
-
 
 class InfinityPlatonicSolid {
     constructor(options = {}) {
@@ -120,10 +119,7 @@ class InfinityPlatonicSolid {
             default: return 12;
         }
     }
-    
-    /**
-     * Create geometry for the given solid type
-     */
+
     createGeometry(solidType) {
         const RADIUS = this.options.radius;
         
@@ -145,7 +141,6 @@ class InfinityPlatonicSolid {
     
     /**
      * Generate normals/planes for different platonic solids
-     * Directly from the original implementation
      */
     generatePlatonicSolidPlanes(solidType) {
         const normals = [];
@@ -369,22 +364,12 @@ class InfinityPlatonicSolid {
      */
     update(delta) {
         if (!this.mesh) return;
-        
-        // Auto-rotate if enabled
-        if (this.options.autoRotate) {
-            this.mesh.rotation.y += this.rotationSpeed.y;
-            this.mesh.rotation.x += this.rotationSpeed.x;
-        }
-        
-        // Update shader uniforms
+
         this.material.uniforms.iTime.value += delta;
         this.material.uniforms.modelMatrix.value.copy(this.mesh.matrixWorld);
         this.material.uniforms.modelMatrixInverse.value.copy(this.mesh.matrixWorld).invert();
     }
-    
-    /**
-     * Add solid to scene
-     */
+
     addToScene(scene) {
         if (scene && this.mesh) {
             scene.add(this.mesh);
@@ -443,7 +428,7 @@ class InfinityPlatonicSolid {
             
             const float fltMax = 1000000000.0;
             const float fltMin = -1000000000.0;
-            const int maxRef = 40;            // Maximum reflections
+            const int maxRef = 30;            // Maximum reflections
             
             // Store each face's plane equation
             
@@ -527,7 +512,7 @@ class InfinityPlatonicSolid {
                 
                 // Use the provided edge color with animation effect
                 // No need to declare separate variable, use the uniform directly
-                vec3 edgeColor = edgeColor * (0.8 + 0.4 * sin(iTime * 2.0));
+                vec3 edgeColor = edgeColor; // * (0.8 + 0.4 * sin(iTime * 2.0));
                 
                 // Stack to track our reflection path
                 vec3 positions[maxRef + 1];
@@ -592,12 +577,12 @@ class InfinityPlatonicSolid {
                                     vec4 otherPlane = planeEquations[j];
                                     vec3 hitPoint = currentPos + currentDir * d.x;
                                     float distToPlane = abs(dot(vec3(otherPlane.xyz), hitPoint) + otherPlane.w);
-                                    minEdgeDist = min(minEdgeDist, distToPlane / (.2*1.5));
+                                    minEdgeDist = min(minEdgeDist, distToPlane / (.3 ));
                                 }
                             }
                             
                             // Record edge factor - stronger for closer reflections
-                            edgeFactors[i+1] = (1.0 - smoothstep(0.0, 0.2, minEdgeDist)) * (1.0 - float(i) / float(maxRef + 1));
+                            edgeFactors[i+1] = (1.0 - smoothstep(0.0, 0.1, minEdgeDist)) * (1.0 - float(i) / float(maxRef + 1));
                             
                             reflCount++;
                             prevFace = ids.y;
@@ -618,13 +603,13 @@ class InfinityPlatonicSolid {
                     float totalIntensity = 0.0;
                     
                     // Base edge intensity comes from the first intersection
-                    float edgeIntensity = edgeFactors[0] * 0.7;
+                    float edgeIntensity = edgeFactors[0] * 0.99;
                     
                     // Add contribution from each reflection
                     for(int i = 1; i < reflCount; i++) {
                         // Each edge contributes to final color based on depth
-                        float reflStrength = 1.0 - float(i) / float(maxRef );
-                        edgeIntensity += edgeFactors[i] * reflStrength * 0.8;
+                        float reflStrength = 1.0 - float( i ) / float(maxRef );
+                        edgeIntensity += edgeFactors[i] * reflStrength * 0.5;
                     }
                     
                     // Add reflection edge glow to color
@@ -665,19 +650,13 @@ class InfinityPlatonicSolid {
             }
         `;
     }
-    
-    /**
-     * Set position of the solid
-     */
+
     setPosition(x, y, z) {
         if (this.mesh) {
             this.mesh.position.set(x, y, z);
         }
     }
-    
-    /**
-     * Get the mesh
-     */
+
     getMesh() {
         return this.mesh;
     }
