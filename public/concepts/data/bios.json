@@ -1858,7 +1858,7 @@
 	{"source": "Borges", "relation": "Influenced", "target": "Evan Puschak"},
 	{"source": "Evan Puschak", "relation": "Wrote", "target": "Escape Into Meaning"},
 	{"source": "Nick Harkaway", "relation": "Wrote", "target": "Gnomon"},
-	{"source": "Borges", "relation": "Influenced", "target": "Nick Harkaway"},
+	{"source": "Gnomon", "relation": "References", "target": "Death and the Compass"},
 	{"source": "Jean-Paul Sartre", "relation": "Wrote", "target": "No Exit"},
 	{"source": "Jean-Paul Sartre", "relation": "Wrote", "target": "No Exit"},
 	{"source": "Jean-Paul Sartre", "relation": "founded", "target": "Les Temps modernes"},
