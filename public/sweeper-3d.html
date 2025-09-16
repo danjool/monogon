@@ -30,17 +30,16 @@
     g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
   })();
 </script>
+<script type="importmap">
+    {
+        "imports": {
+            "three": "/js/three/build/three.module.js",
+            "three/addons/": "/js/three/examples/jsm/"
+        }
+    }
+    </script>
 </head>
 <body>
-    <div id="info">Click to reveal cells. Find all safe cells without hitting mines.</div>
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-            }
-        }
-    </script>
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -1141,5 +1140,6 @@
 
         animate();
     </script>
+    <div id="info">Click to reveal cells. Find all safe cells without hitting mines.</div>
 </body>
 </html>
