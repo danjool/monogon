@@ -25,16 +25,17 @@
 {
   "imports": {
     "three": "/js/three/build/three.module.js",
-    "three/addons/": "/js/three/examples/jsm/"
+    "three/addons/": "/js/three/examples/jsm/",
+    "socket.io-client": "/js/socket.io/dist/socket.io.esm.min.js"
   }
 }
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
 <div id="ThreeJS" style="overflow: hidden; position: absolute; left:0px; top:0px;  width:100%; height:100%"></div>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import * as TWEEN from 'three/addons/libs/tween.module.js';
+import { io } from 'socket.io-client';
 
 // MAIN
 
@@ -457,7 +458,6 @@ function shuffleToMatch( serverState ){
 	shuffleSequence = []; faceups = [];
 	selectedCards = []; unselectedCards = []; selectedNums = []; unselectedNums = [];
 	for (var i = 0; i < allCards.length; i++){
-		//console.log(i, allCards[i].obj.num, allCards[i].obj.selected);
 		if ( serverState.selected.indexOf(i) !== -1 ){ //server thinks i should be selected
 			allCards[i].obj.selected = true;
 			selectedCards.push(allCards[i])
@@ -480,7 +480,6 @@ function shuffleToMatch( serverState ){
 	for (var i = 0; i < unselectedCards.length; i++){
 		tossCard(unselectedCards[i].obj, {x: -90, y: 1000, z: -40, r:0}, 1200)
 	}
-	//flipTheRightCards( serverState )
 }
 
 function animate() 
@@ -492,11 +491,9 @@ function animate()
 
 function popToSelectingMode(){
 	camera.position.set(0, 200, 0);
-	//selectedCards = allCards;
 	console.log(" selecting mode ")
 	for (var i = 0; i < allCards.length; i++) {
 		var newpos = seq2pos(i+1);
-		//tossCard(selectedCards[i].obj, newpos, 1200);
 		allCards[i].obj.position.set( newpos.x, newpos.y, newpos.z )
 		flipCardFaceUp( allCards[i].obj )	
 	}
@@ -505,7 +502,6 @@ function popToSelectingMode(){
 
 function popToPlayingMode(){
 	camera.position.set(18, 70, 118);
-	//for (var i = 0; i < selectedCards.length; i++) flipCardFaceUp( selectedCards[i].obj )
 	mode = "playing"
 	shuffle()
 }
@@ -546,7 +542,6 @@ function makeMineLikeYours( serverState, localState ){
 	//if shuffleSeq differs, shuffleToMatch(state);
 	//FLIP
 	//if faceUps differs, flipCardFaceUp( allCards[differi] )
-	// console.log(localState);
 	if ( !compareObjects( serverState.shuffle, localState.shuffle ) ){
 		shuffleToMatch( serverState );
 	}
@@ -562,32 +557,17 @@ function compareObjects(a, b){
 function takeNote(){
 	console.log("take Note!")
 	putted = true;
-	//var dataToSend = JSON.stringify( packageLocalState() );
 	var dataToSend = packageLocalState() ;
 	
 	socket.emit('take note', dataToSend);
-	
-	/*
-	$.ajax({
-		type:"PUT", contentType: "application/json", dataType: 'json',
-		url:"https://gwj-tarot-jrbeeman.c9users.io/api/v1/board/2",
-		data: dataToSend,//'{"state":{"wat":"yup"}}',
-		success:function(data, status){
-			console.log("putted", data, status)},
-		error:function(e){console.log("failed to put ", e)},
-		complete:function(d){putted = false;}
-	})
-	*/
 }
 
 function setupSockets(){
 	console.log("setting up socket for client-server relations")	
-	// socket = io();
 	socket = io.connect('/cards')
 	socket.on('take note', function( serverSentString ){
 		//do stuff!@
 		var localBoard = packageLocalState();
-		//var serverSent = JSON.parse(serverSentString);
 		var serverSent = serverSentString;
 		console.log("I was told to take note by the server")
 		console.table(serverSent)
@@ -598,7 +578,6 @@ function setupSockets(){
 			}
 			else{
 				console.log( "client and server not in sync, make mine like yours!" );
-				//console.log(serverSent.state, localBoard.state);
 				makeMineLikeYours( serverSent.state, localBoard.state );	
 			}
 		}
@@ -606,15 +585,12 @@ function setupSockets(){
 			console.log( "serverSent did not have own prop 'state'" )
 			takeNote();
 		}
-			
-		
+
 		getted = false;
 		freeToClick = true;
 	});	
 	mode = "playing";	
 }
-
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //                         UPDATE
@@ -647,7 +623,6 @@ function update()
 }
 
 function Card( options ){
-	//defaults
 	var that = this;
 	this.filepath = options.filepath || "Cups09.jpg";
 	this.chosen = options.chosen || false;
@@ -660,7 +635,6 @@ function Card( options ){
 	this.obj.state = "facedown"; this.obj.num = options.num; this.obj.selected = true;
 
 	var geometry = new THREE.PlaneGeometry( this.width, this.height, 10 );
-	// images/rws/
 	var loader = new THREE.TextureLoader();
 	loader.load( ""+that.filepath, function(texture){
 		that.tex = texture;
@@ -690,8 +664,6 @@ function Card( options ){
 }
 
 function render() {
-
-	//var time = Date.now() * 0.00015;
 	var r = 150.;
 	var theta = mouse.x/9.0 + 5*Math.PI/2.;
 	var phi = mouse.y/10.0 + Math.PI/6.;
@@ -700,11 +672,7 @@ function render() {
 	camera.position.y = Math.sin(phi) * r;
 	camera.lookAt( target );
 	camera.updateMatrixWorld();
-	// scene.overrideMaterial = null;
-	// renderer.clear();
 	renderer.render( scene, camera );
-
-	//}
 
 }
 
