@@ -13,10 +13,12 @@
   })();
 </script>
 </head><body>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://unpkg.com/3d-force-graph"></script><script>
+<script src="/js/three-r128.min.js"></script>
+<script src="/js/3d-force-graph.min.js"></script>
+<script>
 const graph = ForceGraph3D({ controlType: 'trackball' })
     .width(window.innerWidth).height(window.innerHeight)
+    .cooldownTime(6000)
     .nodeThreeObject(node => {
         const width = Math.sqrt(node.size) * ( Math.random() + .5 )
         const geometry = new THREE.PlaneGeometry(width * 5, node.size / width *5);
@@ -43,7 +45,7 @@ const generateLinks = (nodes) => { const links = [];
                 const target = targetsInPrevLevel[Math.floor(Math.random() * targetsInPrevLevel.length)];
                 links.push({ source: node.id, target: target.id });
             } } }); return links; };
-const nodes = generateNodes(250);
+const nodes = generateNodes(500);
 const graphData = { nodes, links: generateLinks(nodes) };
 graph(document.body).graphData(graphData);
 </script></body></html>

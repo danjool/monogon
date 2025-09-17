@@ -1,9 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- <link href="css/bootstrap.min.css" rel="stylesheet"> -->
   <link href="css/infooverlay.css", rel="stylesheet">
-  <link href='http://fonts.googleapis.com/css?family=Quicksand' rel='stylesheet' type='text/css'>
 <!-- Matomo, a fingerprintless, GDPR compliant, no-cookies analytics -->
 <script>
   var _paq = window._paq = window._paq || [];
@@ -23,7 +21,6 @@
 
 <script src="js/three.min.js"></script>
 <script src="js/jquery.min.js"></script>
-<!-- <script src="js/underscore.js"></script> -->
 <script src="js/TrackballControls.js"></script>
 <script src="js/OrbitControls.js"></script>
 <script src="js/ShaderLoader.js"></script>
@@ -191,7 +188,6 @@ body{
       debugMesh = new THREE.Mesh( geo , new THREE.MeshBasicMaterial({
         map: simulation.simulationUniforms.t_pos.value
       }));
-      // scene.add(debugMesh);
 
       window.addEventListener("keydown", keydown, false);
       
@@ -200,9 +196,6 @@ body{
   function keydown(event){
     console.log(event.keyCode);
     if (event.keyCode == 67 ){
-      // debugMesh.material.map.value = simulation.simulationUniforms.t_pos.value;
-      // console.log(simulation);
-      // console.log(debugMesh);
     }
   }
 
@@ -220,8 +213,6 @@ body{
     var flip = (simulation.counter+1)%3
     camera.position.set( -105 +105*flip, 0, -50);
     camera.lookAt( new THREE.Vector3( -105 +105*flip, 0, 0 ) );
-
-   // controls.update();
     
     renderer.render( scene , camera );
 
@@ -318,10 +309,5 @@ function createSinTexture(size){
 
 
 </script>
-<!-- 
-    <script src="js/jquery-2.1.1.min.js"></script>    
-    
-    <script src="js/bootstrap.min.js"></script> 
- -->
 </body>
 </html>
