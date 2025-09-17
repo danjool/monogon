@@ -21,31 +21,35 @@
 <body>
 
 <script src="js/chance.js"></script>
-<script src="js/three.min.js"></script>
-<script src="js/Detector.js"></script>
-<script src="js/OrbitControls.js"></script>
-<script src="js/THREEx.KeyboardState.js"></script>
-<script src="js/THREEx.FullScreen.js"></script>
-<script src="js/THREEx.WindowResize.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "/js/three/build/three.module.js",
+    "three/addons/": "/js/three/examples/jsm/"
+  }
+}
+</script>
 <script src="js/tween.min.js"></script>
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-<script src="js/BokehShader2.js"></script>
 <script src='js/dat.gui.min.js'></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
 <div id="ThreeJS" style="overflow: hidden; position: absolute; left:0px; top:0px;  width:100%; height:100%"></div>
-<script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
 // MAIN
 
 // standard global variables
 var container, scene, camera, renderer, controls, stats, material_depth;
-var keyboard = new THREEx.KeyboardState();
+var keyboard = { pressed: (key) => keys[key] || false };
+var keys = {};
 var clock = new THREE.Clock();
 var INTERSECTED, raycaster;
 var mouse = new THREE.Vector2()
 
 // custom global variables
 var cube, N;
-var getted = false; putted = false;
+var getted = false, putted = false;
 var freeToClick = true;
 var cards = [];
 var allCards = [];
@@ -90,20 +94,18 @@ function init()
 	camera.position.set(18, 70, 118);
 	camera.lookAt(scene.position);	
 	// RENDERER
-	if ( Detector.webgl ) renderer = new THREE.WebGLRenderer( {antialias:true} );
-	else renderer = new THREE.CanvasRenderer(); 
+	renderer = new THREE.WebGLRenderer( {antialias:true} ); 
 
 
 	renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
 	renderer.setClearColor( 0x6688aa, 1);
-	renderer.autoClear = false;
 	container = document.getElementById( 'ThreeJS' );
 	container.appendChild( renderer.domElement );
 	// EVENTS
 	//THREEx.WindowResize(renderer, camera);
 	//THREEx.FullScreen.bindKey({ charCode : 'm'.charCodeAt(0) });
 	// CONTROLS
-	controls = new THREE.OrbitControls( camera, renderer.domElement );
+	controls = new OrbitControls( camera, renderer.domElement );
 	controls.enabled = false;
 	// LIGHT
 	var light = new THREE.PointLight(0xffffff);
@@ -123,6 +125,14 @@ function init()
 	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+	
+	// Keyboard event handling
+	document.addEventListener('keydown', (event) => {
+		keys[event.key.toLowerCase()] = true;
+	});
+	document.addEventListener('keyup', (event) => {
+		keys[event.key.toLowerCase()] = false;
+	});
 	
 	var folder = "images/rws/";
 var imageFiles = [
@@ -167,11 +177,24 @@ imageFiles.forEach(function (val, i) {
     allCards.push(mycard);
 });
 	//skybox
-	var texture = THREE.ImageUtils.loadTexture( 'images/shackblurry.jpg', THREE.UVMapping, function () {
-		var mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: texture } ) );
-		mesh.scale.x = -1;
-		scene.add( mesh );
-	} );
+	var loader = new THREE.TextureLoader();
+	loader.load( 'images/shackblurry.jpg', 
+		function ( texture ) {
+			console.log("Skybox texture loaded successfully");
+			var material = new THREE.MeshBasicMaterial({ 
+				map: texture, 
+				side: THREE.BackSide 
+			});
+			var mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), material );
+			scene.add( mesh );
+		},
+		function ( progress ) {
+			console.log("Loading skybox texture...", progress);
+		},
+		function ( error ) {
+			console.error("Error loading skybox texture:", error);
+		}
+	);
 
 }// init
 
@@ -320,8 +343,8 @@ function unpresentSingleCard(cardToPresent){
 		//point back up
 	new TWEEN.Tween( {t:0} ).to({ t:1 }, durDown)
 		.onUpdate(function(){
-			THREE.Quaternion.slerp(cardToPresent.qb, cardToPresent.qa, qt, this.t);
-			cardToPresent.quaternion.set(qt.x, qt.y, qt.z, qt.w);})
+			qt.slerpQuaternions(cardToPresent.qb, cardToPresent.qa, this.t);
+			cardToPresent.quaternion.copy(qt);})
 		.delay( 1 )
 		.onComplete( function(){
 			cardToPresent.state = "presented" 
@@ -330,7 +353,7 @@ function unpresentSingleCard(cardToPresent){
 				cardToPresent.rotation.x = Math.PI/2;
 				cardToPresent.rotation.z = Math.PI;
 				cardToPresent.rotation.y = Math.PI;
-				cardToPresent.position = cardToPresent.pa;
+				cardToPresent.position.copy(cardToPresent.pa);
 			})
 		.start();
 
@@ -368,8 +391,8 @@ function presentSingleCard(cardToPresent){
 	new TWEEN.Tween( {t:0} ).to({ t:1 }, durUp)
 		.easing( TWEEN.Easing.Quartic.InOut)
 		.onUpdate(function(){
-			THREE.Quaternion.slerp(qa, qb, qt, this.t);
-			cardToPresent.quaternion.set(qt.x, qt.y, qt.z, qt.w);
+			qt.slerpQuaternions(qa, qb, this.t);
+			cardToPresent.quaternion.copy(qt);
 		}).onComplete(function(){ cardToPresent.state="presented"; })
 		.start();
 
@@ -525,37 +548,34 @@ function compareObjects(a, b){
 	return (JSON.stringify(a) === JSON.stringify(b));
 }
 
-function whatsUp(){
+async function whatsUp(){
 	if (mode==="playing" && getted === false ){
 		getted = true;
 		freeToClick = false;
 		console.log("GETTING...")
-		$.ajax({
-			type:"GET",
-			contentType: "application/json",
-			dataType: 'json',
-			url:"https://gwj-tarot-jrbeeman.c9users.io/api/v1/board/2",
-			success: function(data){
-				console.log("GoT!");
-				var localBoard = packageLocalState();
-				//console.log( data.board.state );
-				//console.log( localBoard.state );
-				if ( compareObjects( data.board.state, localBoard.state ) ){
-					console.log( "client and server were already sync'd" );
+		try {
+			const response = await fetch("https://gwj-tarot-jrbeeman.c9users.io/api/v1/board/2", {
+				method: "GET",
+				headers: {
+					"Content-Type": "application/json"
 				}
-				else{
-					console.log( "client and server not in sync, make mine like yours!" );
-					makeMineLikeYours( data.board.state, localBoard.state );	
-				}
-				return data;
-			},
-			error: function(e){
-				console.log("oh that GET didn't get: ", e) },
-			complete: function(data){ 
-				getted = false;
-				freeToClick = true;
+			});
+			const data = await response.json();
+			console.log("GoT!");
+			var localBoard = packageLocalState();
+			if ( compareObjects( data.board.state, localBoard.state ) ){
+				console.log( "client and server were already sync'd" );
 			}
-		});
+			else{
+				console.log( "client and server not in sync, make mine like yours!" );
+				makeMineLikeYours( data.board.state, localBoard.state );	
+			}
+		} catch (e) {
+			console.log("oh that GET didn't get: ", e);
+		} finally {
+			getted = false;
+			freeToClick = true;
+		}
 	}
 }
 
@@ -664,7 +684,9 @@ function Card( options ){
 
 	var geometry = new THREE.PlaneGeometry( this.width, this.height, 10 );
 	// images/rws/
-	that.tex = new THREE.ImageUtils.loadTexture( ""+that.filepath, null, function(){
+	var loader = new THREE.TextureLoader();
+	loader.load( ""+that.filepath, function(texture){
+		that.tex = texture;
 		that.tex.minFilter = THREE.LinearFilter;
 		that.tex.wrapS = THREE.ClampToEdgeWrapping;
 		that.tex.wrapT = THREE.ClampToEdgeWrapping;

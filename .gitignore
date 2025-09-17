@@ -68,3 +68,5 @@ package-lock.json
 *.code-workspace
 
 *.cursor*
+
+wat.db
