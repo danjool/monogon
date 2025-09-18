@@ -278,7 +278,7 @@ function pinNodeAxisToProperty(fGraph, axis, prop, nonlinearFunc){
   fGraph.graphData().nodes.forEach(node=> {
     if(node.hasOwnProperty(prop) && node[prop] !== null){
       const val = nonlinearFunc ? nonlinearFunc( node[prop] ) : node[prop]
-      node[ 'f'+ axis ] = val
+      node[ 'f'+ axis ] = val + 2000
       node[axis] = val
     } else {
       delete node[ 'f' + axis ]
@@ -759,8 +759,10 @@ fetch(filePath)
 .then(data => {
   const idBlockList = new Set(["Borges"]);
   const typeBlockList = new Set(["concept"]);
-  data.nodes = data.nodes.filter(n => !idBlockList.has(n.id))
-  data.links = data.links.filter(l => !idBlockList.has(l.source) && !idBlockList.has(l.target))
+  // data.nodes = data.nodes.filter(n => !idBlockList.has(n.id))
+  // data.links = data.links.filter(l => !idBlockList.has(l.source) && !idBlockList.has(l.target))
+  data.nodes = data.nodes.filter(n => !typeBlockList.has(n.id))
+  data.links = data.links.filter(l => !typeBlockList.has(l.source) && !typeBlockList.has(l.target))
   return data;
 })
 .then(data => {
@@ -922,7 +924,7 @@ fetch(filePath)
   return fGraph
 
 }).then(fGraph=>{
-  fGraph.cameraPosition({ x: 0, y: -1600, z: 3200 }, { x: 0, y: -1600, z: 0 }, 4000);
+  fGraph.cameraPosition({ x: 0, y: 0, z: 6400 }, { x: 0, y: 0, z: 0 }, 4000);
   reinitTime()
 }
 )
