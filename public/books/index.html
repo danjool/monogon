@@ -38,13 +38,21 @@
 <body>
     <div id="container"></div>
 
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "/js/three/build/three.module.js",
+            "three/addons/": "/js/three/examples/jsm/"
+        }
+    }
+    </script>
     <script type="module">
-        import * as THREE from 'https://esm.sh/three';
-        import { OrbitControls } from 'https://esm.sh/three/examples/jsm/controls/OrbitControls.js';
-        import { EffectComposer } from 'https://esm.sh/three/examples/jsm/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'https://esm.sh/three/examples/jsm/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'https://esm.sh/three/examples/jsm/postprocessing/UnrealBloomPass.js';
-        import { ShaderPass } from 'https://esm.sh/three/examples/jsm/postprocessing/ShaderPass.js';
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
         const tagShellRadiusRendered = 600;
 
@@ -886,8 +894,6 @@
                             vec4 baseColor = texture2D(baseTexture, vUv);
                             vec4 bloomColor = texture2D(bloomTexture, vUv);
                             
-                            // baseColor.a has the depth of the baseColor (books)
-
                             vec3 mixed = bloomColor.xyz + (baseColor.xyz - bloomColor.xyz) * min(baseColor.a, 1.0);
                             gl_FragColor = vec4(mixed.xyz, 1.);
 
