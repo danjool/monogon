@@ -38,7 +38,7 @@ export class MultiplayerManager {
   console.log('Computed server URL:', serverUrl);
 
   // Import socket.io client
-  import('https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.esm.min.js')
+  import('/js/socket.io/dist/socket.io.esm.min.js')
     .then(({ io }) => {
       console.log('Socket.IO library loaded, creating connection...');
       this.socket = io(serverUrl);  // serverUrl is now properly scoped
