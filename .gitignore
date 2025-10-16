@@ -70,3 +70,5 @@ package-lock.json
 *.cursor*
 
 wat.db
+
+public/test/reference-screenshots/
