@@ -72,3 +72,5 @@ package-lock.json
 wat.db
 
 public/test/reference-screenshots/
+public/test/diff-screenshots/
+public/test/screenshots/
