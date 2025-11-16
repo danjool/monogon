@@ -1,0 +1,98 @@
+(function(root, factory) {
+  if (typeof module !== 'undefined' && module.exports) {
+    // Node.js
+    module.exports = factory();
+  } else {
+    // Browser global
+    root.grammarRules = factory();
+  }
+}(typeof self !== 'undefined' ? self : this, function() {
+
+  // Grammar rules extracted from erDiagram.jison
+  // Maps production rule number to human-readable grammar rule
+  const grammarRules = {
+    1: "start → ER_DIAGRAM document EOF",
+    2: "document → ε",
+    3: "document → document line",
+    4: "line → SPACE statement",
+    5: "line → statement",
+    6: "line → NEWLINE",
+    7: "line → EOF",
+    8: "statement → entityName relSpec entityName COLON role",
+    9: "statement → entityName STYLE_SEPARATOR idList relSpec entityName STYLE_SEPARATOR idList COLON role",
+    10: "statement → entityName STYLE_SEPARATOR idList relSpec entityName COLON role",
+    11: "statement → entityName relSpec entityName STYLE_SEPARATOR idList COLON role",
+    12: "statement → entityName BLOCK_START attributes BLOCK_STOP",
+    13: "statement → entityName STYLE_SEPARATOR idList BLOCK_START attributes BLOCK_STOP",
+    14: "statement → entityName BLOCK_START BLOCK_STOP",
+    15: "statement → entityName STYLE_SEPARATOR idList BLOCK_START BLOCK_STOP",
+    16: "statement → entityName",
+    17: "statement → entityName STYLE_SEPARATOR idList",
+    18: "statement → entityName SQS entityName SQE BLOCK_START attributes BLOCK_STOP",
+    19: "statement → entityName SQS entityName SQE STYLE_SEPARATOR idList BLOCK_START attributes BLOCK_STOP",
+    20: "statement → entityName SQS entityName SQE BLOCK_START BLOCK_STOP",
+    21: "statement → entityName SQS entityName SQE STYLE_SEPARATOR idList BLOCK_START BLOCK_STOP",
+    22: "statement → entityName SQS entityName SQE",
+    23: "statement → entityName SQS entityName SQE STYLE_SEPARATOR idList",
+    24: "statement → title title_value",
+    25: "statement → acc_title acc_title_value",
+    26: "statement → acc_descr acc_descr_value",
+    27: "statement → acc_descr_multiline_value",
+    28: "statement → direction",
+    29: "statement → classDefStatement",
+    30: "statement → classStatement",
+    31: "statement → styleStatement",
+    32: "direction → direction_tb",
+    33: "direction → direction_bt",
+    34: "direction → direction_rl",
+    35: "direction → direction_lr",
+    36: "classDefStatement → CLASSDEF idList stylesOpt separator",
+    37: "idList → UNICODE_TEXT",
+    38: "idList → STYLE_TEXT",
+    39: "idList → idList COMMA UNICODE_TEXT",
+    40: "idList → idList COMMA STYLE_TEXT",
+    41: "classStatement → CLASS idList idList",
+    42: "styleStatement → STYLE idList stylesOpt separator",
+    43: "stylesOpt → style",
+    44: "stylesOpt → stylesOpt COMMA style",
+    45: "style → styleComponent",
+    46: "style → style styleComponent",
+    47: "separator → SEMI",
+    48: "separator → NEWLINE",
+    49: "separator → EOF",
+    50: "styleComponent → STYLE_TEXT",
+    51: "styleComponent → NUM",
+    52: "styleComponent → COLON",
+    53: "styleComponent → BRKT",
+    54: "entityName → ENTITY_NAME",
+    55: "entityName → UNICODE_TEXT",
+    56: "entityName → NUM",
+    57: "entityName → DECIMAL_NUM",
+    58: "entityName → ENTITY_ONE",
+    59: "attributes → attribute",
+    60: "attributes → attribute attributes",
+    61: "attribute → attributeType attributeName",
+    62: "attribute → attributeType attributeName attributeKeyTypeList",
+    63: "attribute → attributeType attributeName attributeComment",
+    64: "attribute → attributeType attributeName attributeKeyTypeList attributeComment",
+    65: "attributeType → ATTRIBUTE_WORD",
+    66: "attributeName → ATTRIBUTE_WORD",
+    67: "attributeKeyTypeList → attributeKeyType",
+    68: "attributeKeyTypeList → attributeKeyTypeList ',' attributeKeyType",
+    69: "attributeKeyType → ATTRIBUTE_KEY",
+    70: "attributeComment → COMMENT",
+    71: "relSpec → cardinality relType cardinality",
+    72: "cardinality → ZERO_OR_ONE",
+    73: "cardinality → ZERO_OR_MORE",
+    74: "cardinality → ONE_OR_MORE",
+    75: "cardinality → ONLY_ONE",
+    76: "cardinality → MD_PARENT",
+    77: "relType → NON_IDENTIFYING",
+    78: "relType → IDENTIFYING",
+    79: "role → WORD",
+    80: "role → ENTITY_NAME",
+    81: "role → UNICODE_TEXT"
+  };
+
+  return grammarRules;
+}));

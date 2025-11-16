@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clicking Entities in Mermaid</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Clicking Mermaid</h1>
+    
+    <div class="intro">
+        <p>This is the story of implementing click functionality for Mermaid.js Entity Relationship Diagrams. What started as "just copy the flowchart code" became a deep dive into parser generators, the LALR(1) algorithm, and the long history of using language to build language that can read language.</p>
+    </div>
+
+    <div class="anchor-target" id="the-goal"></div>
+    <h2>The Goal</h2>
+
+    <div class="toc">
+        <h3>Contents</h3>
+        <ol>
+            <li><a href="#the-goal">The Goal</a></li>
+            <li><a href="#setup">Setup the Project Locally</a></li>
+            <li><a href="#codebase-recon">Codebase Recon</a></li>
+            <li>
+                <a href="#what-is-jison">What's Jison?</a>
+                <ul>
+                    <li><a href="#the-bison-pdf">Uh, what's Bison?</a></li>
+                    <li><a href="#parser-evolution">Parser Evolution: From BNF to Jison</a></li>
+                    <li><a href="#lexer-vs-grammar">Lexer vs Grammar Rules</a></li>
+                </ul>
+            </li>
+            <li><a href="#parser-visualization">Interactive Parser Visualization</a></li>
+            <li>
+                <a href="#implementation-details">Implementation Details</a>
+                <ul>
+                    <li><a href="#token-ordering">Token Ordering is Critical</a></li>
+                    <li><a href="#ten-productions">Ten Grammar Productions</a></li>
+                    <li><a href="#parsing-arguments">Parsing Callback Arguments</a></li>
+                    <li><a href="#security">Security Considerations</a></li>
+                    <li><a href="#svg-wrapping">SVG Anchor Wrapping</a></li>
+                    <li><a href="#deferred-binding">Deferred Event Binding</a></li>
+                    <li><a href="#documentation">Documentation Updates</a></li>
+                </ul>
+            </li>
+            <li><a href="#working-demo">Working Demo</a></li>
+            <li><a href="#lessons-learned">Lessons Learned</a></li>
+            <li><a href="#whats-next">What's Next?</a></li>
+        </ol>
+    </div>
+    <p>I wanted to contribute to any open source project that I used personally and considered an immediate genuine benefit to its users.  After nosing around Postgres and finding it to be a contributer's equivalent to Everest, I settled on Mermaid.js.  I considered Cytoscape and Janus Gateway as well, but GitHub <a href="https://github.com/mermaid-js/mermaid/issues/2880" target="_blank">Issue #2880</a> caught my interest.  Issue 2880 (and duplicate? <a href="https://github.com/mermaid-js/mermaid/issues/3966" target="_blank">Issue 3966</a>) request click functionality for Entity Relationship Diagrams in Mermaid.js.  Two issues, and each has other Github users agreeing this enhancement would be appreciated.</p>
+    <p>Mermaid's flowcharts already supported clicks, so naturally I thought: "How hard could it be?"</p></p>
+    <div class="highlight">
+        <strong>Narrator:</strong> Harder than expected.
+    </div>
+    <p>Isn't it always?</p>
+    
+    <p>As described in the <a href="https://mermaid.js.org/syntax/flowchart.html#interaction" target="_blank">Mermaid docs</a> flowcharts support various click patterns a user may add to their diagram code:</p>
+    <pre><code>click A call aCallbackFunction 
+ click B someCallback(arg1, arg2) 
+ click C href "https://example.com" 
+ click D href "https://example.com" _blank</code></pre> 
+
+    <p>The corresponding flowchart nodes (boxes in the diagram) will react to clicks as you'd expect: linking around, opening tabs, calling custom javascript 'callback' functions with or without arguments.</p>
+
+    <div style="clear: both;"></div>
+
+    <div class="anchor-target" id="setup"></div>
+    <h2>Setup the project locally</h2>
+    <p>The Mermaid project's CONTRIBUTING.md explains how to get rolling pretty quickly.</p>
+    <ol>
+        <li>Fork mermaid on Github</li>
+        <li>Clone the fork</li>
+        <li>install pnpm, a project manager for node projects</li>
+        <li>pnpm install, pnpm run dev</li>
+    </ol>
+
+    <p>A little jiggling and I have a working development environment locally serving example diagrams at http://localhost:9000/er.html and http://localhost:9000/flowchart.html  The flowchart demo has working click examples.  I tweak the html file, and the demo page reflects the change.  We have an iteration loop!</p>
+
+    <div class="anchor-target" id="codebase-recon"></div>
+    <h2>Codebase Recon</h2>
+    
+    <p>Before attempting to implement ER clicks, I needed to understand how flowchart clicks worked. Here's the detective work:</p>
+    
+    <div class="demo-section">
+        <h4>Flowchart Files (Source)</h4>
+        <ul>
+            <li><code>packages/mermaid/src/diagrams/flowchart/parser/flow.jison</code> - Grammar definitions</li>
+            <li><code>packages/mermaid/src/diagrams/flowchart/flowDb.ts</code> - Data storage</li>
+            <li><code>packages/mermaid/src/diagrams/flowchart/types.ts</code> - Type definitions</li>
+            <li><code>packages/mermaid/src/diagrams/flowchart/flowRenderer-v3-unified.ts</code> - SVG rendering</li>
+        </ul>
+        
+        <h4>ER Files (Target)</h4>
+        <ul>
+            <li><code>packages/mermaid/src/diagrams/er/parser/erDiagram.jison</code> - Grammar definitions</li>
+            <li><code>packages/mermaid/src/diagrams/er/erDb.ts</code> - Data storage</li>
+            <li><code>packages/mermaid/src/diagrams/er/erTypes.ts</code> - Type definitions</li>
+            <li><code>packages/mermaid/src/diagrams/er/erRenderer-unified.ts</code> - SVG rendering</li>
+        </ul>
+    </div>
+
+    <p>Great, I'm familiar with typescript already.  Digging into those files, flowDb defines a <code>setClickEvent()</code>, flow.jison has a lot of <code>setClickEvent()</code> calling, and it stands to reason the renderer goes last, so it looks like mermaid does something like:</p>
+    
+    <ol>
+        <li><strong>Jison:</strong> Recognizes click syntax and calls database methods</li>
+        <li><strong>Database:</strong> Stores link/callback data on node objects intermediary state</li>
+        <li><strong>Renderer:</strong> Wraps clickable nodes in SVG anchor elements</li>
+    </ol>
+    
+    <p>The key insight was that flowchart's <code>setClickEvent()</code> and <code>setLink()</code> database methods were exactly what ER diagrams needed - just called from a different grammar.  With a little luck the two grammars would not be too disparate from each other, and I might even get a win without <i>understanding</i> whatver Jison is.</p>
+
+    <p>One naive porting of click events, types and jison-ey looking click stuff to <code>erDiagram.jison</code> later and I'm thinking I'll have to more thoughtfully comprehend what I'm doing.</p>
+
+    <div class="anchor-target" id="what-is-jison"></div>
+    <h2>What's Jison?</h2>
+    
+    <a href="https://techtonik.github.io/jison/docs" target="_blank">The Jison Docs</a> a little help, providing a calculator example, but punt on some of the 'major concepts': 
+
+    <blockquote>
+        Until the Bison guide is properly ported for Jison, you can refer to it for the major concepts...
+        <footer>- Jison Docs</footer>
+    </blockquote>
+
+    <p>Jison is a JavaScript parser generator. We write grammar rules (the jison file), Jison itself generates us a custom parser from our rules capable of receiving input text adhering to those rules.  But what does the parser <em>do</em> with input with those rules?  How does it <em>act</em> or react to the input?  Comparing the Jison calculator example to the Mermaid source code, they don't seem very to me.  Not similar enough for me to connect the dots.</p>
+    
+    <ul>
+        <li>The Jison documentation links to dead pages</li>
+        <li>Those pages used to link to the Bison manual</li>
+        <li>The Bison manual assumes you're "fluent in C, C++, D or Java"</li>
+        <li>We're just trying to add click handlers to rectangles</li>
+        <li>Where is the generated parser exactly in mermaid?</li>
+    </ul>
+
+    <div class="anchor-target" id="the-bison-pdf"></div>
+    <h2>Uh, what's Bison?</h2>
+
+    <p>That Bison manual the Jison docs were dead linking to turns out to be an older version of <a href="https://www.gnu.org/software/bison/manual/bison.pdf" target="_blank">this pdf</a>.  244 pages of language explaining the language used to defines languages!  Great.</p>
+
+    <blockquote>
+        Bison is a general-purpose parser generator that converts an annotated context-free grammar into a deterministic LR or generalized LR (GLR) parser
+        ...
+        Once you are proficient with Bison, you can use it to develop a wide range of language parsers, from those used in simple desk calculators to complex programming languages.
+        <footer>- The Bison PDF</footer>
+    </blockquote>
+
+    <p>Okay, that may seem a little daunting, but it makes sense the Mermaid.js needs something like this.  The whole Mermaid paradigm is you pick a kind of diagram, input your specific diagram details in text, and that text needs to be in a syntax that supports the kind of diagram you want.  Flowcharts use flowchart words, but a Sequence Diagrams use a different jargon.  Currently Mermaid supports over twenty kinds of diagrams, they all get their own input jargon, and jison/bison is serving as the in-between glue that converts the user's input into javascript method calls (supplied by those 'db' files).
+
+    <div class="highlight">
+    <strong>Distraction:  </strong>Jison isn't the only parser in mermaid, packages/parser/ contains a <a href="https://langium.org/" 
+        + target="_blank">Langium</a> based parser some of the newer diagram types use instead of Jison.  I'm on a mission, so this Langium parser should be ignored.  (Lies, I wasted time on a "little" Langium side project to compare parser-feel, concluding that Langium feels newer but solves a complex problem with a complex, undocumented solutions; where Jison feels old but ultimately simplifies the complex problem.)
+    </div>
+
+    <p>But the jison files aren't doing the parsing themselves, they just define a grammar to <b>generate</b> a parser.  So to avoid authoring more errors of ambiguity while I modify the erDiagram.jison, I can either read the Bison manual or find the generated parser in the code and infer why it is complaining.  Considering the Bison manual starts off early with</p>
+
+    <blockquote>
+        Anyone familiar with Yacc should be able to use Bison with little trouble. You need to be fluent in C, C++, D or Java programming in order to use Bison or to understand this manual.
+        <footer>- The Bison PDF</footer>
+    </blockquote>
+
+    <p>Let us be candid.  The Bison parser is complicated.  Really Bison includes many parsing strategies and mechanisms with names like LR, IELR, LALR, LAC, GLR.  </p>
+
+    <p>Technically, Jison generates <strong>LALR(1)</strong> parsers - an optimized variant of LR(1) with smaller parse tables. For practical purposes, they're equivalent. When people say "LR(1)" they usually mean the LALR(1) implementation.</p>
+
+    <blockquote>
+        <p>"Bison is optimized for what are called LR(1) grammars... must be possible to tell how to parse any portion of an input string with just a single token of lookahead"</p>
+        <footer>- The Bison PDF</footer>
+    </blockquote>
+
+    <p>Can we fix the erDiagram jison grammar, defining everything a Mermaid ERD user might want to author, with just a single token of lookahead?  What are the options here?</p>
+
+    <div class="anchor-target" id="parser-evolution"></div>
+    <h2>Parser Evolution: From BNF to Jison</h2>
+    
+    <p>Apparently parser generators evolved through decades of computer science research:</p>
+    
+    <ul>
+        <li><strong>1958-1963: BNF (Backus-Naur Form)</strong> - Created for ALGOL, the first formal way to describe programming language syntax</li>
+        <li><strong>1965: LR Parsing Theory</strong> - Knuth developed the mathematical foundation for efficient parsing</li>
+        <li><strong>1975: Yacc</strong> - "Yet Another Compiler Compiler" made parser generation practical</li>
+        <li><strong>1989: Bison</strong> - GNU's replacement for Yacc, still widely used today</li>
+        <li><strong>2009: Jison</strong> - "Bison in JavaScript" brought parser generation to the web</li>
+    </ul>
+    
+    <p>Each step built on <strong>Chomsky's grammar hierarchy</strong>:</p>
+    <ul>
+        <li><strong>Type 3 (Regular):</strong> Perfect for lexical analysis - recognizing keywords, operators, identifiers</li>
+        <li><strong>Type 2 (Context-Free):</strong> Ideal for syntax analysis - understanding nested structures, expressions</li>
+        <li><strong>Type 1-0:</strong> Too powerful and complex for most programming languages</li>
+    </ul>
+    
+    <p>Jison combines Type 3 grammars (for lexing) with Type 2 grammars (for parsing) to generate complete parsers from simple specifications.</p>
+
+    <div class="mermaid">
+        graph TD
+    subgraph T0["Type 0 Grammars: Unrestricted"]
+        subgraph T1["Type 1: Context-Sensitive"]
+            subgraph T2["Type 2: Context-Free"]
+                subgraph T3["Type 3: Regular"]
+                    subgraph exT3["A → aB | b <br>(right-linear only)"]
+                    end
+                end
+                subgraph exT2["A → aAb | ε <br>(single non-terminal left)"]
+                end
+            end
+            subgraph exT1["aAb → acdb <br>(A replaced in context ab)"]
+            end
+        end
+        subgraph exT0["AB → BA <br>(anything → anything)"]
+        end
+    end
+    
+    BNF["1958-1963: BNF<br/>Backus-Naur Form<br/>for ALGOL"]
+    LR["1965: Knuth<br/>LR Parsing Theory"]
+    YACC["1975: Yacc<br/>'Yet Another<br/>Compiler Compiler'"]
+    BISON["1989: Bison<br/>GNU replacement<br/>for Yacc"]
+    JISON["2009: Jison<br/>'Bison in JavaScript'<br/>Used by Mermaid!"]
+    
+    T0 --> BNF
+    BNF --> LR
+    LR --> YACC
+    T2 -.->|"for parsing"| YACC
+    T3 -.->|"for lexers"| YACC
+    YACC --> BISON
+    BISON --> JISON
+    </div>
+
+    <p>A big dividing line between these parsers is whether they're deterministic, at every step there is one correct action and interpretation of input text.  Deterministic grammars are fast to parse, but inflexible.  Ambiguity throws an error.</p>
+
+    <p>So what if we wanted a grammar that was more ambiguous?  Enter GLR.</p>
+
+    <div class="highlight">
+        <strong>Wife:</strong>What are you reading?
+    </div>
+
+    <blockquote>...when faced with unresolved shift/reduce and reduce/reduce conflicts, GLR parsers use the simple expedient of doing both, effectively cloning the parser to follow both possibilities. Each of the resulting parsers can again split, so that at any given time, there can be any number of possible parses being explored. The parsers proceed in lockstep; that is, all of them consume (shift) a given input symbol before any of them proceed to the next.  Each of the cloned parsers eventually meets one of two possible fates: either it runs into a parsing error, in which case it simply vanishes, or it merges with another parser...
+    </blockquote>
+
+    <div class="highlight">
+        <strong>Wife:</strong>So it does a multiverse?
+    </div>
+
+    <p>Which is a good callout.  Do I want to have to worry about a multiverse when I'm really just trying to make some boxes clickable?  Does Mermaid even GLR?  Fortunately, a search of the Mermaid codebase suggests none of the jison files engage GLR, so Mermaid uses LALR(1), which is deterministic and doesn't require multiversal thinking.  I can take what I've learned so far, and hold off on the rest of the Bison manual.  Maybe.</p>
+        
+    <p>LALR(1) means:</p>
+    <ul>
+        <li><strong>L</strong>eft-to-right scanning</li>
+        <li><strong>R</strong>ightmost derivation</li>
+        <li><strong>1</strong> token of lookahead</li>
+    </ul>
+    
+    <p>In practical terms: the parser reads your grammar left to right, can peek at one token ahead, and needs unambiguous rules. When your grammar is ambiguous, jison will let you know with cryptic shift/reduce conflicts or ambiguity errors.</p>
+
+    <div class="anchor-target" id="lexer-vs-grammar"></div>
+        <h2>Lexer vs Grammar Rules</h2>
+        
+        <p>Jison files are split into two distinct sections, each serving a different purpose in the parsing pipeline:</p>
+        
+        <h3>Lexer Rules: Turning Characters into Tokens</h3>
+        <p>The lexer (lexical analyzer) reads raw text and produces tokens. Think of it as recognizing words in a sentence:</p>
+        
+        <pre><code>%lex
+%%
+"click"                         return 'CLICK';
+"href"                          return 'HREF';
+"call"                          return 'CALL';
+"_blank"                        return 'LINK_TARGET';
+[\\s]+                           return 'SPACE';
+\"[^\"]*\"                       return 'WORD';
+%%</code></pre>
+        
+        <p><strong>ELI5:</strong> The lexer is like someone reading aloud, recognizing that "c-l-i-c-k" spells the word "click". It groups characters into meaningful chunks.</p>
+        
+        <h3>Grammar Rules: Understanding Token Relationships</h3>
+        <p>The grammar (syntax analyzer) takes tokens and builds a structure. It understands how tokens relate to each other:</p>
+        
+        <pre><code>clickStatement
+    : CLICK entityName HREF WORD LINK_TARGET
+      { $$ = $CLICK; yy.setLink($2, $4.replace(/"/g, ''), $5); }
+    | CLICK entityName CALL UNICODE_TEXT
+      { $$ = $CLICK; yy.setClickEvent($2, $4); }
+    ;</code></pre>
+        
+    <p><strong>ELI5:</strong> The grammar is like understanding sentence structure. It knows that "click CUSTOMER href 'https://example.com' _blank" means "make CUSTOMER clickable and open example.com in a new tab".</p>
+
+    <p>To grasp all of these examples we also need to understand special symbols like $$ and yy.</p>
+
+    <p>$$ comes from Bison, and is the value a particular rule is going to return.  Sometimes returning $$ is not strictly necessary, but we may do so anyway for convention, debuggability, or future-proofing.  The click example is like that, $$ = $CLICK isn't actually required, the real work is in the side effects provided by yy.</p>
+
+    <p>Sometimes returning $$ does matter, usually when building up datastructures via grammar rules.  An example in Mermaid's erDiagrams is the attribute list</p>
+
+    <pre><code>  attributes
+    : attribute
+    { $$ = [$attribute]; }              // Create array with one attribute
+    | attribute attributes
+    { $$ = [$attribute, ...$attributes]; }  // Prepend to existing array</code></pre>
+
+    <p>Here 'attributes' is the list of type-value pairs a user may include in their entities.  In the context of a diagram of a real database these attributes would usually be the columns of the tables each entity was representing.  The parser is going to read these attributes one at a time, and either start making an attribute list or prepending new attributes, one line at a time.  The $$ is used to build that list until the entity block completes and a yy.addAttributes() method is called to attach the attribute list to the entity in the 'db'.</p>
+
+    <p>What is yy and how does it know to have an addAttributes() method?  yy is an object attached to the parser purposefully, by Mermaid, to provide the custom methods that the parser may call as a result of a grammar rule firing.  The attaching is done in Mermaid's generic Diagram class: </p>
+
+    <pre><code>parser.yy = db</code></pre>
+
+    <p>The various Jison based Mermaid diagram types inherit this yy is really db methods behavior, implementing their own 'db' objects with methods their jison parsers will expect.</p>
+
+    <div class="highlight">
+        <strong>Hindsight:</strong> I skipped the <a href="https://github.com/mermaid-js/mermaid/blob/develop/packages/mermaid/src/docs/community/new-diagram-jison.md">New Diagram (Jison)</a> helper doc because it was about implementing a new diagram, and because it is marked as deprecated.  
+        But actually this document does a decent job explaining how some mermaid parts fit together like the yy binding, db pattern, etc.  Sometimes the recon stage is hard because <strong>you don't know what you don't know!</strong> <br><br> The deprecated status is more about Mermaid now preferring Langium over Jison moving forward, but for modifying existing Jison-based diagrams this doc is still useful.  
+    </div>
+
+    <p>While we're calling out jisons special symbols, the dollar-number combinations like $1, $2, etc. are references to the parts of the rule as it is written by the user in order.</p>
+
+    <p>Here's a concrete example from the click implementation:</p>
+    <pre><code>clickStatement
+      : CLICK entityName CALL UNICODE_TEXT { $$ = $CLICK; yy.setClickEvent($2, $4); }
+     //   ↑       ↑       ↑     ↑                   ↑                      ↑   ↑
+     //   $1      $2      $3    $4                  $1            entityName   UNICODE_TEXT</code></pre>
+
+    <p>Both the numbered references and the corresponding named references are interchangeable, unless two symbols in a rule share the same name.  For instance, </p>
+
+    <pre><code>relationship : entityName relSpec entityName</code></pre>
+
+    <p>Needs to reference those entityNames with $1 and $3 respectively to unambiguously refer to those two different entityNames.</p>
+
+    <h3>Where are the generated parsers really?</h3>
+
+    <p>Having researched what the parsers are and how they work, I was interested in reading to verify my assumptions.  So where are they?  It isn't obvious at first, the parser typescript files kind of look like they're treating the jison files as if they were the parsers themselves.</p>
+        <code>import flowJisonParser from './flow.jison';</code>
+        
+    <p>That can't be right.  I notice a <code>jisonTransformer.js</code> in Mermaid's .build directory, and a <code>jisonPlugin.ts</code> calling the transformer during the build process whenever a jison file gets read.  The jison parsers are getting generated at build time, triggered by a typescript import!  Sneaky!  From the point of view of a dev just getting on with things this is pretty convenient.  </p>  
+    
+    <p>But that convenience isn't very useful to me as a learning tool.  It means there's an invisible part of the process.  I could point Jison at the erDiagram.jison file to generate the parser 'manually', but without the corresponding erDB methods to hand over to the parser in the <em>yy</em> variable the parser can't do anything.  So I stubbed out the erDb.js file and made an interactive parser to verify my suspicions and comprehensions:</p>
+
+    <div class="anchor-target" id="parser-visualization"></div>
+    <div class="demo-section parser-demo">
+        <h3>Interactive Parser Visualization</h3>
+        <p>You may step through parsing one character at a time with the left and right arrows to see how Jison tokenizes input, applies grammar rules, and builds the ERD database:</p>
+        <div id="parser-demo-panels">
+            <div id="parser-vis" class="panel">
+                <div class="panel-header">
+                    <h3 style="margin: 0;">Tokenized Input</h3>
+                    <div class="panel-header-buttons">
+                        <button id="parseButton" onclick="parseParserDemo()">Parse</button>
+                        <button id="resetButton" onclick="resetParserDemo()" class="hidden">Reset</button>
+                        <button id="prevButton" onclick="stepBackward()" class="hidden">← Prev</button>
+                        <button id="nextButton" onclick="stepForward()" class="hidden">Next →</button>
+                    </div>
+                </div>
+                <div id="inputContent">
+                    <textarea id="parser-input">erDiagram
+  User {
+    string name
+  }
+  Order
+
+  User ||--o{ Order : makes</textarea>
+                </div>
+                <div id="visualizationContent" class="hidden"></div>
+            </div>
+            <div id="events" class="panel">
+                <div class="panel-header">
+                    <h3 style="margin: 0;">Parse Events</h3>
+                </div>
+            </div>
+            <div id="database" class="panel">
+                <div class="panel-header">
+                    <h3 style="margin: 0;">ER Database</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p>Making the interactive parser tool led to a revelation: lexing and parsing are not two distinct stages, they're interleaved.  As the generated parser consumes input text is toggles back and forth between recognizing new tokens and applying the grammar rules to the tokens as they get perceived.  Well, one token back because of the 1-token lookahead of the LR1 grammar.</p>
+
+    <p>After researching docs and the codebase, and building a few toys, I can expand on the Mermaid process:</p>
+    <ol>
+        <li>Grammar definition (.jison file): Defines lexer to recognize tokens and syntax rules pairing to 'db' methods</li>
+        <li>Parser generation (build-time): Vite plugin transforms .jison into a javascript parser</li>
+        <li>Parser execution (runtime): The Generated parser processes user's input text calling calling those db methods</li>
+        <li>Database/State (runtime): ErDB stores entities/relationships in-memory (Map/arrays)</li>
+        <li>Renderer (runtime): Reads from DB via getData() and generates SVG</li>
+    </ol>
+
+    <div class="anchor-target" id="implementation-details"></div>
+    <h2>Implementation Details</h2>
+
+    <p>Armed with parser understanding, here's what actually went into the implementation:</p>
+
+    <div class="anchor-target" id="token-ordering"></div>
+    <h3>Token Ordering is Critical</h3>
+
+    <p>The lexer processes patterns in order. This seemingly minor detail was crucial:</p>
+
+    <pre><code>([A-Za-z_][A-Za-z0-9_]*\\s*\\([^)]*\\))  return 'FUNCTION_CALL';
+([^\\x00-\\x7F]|\\w|\\-|\\*)+        return 'UNICODE_TEXT';</code></pre>
+
+    <p><code>FUNCTION_CALL</code> must come <em>before</em> <code>UNICODE_TEXT</code> or callbacks with arguments like <code>callback(arg1, arg2)</code> get misidentified as plain text. The lexer reads top-to-bottom and returns on first match - order matters.  Honestly this is what tripped up the initial blind attempt to emulate the flow diagram's click implementation.  Had I just been 'lucky' with that blind attempt I would know much less about parsing and the topics covered in this writeup.</p>
+
+    <h3>Ten Grammar Productions</h3>
+
+    <p>Supporting all click syntax variations required 10 separate grammar productions in <code>clickStatement</code>:</p>
+
+    <ul>
+        <li>2 for callbacks: <code>call callback</code> and <code>call callback(args)</code></li>
+        <li>8 for links: with/without <code>href</code> keyword, with/without target (<code>_blank</code>), using <code>ENTITY_NAME</code> or <code>WORD</code> tokens</li>
+    </ul>
+
+    <p>This covers: <code>click A "url"</code>, <code>click A href "url"</code>, <code>click A href "url" _blank</code>, etc. The <code>href</code> keyword is optional for user convenience.</p>
+
+    <h3>Parsing Callback Arguments</h3>
+
+    <p>Splitting callback arguments on commas is tricky when arguments themselves contain commas. The solution uses a lookahead regex:</p>
+
+    <pre><code>argList = functionArgs.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);</code></pre>
+
+    <p>This splits on commas <strong>except</strong> when inside quoted strings, so <code>callback("arg with, comma", "another")</code> correctly parses as two arguments. Each argument is then trimmed and unquoted.</p>
+
+    <p>If no arguments are provided, the entity name is automatically passed: <code>click CUSTOMER call callback</code> becomes <code>callback("CUSTOMER")</code>.</p>
+
+    <h3>Security Considerations</h3>
+
+    <div class="highlight">
+        <strong>Security:</strong> Click functionality only works when <code>securityLevel='loose'</code>. In strict mode, entities get the clickable class but no actual event handlers.
+    </div>
+
+    <p>Additional security measures:</p>
+    <ul>
+        <li>URLs are sanitized via <code>formatUrl()</code></li>
+        <li>All links get <code>rel="noopener"</code> to prevent tab-nabbing attacks</li>
+        <li>Callbacks use <code>href="javascript:void(0)"</code> for visual feedback without executing inline JS</li>
+        <li>Sandbox mode gets special DOM handling</li>
+    </ul>
+
+    <h3>SVG Anchor Wrapping</h3>
+
+    <p>Making entities clickable requires wrapping them in SVG <code>&lt;a&gt;</code> elements. The renderer does this by manipulating the DOM:</p>
+
+    <pre><code>const link = doc.createElementNS('http://www.w3.org/2000/svg', 'a');
+// Set href, target, classes...
+const parent = node.node()?.parentNode;
+parent.insertBefore(link, node.node());  // Insert &lt;a&gt; before entity
+link.appendChild(node.node());           // Move entity inside &lt;a&gt;</code></pre>
+
+    <p>This pattern inserts the anchor, then reparents the entity node inside it - standard DOM manipulation for SVG.</p>
+
+    <h3>Deferred Event Binding</h3>
+
+    <p>Callbacks aren't bound immediately when parsed. Instead, <code>setClickEvent()</code> pushes functions into a <code>funs</code> array:</p>
+
+    <pre><code>this.funs.push(() => {
+  const elem = document.querySelector(`[id="${entity.id}"]`);
+  if (elem !== null) {
+    elem.addEventListener('click', () => {
+      runFunc(functionName, ...argList);
+    }, false);
+  }
+});</code></pre>
+
+    <p>Later, the renderer calls <code>bindFunctions()</code> to execute all stored functions. This deferred binding ensures the DOM elements exist before trying to attach listeners.</p>
+
+    <h3>Documentation Updates</h3>
+
+    <p>The PR added comprehensive documentation to both <code>docs/syntax/entityRelationshipDiagram.md</code> and the demos, including:</p>
+    <ul>
+        <li>Interaction section with callback and link examples</li>
+        <li>Security level warnings</li>
+        <li>All supported link target values (<code>_self</code>, <code>_blank</code>, <code>_parent</code>, <code>_top</code>)</li>
+        <li>190 lines of integration tests covering edge cases</li>
+        <li>Live demo in <code>demos/er.html</code> with 6 different click patterns</li>
+    </ul>
+
+    <div class="anchor-target" id="working-demo"></div>
+    <div class="demo-section">
+        <h3>Working Demo</h3>
+        <p>The following ER diagram demonstrates the implemented functionality:</p>
+        
+        <div class="mermaid">
+            erDiagram
+                direction LR
+                CUSTOMER {
+                    int id PK
+                    string name
+                    string email
+                }
+                ORDER {
+                    int id PK
+                    int customer_id FK
+                    string status
+                }
+                PRODUCT {
+                    int id PK
+                    string name
+                    decimal price
+                }
+                
+                CUSTOMER ||--o{ ORDER : places
+                ORDER ||--o{ PRODUCT : contains
+                
+                click CUSTOMER href "https://github.com/mermaid-js/mermaid/issues/2880" _blank
+                click ORDER call showAlert("Order clicked!")
+                click PRODUCT "#the-goal"
+        </div>
+        
+        <p><strong>Try it:</strong></p>
+        <ul>
+            <li><strong>CUSTOMER</strong>: Opens GitHub issue in new tab</li>
+            <li><strong>ORDER</strong>: Triggers JavaScript callback</li>
+            <li><strong>PRODUCT</strong>: Navigates to anchor in this page</li>
+        </ul>
+    </div>
+
+    <div class="anchor-target" id="lessons-learned"></div>
+    <h2>Lessons Learned</h2>
+
+    <ul>
+        <li><strong>Token order matters:</strong> In lexers, pattern order determines precedence. One wrong ordering breaks everything.</li>
+        <li><strong>LALR(1) is deterministic, GLR is "the multiverse":</strong> Mermaid's parser demands unambiguous rules - no guessing allowed.</li>
+        <li><strong>Edge cases multiply fast:</strong> Supporting "all the syntax" meant 10 grammar productions, not 2.</li>
+        <li><strong>Security is not optional:</strong> sanitization, <code>rel="noopener"</code>, and security levels protect users.</li>
+        <li><strong>"Just copy the code" can fail without understanding,</strong> which I consider a win/win - either a fast solution or I get to learn stuff.</li>
+        <li><strong>Don't let dense docs scare you off:</strong> The 244-page Bison manual may be intimidating, but not all of it relates to our work, and combined with existing code and experiments comprehension is achievable and fun.</li>
+    </ul>
+
+    <div class="anchor-target" id="whats-next"></div>
+    <h2>What's Next?</h2>
+    
+    <p>The basic functionality works. Future click-related improvements could include:</p>
+    <ul>
+        <li>Tooltip support (though tooltips barely work in flowcharts)</li>
+        <li>Better error handling for malformed click syntax</li>
+        <li>Consistent callback behavior across diagram types</li>
+        <li>Add click support to more types of diagrams:
+            <ul>
+                <li>
+                    <a href="https://github.com/mermaid-js/mermaid/issues/1139">State Diagrams (Issue Approved for work)</a>
+                </li>
+                <li>
+                    <a href="https://github.com/mermaid-js/mermaid/issues/1279">Sequence Diagrams (Issue Approved for work)</a>
+                </li>
+            </ul>
+        </li>
+        <li>And (unapproved) extensions of existing click functionality:
+            <ul>
+                <li>
+                    <a href="https://github.com/mermaid-js/mermaid/issues/5428">Flow Diagram's Subgraphs</a>
+                </li>
+                <li>
+                    <a href="https://github.com/mermaid-js/mermaid/issues/3326">Gantt Chart clicks need link target support</a>
+                </li>
+            </ul>
+        </li>
+    </ul>
+
+    <script src="./mermaid.min.js"></script>
+
+    <script src="./parser-vis/generated/parser.js"></script>
+    <script src="./parser-vis/erDb.js"></script>
+    <script src="./parser-vis/instrumentor.js"></script>
+    <script src="./parser-vis/grammarRules.js"></script>
+    <script src="./parser-vis/ruleExplanations.js"></script>
+    <script src="./parser-vis/visualizer.js"></script>
+    <script src="./parser-vis/animator.js"></script>
+    <script src="./app.js"></script>
+</body>
+</html>
