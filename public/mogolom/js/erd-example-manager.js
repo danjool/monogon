@@ -117,157 +117,100 @@ const exampleDiagrams = [
     DiagramMetrics ||--o{ Aesthetics : "evaluates"
     `
   },
-  {
-    id: 'order-example',
-    name: 'Order Example',
-    description: 'A simple order system ER diagram',
-    code: `erDiagram
-    CUSTOMER ||--o{ ORDER : places
-    ORDER ||--|{ LINE-ITEM : contains
-    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses`
-  },
-  {
-    id: 'order-with-attributes',
-    name: 'Order with Attributes',
-    description: 'Order system with entity attributes',
-    code: `erDiagram
-    CUSTOMER ||--o{ ORDER : places
-    CUSTOMER {
-        string name
-        string custNumber
-        string sector
-    }
-    ORDER ||--|{ LINE-ITEM : contains
-    ORDER {
-        int orderNumber
-        string deliveryAddress
-    }
-    LINE-ITEM {
-        string productCode
-        int quantity
-        float pricePerUnit
-    }`
-  },
-  {
-    id: 'car-driver-example',
-    name: 'Car Driver Example',
-    description: 'Example with identifying and non-identifying relationships',
-    code: `erDiagram
-    CAR ||--o{ NAMED-DRIVER : allows
-    CAR {
-        string registrationNumber PK
-        string make
-        string model
-        string[] parts
-    }
-    PERSON ||--o{ NAMED-DRIVER : is
-    PERSON {
-        string driversLicense PK "The license #"
-        string(99) firstName "Only 99 characters are allowed"
-        string lastName
-        string phone UK
-        int age
-    }
-    NAMED-DRIVER {
-        string carRegistrationNumber PK, FK
-        string driverLicence PK, FK
-    }
-    MANUFACTURER only one to zero or more CAR : makes`
-  },
-  {
-    id: 'library-system',
-    name: 'Library System',
-    description: 'A library management system ER diagram',
-    code: `erDiagram
-    LIBRARY ||--|{ BOOK : contains
-    BOOK }o--|| PUBLISHER : published_by
-    BOOK ||--o{ BOOK_COPY : has
-    BOOK_COPY ||--o{ CHECKOUT : involved_in
-    MEMBER ||--o{ CHECKOUT : makes
-    BOOK_COPY {
-        string copyId PK
-        string bookId FK
-        string status
-        date acquisitionDate
-    }
-    BOOK {
-        string bookId PK
-        string title
-        string ISBN
-        string[] authors
-        int publicationYear
-        string publisherId FK
-    }
-    LIBRARY {
-        string libraryId PK
-        string name
-        string address
-        string phone
-    }
-    PUBLISHER {
-        string publisherId PK
-        string name
-        string address
-    }
-    MEMBER {
-        string memberId PK
-        string name
-        string email
-        date joinDate
-        string status
-    }
-    CHECKOUT {
-        string checkoutId PK
-        string copyId FK
-        string memberId FK
-        date checkoutDate
-        date dueDate
-        date returnDate
-    }`
-  },
-  {
-    id: 'university-system',
-    name: 'University System',
-    description: 'A university management system ER diagram',
-    code: `erDiagram
-    STUDENT }|..|{ COURSE : enrolls
-    PROFESSOR ||--o{ COURSE : teaches
-    DEPARTMENT ||--|{ PROFESSOR : employs
-    DEPARTMENT ||--|{ COURSE : offers
-    STUDENT {
-        string studentId PK
-        string name
-        string email
-        date enrollmentDate
-        string major
-    }
-    PROFESSOR {
-        string professorId PK
-        string name
-        string email
-        string title
-        string departmentId FK
-    }
-    COURSE {
-        string courseId PK
-        string title
-        int credits
-        string departmentId FK
-        string professorId FK
-    }
-    DEPARTMENT {
-        string departmentId PK
-        string name
-        string building
-        string budget
-    }
-    ENROLLMENT {
-        string studentId PK, FK
-        string courseId PK, FK
-        string semester
-        string grade
-    }`
-  }
+  // {
+  //   id: 'library-system',
+  //   name: 'Library System',
+  //   description: 'A library management system ER diagram',
+  //   code: `erDiagram
+  //   LIBRARY ||--|{ BOOK : contains
+  //   BOOK }o--|| PUBLISHER : published_by
+  //   BOOK ||--o{ BOOK_COPY : has
+  //   BOOK_COPY ||--o{ CHECKOUT : involved_in
+  //   MEMBER ||--o{ CHECKOUT : makes
+  //   BOOK_COPY {
+  //       string copyId PK
+  //       string bookId FK
+  //       string status
+  //       date acquisitionDate
+  //   }
+  //   BOOK {
+  //       string bookId PK
+  //       string title
+  //       string ISBN
+  //       string[] authors
+  //       int publicationYear
+  //       string publisherId FK
+  //   }
+  //   LIBRARY {
+  //       string libraryId PK
+  //       string name
+  //       string address
+  //       string phone
+  //   }
+  //   PUBLISHER {
+  //       string publisherId PK
+  //       string name
+  //       string address
+  //   }
+  //   MEMBER {
+  //       string memberId PK
+  //       string name
+  //       string email
+  //       date joinDate
+  //       string status
+  //   }
+  //   CHECKOUT {
+  //       string checkoutId PK
+  //       string copyId FK
+  //       string memberId FK
+  //       date checkoutDate
+  //       date dueDate
+  //       date returnDate
+  //   }`
+  // },
+  // {
+  //   id: 'university-system',
+  //   name: 'University System',
+  //   description: 'A university management system ER diagram',
+  //   code: `erDiagram
+  //   STUDENT }|..|{ COURSE : enrolls
+  //   PROFESSOR ||--o{ COURSE : teaches
+  //   DEPARTMENT ||--|{ PROFESSOR : employs
+  //   DEPARTMENT ||--|{ COURSE : offers
+  //   STUDENT {
+  //       string studentId PK
+  //       string name
+  //       string email
+  //       date enrollmentDate
+  //       string major
+  //   }
+  //   PROFESSOR {
+  //       string professorId PK
+  //       string name
+  //       string email
+  //       string title
+  //       string departmentId FK
+  //   }
+  //   COURSE {
+  //       string courseId PK
+  //       string title
+  //       int credits
+  //       string departmentId FK
+  //       string professorId FK
+  //   }
+  //   DEPARTMENT {
+  //       string departmentId PK
+  //       string name
+  //       string building
+  //       string budget
+  //   }
+  //   ENROLLMENT {
+  //       string studentId PK, FK
+  //       string courseId PK, FK
+  //       string semester
+  //       string grade
+  //   }`
+  // }
 ];
 
 // Function to populate the examples dropdown
