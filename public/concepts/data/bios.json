@@ -927,6 +927,7 @@
 	{"id":"Seven Nights", "time":1980, "type":"lecture"},
 	{"id":"ACTION BUTTON REVIEWS DOOM", "time":2020, "type":"youtube"},
 	{"id":"ACTION BUTTON REVIEWS PACMAN", "time":2020, "type":"youtube"},
+	{"id":"ACTION BUTTON REVIEWS The Final Fantasy VII Remake", "time":2020, "type":"youtube"},
 	{"id":"Once Upon a Prime", "time":2023, "type":"book"},
 	{"id":"Principles of Categorization", "time":1978, "type":"book"},
 	{"id":"Better Call Saul", "episode": 10, "time":2015, "type":"tv episode"},
@@ -1230,10 +1231,14 @@
 	{"id": "Roger Caillois's \"Le roman policier\"", "time": 1942, "type": "review"},
 	{"id": "The Immortals", "time": 1986, "type": "short story"},
 	{"id": "Roger Callois", "time": 1913, "type": "author"},
-	{"id": "Le roman policier", "time": 1941, "type": "essay"}
-	
+	{"id": "Le roman policier", "time": 1941, "type": "essay"},
+	{"id": "D. H. Lawrence", "time": 1885, "type": "author"},
+	{"id": "Studies in Classic American Literature", "time": 1923, "type": "book"},
+	{"id": "Sam Lake", "time": 1970, "type": "writer"}
 
 ],"links":[
+	{"source": "Studies in Classic American Literature", "target": "Herman Melville", "type": "review" },
+	{"source": "D. H. Lawrence", "target": "Studies in Classic American Literature", "type": "wrote" },
 	{"source": "Roger Caillois's \"Le roman policier\"", "target": "Le roman policier", "type": "review" },
 	{"source": "Roger Callois", "target": "Le roman policier", "type": "wrote" },
 	{"source": "Borges", "target": "The Immortals", "type": "wrote" },
@@ -1822,8 +1827,10 @@
 	{"source": "Borges", "relation": "Gave", "target": "Seven Nights"},	
 	{"source": "Tim Rogers", "relation": "Wrote", "target": "ACTION BUTTON REVIEWS DOOM"},
 	{"source": "Tim Rogers", "relation": "Wrote", "target": "ACTION BUTTON REVIEWS PACMAN"},
+	{"source": "Tim Rogers", "relation": "Wrote", "target": "ACTION BUTTON REVIEWS The Final Fantasy VII Remake"},
 	{"source": "ACTION BUTTON REVIEWS DOOM", "relation": "References", "target": "Seven Nights"},
 	{"source": "ACTION BUTTON REVIEWS DOOM", "relation": "References", "target": "Funes the Memorious"},
+	{"source": "ACTION BUTTON REVIEWS The Final Fantasy VII Remake", "relation": "References", "target": "The Aleph"},
 	{"source": "Christopher Nolan", "relation": "Wrote", "target": "Interstellar"},
 	{"source": "Alan Moore", "relation": "Wrote", "target": "From Hell"},
 	{"source": "Borges", "relation": "Wrote", "target": "There Are More Things"},

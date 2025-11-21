@@ -74,3 +74,5 @@ wat.db
 public/test/reference-screenshots/
 public/test/diff-screenshots/
 public/test/screenshots/
+
+public/annotate/works-private/
