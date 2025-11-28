@@ -125,25 +125,25 @@ video.img-responsive {
 
 .btn-primary {
   color: #fff;
-  background-color: #337ab7;
-  border-color: #2e6da4;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.6);
 }
 
 .btn-primary:hover {
-  background-color: #286090;
-  border-color: #204d74;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
 }
 
 .btn-default {
-  color: #333;
-  background-color: #fff;
-  border-color: #ccc;
+  color: #fff;
+  background-color: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .btn-default:hover {
-  background-color: #e6e6e6;
-  border-color: #adadad;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
   text-decoration: none;
 }
 
