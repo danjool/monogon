@@ -16,6 +16,7 @@
 body {
   font-family: 'Quicksand', 'Trebuchet MS', Arial, sans-serif;
   font-size: 14px;
+  background-color: #1a1a2e; /* Fallback dark background while Three.js loads */
   background: -webkit-canvas(threejscanvas);
   background-attachment: fixed;
 }
@@ -93,6 +94,7 @@ a:hover {
 
 .img-responsive {
   max-width: 100%;
+  min-width: 100%;
   height: auto;
   display: block;
 }

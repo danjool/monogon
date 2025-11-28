@@ -3,8 +3,10 @@
 <head>
   <title> Monogon </title>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="css/index-css-grid.css" type="text/css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <link href='http://fonts.googleapis.com/css?family=Quicksand' rel='stylesheet' type='text/css'>
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="css/index.css" type = "text/css" rel="stylesheet">
   <!-- Matomo, a fingerprintless, GDPR compliant, no-cookies analytics -->
 <script>
   var _paq = window._paq = window._paq || [];
@@ -32,44 +34,46 @@
 }
 </script>
 
-<div id="ThreeJS" style="overflow: hidden; position: fixed; left:0px; top:0px; width:100%; height:100%; z-index: -1;">
+<div id="ThreeJS" style="overflow: hidden; position: fixed; left:0px; top:0px;  width:100%; height:100%;">
   <canvas id="threejscanvas"></canvas>
 </div>
 
 <div class="container">
-
-  <div class="grid-row">
-    <div class="grid-full">
-      <div class="page-header">
+  
+  <div class="row">
+    <div class="col-sm-12 col-md-12">
+      <div class="page-header" style="border-bottom:0px;">    
           <h1>Monogon</h1>
       </div>
     </div>
   </div>
 
-<div class="grid-row">
-  <div class="grid-col">
+<div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
+
+<div class="row">
+  <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/mermaid-click-writeup.png"  class="img-responsive" alt="Monogon">
   </div>
-  <div class="grid-col">
+  <div class="col-sm-12 col-md-6">
     <h3>Clicking Mermaid ERD's Writeup</h3>
     <p>I need to contribute back to open source projects, especially those I often use myself.  Like <a href="https://mermaid.js.org/">Mermaid.js</a>, a text-to-diagram library used by many to help communicate complex graphs - at least that's how I use it.  <a href="https://github.com/mermaid-js/mermaid/pull/6985">Pull Request 6985</a> adds clickable links to  Mermaid's Entity Relationship Diagrams.  This writeup explores what I had to learn to implement that clicking, and get's a little lost in the rabbit-hole that is parsers like Bison, Jison, etc.</p>
-
-    <p>The writeup features an interactive visualization of parsing of simple Mermaid diagrams to help me wrap my head around some parsing nuances.
+      
+    <p>The writeup features an interactive visualization of parsing of simple Mermaid diagrams to help me wrap my head around some parsing nuances.  
     </p>
     <a href="mermaid-click-writeup/" class="btn btn-primary" role="button">Writeup</a>
   </div>
 </div>
 
-<div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+<div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-<div class="grid-row">
-  <div class="grid-col">
+<div class="row">
+  <div class="col-sm-12 col-md-6">  
     <video class="img-responsive" autoplay muted loop playsinline poster="images/tiles/books.png">
       <source src="images/tiles/books.webm" type="video/mp4">
       <img src="images/tiles/books.png" alt="Monogon">
     </video>
   </div>
-  <div class="grid-col">
+  <div class="col-sm-12 col-md-6">
     <h3>3D Virtual Library</h3>
     <p>Moving made me pack up my physical books, so this is my personal library "organized" spatially.  The layout is generated with a force directed graph linking books by successive authorship, published date, and a custom tagging system.  Book nodes are rendered efficiently with a texture atlas.</p>
     <a href="books/" class="btn btn-primary" role="button">Visit the Library</a>
@@ -77,118 +81,118 @@
   </div>
 </div>
 
-<div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+<div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-<div class="grid-row">
-  <div class="grid-col">
+<div class="row">
+  <div class="col-sm-12 col-md-6">  
     <video class="img-responsive" autoplay muted loop playsinline poster="images/tiles/turtle.png">
       <source src="images/tiles/turtle.mp4" type="video/mp4">
       <img src="images/tiles/turtle.png" alt="Monogon">
     </video>
   </div>
-  <div class="grid-col">
+  <div class="col-sm-12 col-md-6">
     <h3>ASCII Turtle</h3>
     <p>Edge Detecting ASCII Post Processing, <link href="https://www.youtube.com/watch?v=gg40RWiaHRY">Acerola-style</link></p>
     <a href="turtle/" class="btn btn-primary" role="button">Swim with Turtle</a>
   </div>
 </div>
+  
+<div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-<div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
-
-<div class="grid-row">
-  <div class="grid-col">
+<div class="row">
+  <div class="col-sm-12 col-md-6">  
     <video class="img-responsive" autoplay muted loop playsinline>
       <source src="images/tiles/carpet.mp4" type="video/mp4">
       <img src="images/tiles/carpet.png" alt="Carpet Sweeper">
     </video>
   </div>
-  <div class="grid-col">
+  <div class="col-sm-12 col-md-6">
     <h3>Carpet Sweeper</h3>
     <p>Proof of Concept game-pad controller inside a novel world orientation, plus 3d minesweeper.</p>
     <a href="carpet-sweeper/" class="btn btn-primary" role="button">Fly!</a>
   </div>
 </div>
 
-  <div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <video class="img-responsive" autoplay muted loop playsinline>
         <source src="images/tiles/pinnochio.mp4" type="video/mp4">
         <img src="images/tiles/pinnochio.png" alt="Interactive Italian Reader for Pinocchio">
       </video>
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
       <h3>Pinocchio Interactive Reader</h3>
       <p>A dual-language interactive reader for Carlo Collodi's "Le avventure di Pinocchio" with parallel Italian and English text, and annotations. Each Italian word is color-coded based on semantic meaning and provides instant translations on mouseover.</p>
       <a href="pinnochio/" class="btn btn-primary" role="button">Pinocchio Reader</a>
     </div>
   </div>
 
-  <div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/mogolom.png" class="img-responsive" alt="MOGOLOM - Mermaid diagram optimizer">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
 
       <h3>MOGOLOM</h3>
       <p>Monogon's Optimizing Golem of Layouts of Mermaid (MOGOLOM) is a tool that automatically improves the clarity of Mermaid.js flowcharts by reducing edge crossings and improving overall readability while preserving the semantic.</p>
       <p>MOGOLOMERD does the same for Entity Relation Diagrams.</p>
-      <a href="mogolom/" class="btn btn-primary" role="button">MOGOLOM</a>
-      <a href="mogolom/erd.html" class="btn btn-primary" role="button">MOGOLOMERD</a>
+      <a href="mogolom/" class="btn btn-primary" role="button">MOGOLOM</a> 
+      <a href="mogolom/erd.html" class="btn btn-primary" role="button">MOGOLOMERD</a> 
       </p>
     </div>
   </div>
 
-  <div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-<div class="grid-row">
-    <div class="grid-col">
+<div class="row">
+    <div class="col-sm-12 col-md-6">  
       <video class="img-responsive" autoplay muted loop playsinline>
         <source src="images/tiles/raytrace.mp4" type="video/mp4">
         <img src="images/tiles/raytracing.png" alt="raytracing how to">
       </video>
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
 
       <h3>Raytracing</h3>
       <p>A breakdown of how to use shaders and the gpu to explore the world of raytracing.  I add a new bit here and there as inspiration strikes.</p>
       <p>The fundamentals I learned from Inigo Quilez's <a href="https://www.youtube.com/watch?time_continue=1&v=9g8CdctxmeU">live demo</a>.  I also recommend checking all the great wisdom at <a href="http://www.iquilezles.org/">his site</a>.</p>
-      <a href="raytracing/" class="btn btn-primary" role="button">Raytracing</a>
+      <a href="raytracing/" class="btn btn-primary" role="button">Raytracing</a> 
       </p>
     </div>
   </div>
 
-  <div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-<div class="grid-row">
-    <div class="grid-col">
+<div class="row">
+    <div class="col-sm-12 col-md-6">  
       <video class="img-responsive" autoplay muted loop playsinline>
         <source src="images/tiles/concepts-graph.mp4" type="video/mp4">
         <img src="images/tiles/concepts-graph.png" alt="directed acyclic graph of influence">
       </video>
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
 
       <h3>A Graph of Influence</h3>
       <p>Perhaps a generator of anxiety, this partly force-directed, directed acyclic graph (DAG) depicts a filtered list of people and works, presented such that the past is down and the future up.</p>
-      <a href="concepts/" class="btn btn-primary" role="button">Influence Graph</a>
+      <a href="concepts/" class="btn btn-primary" role="button">Influence Graph</a> 
       </p>
     </div>
   </div>
 
-<div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+<div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <video class="img-responsive" autoplay muted loop playsinline>
         <source src="images/tiles/wat.mp4" type="video/mp4">
         <img src="images/tiles/wattilebig.png" alt="a multi-user, cyberpunkscape">
       </video>
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
 
       <h3>Wat</h3>
       <p>A multi-user virtual hangout place reminiscent of Neuromancer, Snow Crash, Tron and pretty much any other 80's to 90's rendition of what computers are all about.  Anachronism at its finest.</p>
@@ -196,33 +200,33 @@
       <p></p>
       <p>Built to run on <strikethrough>Mongo</strikethrough>SQLite3, Socket.io, Express, Node.</p>
       <p>
-      <a href="wat/" class="btn btn-primary" role="button">Wat</a>
+      <a href="wat/" class="btn btn-primary" role="button">Wat</a> 
       </p>
     </div>
   </div>
 
-<div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+<div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-<div class="grid-row">
-    <div class="grid-col">
+<div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/riemann.png" class="img-responsive" alt="reimann sum visual guide">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
 
       <h3>Riemann Sum Visualizer</h3>
       <p>A quick tool to demonstrate how a Riemann Sum works.</p>
-      <a href="riemann/" class="btn btn-primary" role="button">Riemann Sum</a>
+      <a href="riemann/" class="btn btn-primary" role="button">Riemann Sum</a> 
       </p>
     </div>
   </div>
 
-<div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+<div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/cards.png" class="img-responsive" alt="The super swords of something">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
 
       <h3>Cards</h3>
       <p>A multiplayer, interactive deck of tarot cards that the Goodjers over at <a href="https://www.gamerswithjobs.com/">Gamers With Jobs</a> used to play a long form "collaborative storytelling rpg" called <a href="https://www.gamerswithjobs.com/node/1299623">The Unmarked</a>.  The game has since completed and can either be listened to in podcast or video form.</p>
@@ -230,70 +234,87 @@
       <p>Initially I was only responsible for the frontend, with the backend a Laraval project for another Goodjer.  Eventually I got fed up with our slow solution for keeping all players synchronized, so I up and learned Node and socket.io.  This instance connects all visitor to the same "deck".</p>
       <p>Click a face down card to flip it.  Click a face up card to get a better look at that card.  'S' shuffles.  </p>
       <p>
-      <a href="cards/" class="btn btn-primary" role="button">Cards</a>
+      <a href="cards/" class="btn btn-primary" role="button">Cards</a> 
       </p>
     </div>
   </div>
 
-<div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+<div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <video class="img-responsive" autoplay muted loop playsinline>
         <source src="images/tiles/asteroids.mp4" type="video/mp4">
         <img src="images/tiles/asteroidstilebig.png" alt="asteroids, all of them">
       </video>
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
 
       <h3>Asteroids</h3>
       <p>An animated representation of all observed asteroids in 3D.  Positions for each asteroid are approximated on the gpu by way of a custom vertex shader.</p>
       <p>By default only 50,000 asteroids are loaded, but up to 688,004 may be observed at a time if you have the hardware to handle it.</p>
       <p>Thanks to <a href='http://ssd.jpl.nasa.gov/'>NASA</a> for orbital elements of the asteroids and planets, and thanks to Scott Manley for making the original videos that made me want to see this in 3D bad enough to make it.</p>
       <p>
-      <a href="asteroids/index.html#50000" class="btn btn-primary" role="button">50,000</a>
+      <a href="asteroids/index.html#50000" class="btn btn-primary" role="button">50,000</a> 
       <a href="asteroids/index.html#200000" class="btn btn-default" role="button">200,000</a>
       <a href="asteroids/index.html#688000" class="btn btn-default" role="button">688,000</a>
       </p>
     </div>
   </div>
 
-  <div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
+ 
+<!--   <div class="row">
+    <div class="col-sm-12 col-md-6">  
+      <img src="images/tiles/newtontilebig.png" class="img-responsive" alt="a journey of newton, probly didn't happen">
+    </div>
+    <div class="col-sm-12 col-md-6">
+      <h3>Newton</h3>
+      <p>A simple test of procedurally animated a model by manipulating the bones with code.  Also an excuse to make a low poly model of Isaac Newton.
+      </p>
+      <p>
+      <a href="newton.html" class="btn btn-primary" role="button">Check out Newton</a>
+      <a href="newtonvr.html" class="btn btn-default" role="button">WebVR Version</a>
+      </p>
+    </div>
+  </div>
 
-  <div class="grid-row">
-    <div class="grid-col">
+  <!-- <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div> --> -->
+
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/eightqueentilebig.png" class="img-responsive" alt="a little game: put eight queens in their place">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
       <h3>Eight Queens</h3>
       <p>Can you place eight queens on a chess board such that no queen may take another?  From observing people attempt this challenge, I have noticed that the time it takes to find a solution is directly proportional to the age of the person.  Also adults tend to find the same solution.  Go figure.  <br> <br>  This was also my first brush with javascript, and a nice project to get a handle on interactivity in this environment.  Neat things in javascript are so much easier to share than Python!</p>
       <p><a href="eightqueens/" class="btn btn-primary" role="button">Take the Eight Queen Challenge</a></p>
     </div>
   </div>
 
-  <div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/solchesstilebig.png" class="img-responsive" alt="solitaire chess">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
       <h3>Solitaire Chess</h3>
       <p>A chess based version of solitaire, and my first experiment in ThreeJS.  The goal is to keep taking pieces on the board with any other piece until there is only one left.<br><br> The algorithm for generating a new board will always provide one that can be solved, but could be enhanced to filter out less interesting permutations.</p>
       <p><a href="/solchess/" class="btn btn-primary" role="button">Play Solitaire Chess</a></p>
     </div>
   </div>
 
-  <div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <video class="img-responsive" autoplay muted loop playsinline>
         <source src="images/tiles/scalecompare.mp4" type="video/mp4">
         <img src="images/tiles/scalecomparehitilebig.png" alt="a comparison of scales">
       </video>
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
       <h3>Scale Compare</h3>
       <p>A comparison of scales for a few scifi ships and Halo.  Earth for scale.  The Halo ring is spinning at an appropriate rate to generate one earth gravity on the surface.<br>A version with the massive ringworld from Larry Niven's series is also in the works, but the terrain is procedurally generated on the gpu and may be too much for some users' machines to handle.<br><br> Thanks to NASA for the hi res textures for the Earth, and to BOLL at <a href = 'http://halo.bungie.org/misc/mapping_halo/'>halo.bungie.org</a> for the Halo texture.</p>
       <p>
@@ -303,16 +324,16 @@
     </div>
   </div>
 
-  <div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <video class="img-responsive" autoplay muted loop playsinline>
         <source src="images/tiles/gravity.mp4" type="video/mp4">
         <img src="images/tiles/gravitytilebig.png" alt="worlds within worlds">
       </video>
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
       <h3>N-body Gravity Sim</h3>
       <p>General purpose computing on graphics processing units is pretty neat.  At 16,000+ particles some pretty nice proto-galaxy stuff starts to appear.  Have yet to see spiral galaxy arms arise, yet, but maybe it just hasn't run long enough.  <a href='http://www.mediadesk.uzh.ch/articles/2011/erstmals-einblick-in-die-geburt-der-milchstrasse.html'>Zurich did it with 18.6 million.</a>  Downright wasteful! </p>
       <p>The gpgpu crunching in the background requires floating point textures, which a lot of mobile devices are not going to even attempt to support.  So that'll just be a white screen.  On a desktop or laptop with a more proper gpu, it would be wiser to attempt the smaller 4,096 particles version first.  </p>
@@ -321,13 +342,13 @@
     </div>
   </div>
 
-  <div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/pointcloudbig.png" class="img-responsive" alt="if gnats ruled the world">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
       <h3>Point Cloud Terrain</h3>
       <p>Using the power of point clouds to render terrain data is great.  First attempt was Olympus Mons, tallest mountain in the solar system.  So tall you could walk out of the Martian atmosphere!  I've been playing around with scaling the points in the vertex shader to better hide the gaps without protruding too much.  So far the best has been a discrete partial derivative.  This effect pulses on and off to better judge how effective it is, along with a redness to indicate severity of slope.</p>
       <br>
@@ -345,13 +366,13 @@
     </div>
   </div>
 
-  <div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/orbittraptilebig.png" class="img-responsive" alt="gnarly shapes">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
       <h3>Orbit Trap Fractal</h3>
       <p>Construct your own fractal by tweaking a complicated, complex function.  Like sand art but for grown ups.  Thanks to <a href='http://people.math.sc.edu/howard/Sisson/SissonPaper.pdf'>Dr. Sisson for introducing</a> and explaining the concept.</p>
       <br>
@@ -360,92 +381,92 @@
     </div>
   </div>
 
-  <div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-  <div class="grid-row">
-    <div class="grid-full"></div>
-    <div class="grid-full"><h3> Mistakes, Errata, old Arts</h3></div>
+  <div class="row">
+    <div class="col-sm-12 col-md-6"></div>
+    <div class="col-sm-12 col-md-6"><h3>Mistakes, Errata, old Arts</h3></div>
   </div>
 
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/mtmistakeThin.png" class="img-responsive" alt="noisy smoke">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
         <a href="/errata/mtmistake.html#256" class="btn btn-primary" role="button">Crystal Smoke</a>
         <p>GPU Advection leads to beautiful crystal smoke</p>
     </div>
   </div>
 
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/nucleiThin.png" class="img-responsive" alt="atomic rainbow">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
         <a href="/errata/nuclei.html#64" class="btn btn-primary" role="button">Atomic Rainbow</a>
         <p>Gravity leads to an atomic rainbow display</p>
     </div>
   </div>
 
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/golThin.png" class="img-responsive" alt="Conway's Game of Life">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
         <a href="/errata/gol.html#1024" class="btn btn-primary" role="button">Game of Life</a>
         <p>A simple GPU exercise, Conway's Game of Life</p>
     </div>
   </div>
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/tycho2.png" class="img-responsive" alt="A Low Poly Scene of Astronomers">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
         <a href="tycho/" class="btn btn-primary" role="button">Tycho</a>
         <p>A low-poly scene with the Star Castle, <br></be>Tycho Brahe, Newton, Tycho's Moose, and Kepler</p>
     </div>
   </div>
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/penguins2.png" class="img-responsive" alt="Low Poly Penguin Snow Globe">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
         <a href="penguins/" class="btn btn-primary" role="button">Penguins</a>
-        <p>A low-poly Penguin Snow Globe</p>
+        <p>A low-poly Penguin Snow Globe</p> 
     </div>
   </div>
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/platonic-solids.png" class="img-responsive" alt="Shader based Infinity Mirror">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
         <a href="platonic-solids.html" class="btn btn-primary" role="button">Infinity Solids</a>
-        <p>Shader based Infinity Mirror on the Platonic Solids</p>
+        <p>Shader based Infinity Mirror on the Platonic Solids</p> 
     </div>
   </div>
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/flow.png" class="img-responsive" alt="Particle Flow">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
         <a href="flow.html" class="btn btn-primary" role="button">Particle Flow Field</a>
-        <p>A Particle Flow Field set to create a rainbow galaxy</p>
+        <p>A Particle Flow Field set to create a rainbow galaxy</p> 
     </div>
   </div>
-  <div class="grid-row">
-    <div class="grid-col">
+  <div class="row">
+    <div class="col-sm-12 col-md-6">  
       <img src="images/tiles/synthesis.png" class="img-responsive" alt="Synthesis">
     </div>
-    <div class="grid-col">
+    <div class="col-sm-12 col-md-6">
         <a href="synthesis/" class="btn btn-primary" role="button">Synthesis Ball</a>
-        <p>A fluke with instanced random lines</p>
+        <p>A fluke with instanced random lines</p> 
     </div>
   </div>
 
-  <div class="grid-row"><div class="grid-full"><hr class='soften'></hr></div></div>
+  <div class="row"><div class="col-xs-12">  <hr class='soften'></hr></div></div>
 
-  <div class="grid-row">
-    <div class="grid-full">
+  <div class="row">
+    <div class="col-sm-12">
       <h3> Who?</h3>
       <p>Monogon.net is a playground for Daniel Martin to easily share things he has made.  Daniel Martin is a thing for turning calories into triangles.  Triangles are so nice because if you get enough of them to cooperate at the same time, you can do anything.  </p>
       <p>More specifically he reads, writes, and doodles the following: [
@@ -460,7 +481,7 @@
         <br>I've lived in AWS, GCP, and now Hetzner, using kuberetes and k3s,
         <br>Yocto , AOSP, and a little bit of Linux kernel hacking, a little Docker/podman composition, a little terraform gardening,
         <br>bash,
-        <br>mermaid js,
+        <br>mermaid js, 
         <br>lol even this page still has some jQuery in it lol,
         <br>slide rule, compass, and once a sextant,
         <br>and, wherever possible, shaders in a variety of acronyms to make computers do particular things in parallel.
@@ -482,6 +503,9 @@
 
 
 </div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="js/bootstrap.min.js"></script>
 
 <!-- indexbg.js animates the background of revolving platonic solids -->
 <script type="module" src="js/indexbg.js"></script>
