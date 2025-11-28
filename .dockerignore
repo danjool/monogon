@@ -1,0 +1,15 @@
+.git
+.gitignore
+*.md
+*.backup
+*.sh
+node_modules
+npm-debug.log*
+.vscode
+.cursor*
+.env
+wat.db
+public/test/reference-screenshots/
+public/test/diff-screenshots/
+public/test/screenshots/
+public/annotate/works-private/
