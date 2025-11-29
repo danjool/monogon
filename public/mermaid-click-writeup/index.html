@@ -128,14 +128,14 @@
     <div class="anchor-target" id="what-is-jison"></div>
     <h2>What's Jison?</h2>
     
-    <a href="https://techtonik.github.io/jison/docs" target="_blank">The Jison Docs</a> a little help, providing a calculator example, but punt on some of the 'major concepts': 
+    <a href="https://techtonik.github.io/jison/docs" target="_blank">The Jison Docs</a> are a little help, providing a calculator example, but punt on some of the 'major concepts': 
 
     <blockquote>
         Until the Bison guide is properly ported for Jison, you can refer to it for the major concepts...
         <footer>- Jison Docs</footer>
     </blockquote>
 
-    <p>Jison is a JavaScript parser generator. We write grammar rules (the jison file), Jison itself generates us a custom parser from our rules capable of receiving input text adhering to those rules.  But what does the parser <em>do</em> with input with those rules?  How does it <em>act</em> or react to the input?  Comparing the Jison calculator example to the Mermaid source code, they don't seem very to me.  Not similar enough for me to connect the dots.</p>
+    <p>Jison is a JavaScript parser generator. We write grammar rules (the jison file), Jison itself generates us a custom parser from our rules capable of receiving input text adhering to those rules.  But what does the parser <em>do</em> with input with those rules?  How does it <em>act</em> or react to the input?  Comparing the Jison calculator example to the Mermaid source code, they don't seem very similar to me.  Not similar enough for me to connect the dots.</p>
     
     <ul>
         <li>The Jison documentation links to dead pages</li>
@@ -161,10 +161,10 @@
 
     <div class="highlight">
     <strong>Distraction:  </strong>Jison isn't the only parser in mermaid, packages/parser/ contains a <a href="https://langium.org/" 
-        + target="_blank">Langium</a> based parser some of the newer diagram types use instead of Jison.  I'm on a mission, so this Langium parser should be ignored.  (Lies, I wasted time on a "little" Langium side project to compare parser-feel, concluding that Langium feels newer but solves a complex problem with a complex, undocumented solutions; where Jison feels old but ultimately simplifies the complex problem.)
+        + target="_blank">Langium</a> based parser some of the newer diagram types use instead of Jison.  I'm on a mission, so this Langium parser should be ignored.  (Lies, I wasted time on a "little" Langium side project to compare parser-feel, concluding that Langium feels newer but solves a complex problem with a complex, undocumented solution; where Jison feels old but ultimately simplifies the complex problem.)
     </div>
 
-    <p>But the jison files aren't doing the parsing themselves, they just define a grammar to <b>generate</b> a parser.  So to avoid authoring more errors of ambiguity while I modify the erDiagram.jison, I can either read the Bison manual or find the generated parser in the code and infer why it is complaining.  Considering the Bison manual starts off early with</p>
+    <p>But the jison files aren't doing the parsing themselves, they just define a grammar to <b>generate</b> a parser.  So to avoid authoring more errors of ambiguity while I modify the erDiagram.jison, I can either read the Bison manual or find the generated parser in the code and infer why it is complaining.  Considering the Bison manual starts off with</p>
 
     <blockquote>
         Anyone familiar with Yacc should be able to use Bison with little trouble. You need to be fluent in C, C++, D or Java programming in order to use Bison or to understand this manual.
@@ -173,7 +173,7 @@
 
     <p>Let us be candid.  The Bison parser is complicated.  Really Bison includes many parsing strategies and mechanisms with names like LR, IELR, LALR, LAC, GLR.  </p>
 
-    <p>Technically, Jison generates <strong>LALR(1)</strong> parsers - an optimized variant of LR(1) with smaller parse tables. For practical purposes, they're equivalent. When people say "LR(1)" they usually mean the LALR(1) implementation.</p>
+    <p>Technically, Jison generates <strong>LALR(1)</strong> parsers - an optimized variant of LR(1) with smaller parse tables. For our purposes, they're equivalent. When people say "LR(1)" they usually mean the LALR(1) implementation.</p>
 
     <blockquote>
         <p>"Bison is optimized for what are called LR(1) grammars... must be possible to tell how to parse any portion of an input string with just a single token of lookahead"</p>
@@ -342,7 +342,7 @@
         
     <p>That can't be right.  I notice a <code>jisonTransformer.js</code> in Mermaid's .build directory, and a <code>jisonPlugin.ts</code> calling the transformer during the build process whenever a jison file gets read.  The jison parsers are getting generated at build time, triggered by a typescript import!  Sneaky!  From the point of view of a dev just getting on with things this is pretty convenient.  </p>  
     
-    <p>But that convenience isn't very useful to me as a learning tool.  It means there's an invisible part of the process.  I could point Jison at the erDiagram.jison file to generate the parser 'manually', but without the corresponding erDB methods to hand over to the parser in the <em>yy</em> variable the parser can't do anything.  So I stubbed out the erDb.js file and made an interactive parser to verify my suspicions and comprehensions:</p>
+    <p>But that convenience isn't very useful to me as a learning tool.  It means there's an invisible part of the process.  I could point Jison at the erDiagram.jison file to generate the parser 'manually', but without the corresponding erDB methods to hand over to the parser in the <em>yy</em> variable the parser can't do anything.  So I stubbed out the erDb.js file and made an interactive parser to verify my suspicions and comprehension:</p>
 
     <div class="anchor-target" id="parser-visualization"></div>
     <div class="demo-section parser-demo">
@@ -383,13 +383,13 @@
         </div>
     </div>
 
-    <p>Making the interactive parser tool led to a revelation: lexing and parsing are not two distinct stages, they're interleaved.  As the generated parser consumes input text is toggles back and forth between recognizing new tokens and applying the grammar rules to the tokens as they get perceived.  Well, one token back because of the 1-token lookahead of the LR1 grammar.</p>
+    <p>Making the interactive parser tool led to a revelation: lexing and parsing are not two distinct stages, they're interleaved.  As the generated parser consumes input text it toggles back and forth between recognizing new tokens and applying the grammar rules to the tokens as they get perceived.  Well, one token back because of the 1-token lookahead of the LR1 grammar.</p>
 
     <p>After researching docs and the codebase, and building a few toys, I can expand on the Mermaid process:</p>
     <ol>
         <li>Grammar definition (.jison file): Defines lexer to recognize tokens and syntax rules pairing to 'db' methods</li>
         <li>Parser generation (build-time): Vite plugin transforms .jison into a javascript parser</li>
-        <li>Parser execution (runtime): The Generated parser processes user's input text calling calling those db methods</li>
+        <li>Parser execution (runtime): The Generated parser processes user's input text calling those db methods</li>
         <li>Database/State (runtime): ErDB stores entities/relationships in-memory (Map/arrays)</li>
         <li>Renderer (runtime): Reads from DB via getData() and generates SVG</li>
     </ol>
