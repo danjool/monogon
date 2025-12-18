@@ -153,7 +153,7 @@ app.get('/db', async (req, res) => {
 	}
 })
 
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 7000
 
 
 // Parse URL-encoded bodies with size limits
@@ -180,7 +180,12 @@ const io = socketio({
 // Attach Socket.IO to HTTP server only
 io.attach(httpServer);
 
-require('./public/wat/subapp')(io)
+try {
+	require('./public/wat/subapp')(io)
+} catch (e) {
+	console.log('errored starting wat subapp')
+}
+
 
 // Setup carpet-sweeper multiplayer
 const { setupCarpetSweeperSocket } = require('./carpet-sweeper-socket')
