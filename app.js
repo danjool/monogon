@@ -153,7 +153,7 @@ app.get('/db', async (req, res) => {
 	}
 })
 
-const PORT = process.env.PORT || 7000
+const PORT = process.env.PORT || 3000
 
 
 // Parse URL-encoded bodies with size limits
