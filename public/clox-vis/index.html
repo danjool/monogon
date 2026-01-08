@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>clox Compiler Visualizer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>clox Compiler Visualizer</h1>
+    </div>
+
+    <!-- Input Section - side by side -->
+    <div class="input-section">
+      <div class="source-columns">
+        <div class="source-column">
+          <h2>Source Code (Input)</h2>
+          <textarea id="source-input" placeholder="Enter clox source code here..."></textarea>
+          
+        </div>
+        <div class="source-column">
+          <h2>Source Code (Current Line)</h2>
+          <div id="source-code" class="source-display"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="step-controls">
+        <button id="compile-btn">Compile & Visualize</button>
+        <button id="prev-btn" class="step-btn">◀ Previous</button>
+        <button id="next-btn" class="step-btn">Next ▶</button>
+      </div>
+      <div id="step-counter">Step 0 / 0</div>
+      <div id="step-description"></div>
+    </div>
+
+    <!-- Visualization Panels -->
+    <div class="visualization">
+      <!-- Row 1: Token Carousel (full width, horizontal) -->
+      <div id="tokens-panel" class="panel panel-full-width carousel-panel token-carousel" data-collapsible-row="tokens">
+        <div class="panel-header">
+          <span class="collapse-indicator">▼</span>Token Stream
+          <button class="help-btn" data-help-target="tokens-help">?</button>
+        </div>
+        <div class="carousel-container collapsible-content">
+          <div class="carousel-viewport">
+            <div id="tokens" class="carousel-track"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Token Stream Explanation -->
+      <div id="tokens-help" class="help-section" style="display: none;">
+        <p>
+          <strong>About the Scanner:</strong> In a typical compiler, the scanner (also called lexer or tokenizer)
+          reads source code character-by-character on-demand, producing tokens one at a time as the parser requests them.
+          This is called "lazy scanning" or "on-demand tokenization." 
+        </p>
+        <p>
+          This visualizer takes a different approach: we scan the <em>entire</em> source file up front, producing all
+          tokens at once before compilation begins. This makes it easier to show off the complete token stream in the
+          carousel above. The highlighted token shows where the parser is currently reading.
+        </p>
+        <p>
+          Each token contains: a <strong>type</strong> (NUMBER, IDENTIFIER, PLUS, etc.), the original <strong>lexeme</strong>
+          (source text), a <strong>line number</strong> for error reporting, and an optional <strong>literal value</strong>
+          for numbers and strings.
+        </p>
+      </div>
+
+      <!-- Row 2: Parse Rules (full width) -->
+      <div id="parse-rules-panel" class="panel panel-full-width" data-collapsible-row="parse-rules">
+        <div class="panel-header">
+          <span class="collapse-indicator">▼</span>Pratter Parser Rules Reference
+          <button class="help-btn" data-help-target="parse-rules-help">?</button>
+        </div>
+        <div class="panel-content parse-rules-content collapsible-content">
+          <div id="parse-rules"></div>
+        </div>
+      </div>
+
+      <!-- Parse Rules Explanation -->
+      <div id="parse-rules-help" class="help-section" style="display: none;">
+        <h2>About Pratt Parsing</h2>
+      <p>
+        Pratt parsing (also called "top-down operator precedence parsing") was invented by Vaughan Pratt in 1973.
+        See his original paper: <a href="https://github.com/tdop/tdop.github.io/blob/master/original.pdf" target="_blank">Top Down Operator Precedence</a>.  
+      </p>
+      <p>There's <strong>proofs</strong> in that paper, so watchout, but to tease I quote: </p>
+      <p class="quote">Thus Theorem 1 takes care of what the programmer needs to know, and Theorem 2 what the computer needs to know.</p>
+      <p>
+        This visualizer is based on the Pratt parser implementation from <a href="https://craftinginterpreters.com" target="_blank">Crafting Interpreters</a>
+        by Robert Nystrom, specifically the clox <em> compiling</em> chapter 17.
+      </p>
+      <p>
+        <strong>Note:</strong> The book's implementation compiles expressions to bytecode for later execution by a virtual 
+        machine. This visualizer is more like an interpreter (evaluate-as-you-go) deal. This makes it easier to see how the parser constructs
+        the expression tree and handles operator precedence, but it's not how the actual clox compiler works. Use this tool to
+        understand Pratt parsing pedagogy, but Nystrom's book for comprehending compilers.
+      </p>
+      <p>
+        Crafting Interpreter's quotes Russell <strong>and</strong> Dunsany, so watchout!
+      </p>
+      <p>
+        Pratt's Top Down Operator Precedence Parser works by traversing the sequence of tokens, along the way referring to a table of 'precedence' rules which inform the parser how much binding power the current token has.  Comparing precedence rules combined with incrementing the precedence informs whether to keep recursively calling the main parse function, therefore putting off a binary operation for later, versus doing the operation now (for bytecode compilers emitting the operation's bytecode).  
+      </p>
+      <p>
+        Note "Pratt's Parser" isn't a parser so much as a strategy for writing parsers.  The work of figuring out and encoding the different precedence classes and their numerical ranking is up to you, the parser author.  The result should be a distinct Precedence table of prefix (nud) and infix/postfix (led) functions, and precedence values that encode the grammar you want parsed.  The two proofs from Pratt's paper offer a comforting garuntee that so long as your grammar follows a few rules, there will be such a table possible, and writing a parser for unambiguous grammar can be this 'easy'.
+      </p>
+      <p>
+        <strong>Grammar constraints for Pratt parsing:</strong>
+      </p>
+      <ul style="margin-left: 20px; margin-bottom: 10px; line-height: 1.8;">
+        <li><strong>Operator grammar:</strong> All arguments must be explicitly delimited by tokens (no bare juxtaposition like <code>f x y</code>)</li>
+        <li><strong>Fixed token structure:</strong> Each token uses a consistent pattern for its arguments (if you use <code>if a then b else c</code>, don't also allow <code>if a, b, c</code>)</li>
+        <li><strong>Type-class ordering</strong> (for Theorem 1's guarantees):
+          <ul style="margin-left: 20px; margin-top: 4px;">
+            <li>Data types organized into ordered classes</li>
+            <li>Argument types ≥ result types (no "type demotion")</li>
+            <li>Makes left-association the natural default in homogeneous cases</li>
+          </ul>
+        </li>
+        <li><strong>Expression-oriented:</strong> The language naturally forms hierarchical trees of expressions, not sequential clauses</li>
+      </ul>
+      </div>
+
+      <!-- Row 3: Parser and Compiler State (two columns) -->
+      <div class="compiler-output-row" data-collapsible-row="compiler-output">
+        <div id="parser-stack-panel" class="panel">
+          <div class="panel-header">
+            <span class="collapse-indicator">▼</span>Parser Call Stack
+            <button class="help-btn" data-help-target="parser-stack-help">?</button>
+          </div>
+          <div class="panel-content collapsible-content">
+            <div id="parser-call-stack"></div>
+          </div>
+        </div>
+
+        <div id="compiler-panel" class="panel">
+          <div class="panel-header">
+            Compiler State
+            <button class="help-btn" data-help-target="compiler-state-help">?</button>
+          </div>
+          <div class="panel-content collapsible-content">
+            <div id="compiler-state"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Parser Stack & Compiler State Explanation -->
+      <div id="parser-stack-help" class="help-section" style="display: none;">
+        <p>
+          <strong>The Precedence Stack:</strong> Pratt parsing works by recursively calling <code>parsePrecedence(minPrec)</code>
+          with increasing minimum precedence levels. The call stack visualizes these recursive calls.
+        </p>
+        <p>
+          Each frame shows the minimum precedence being enforced at that level. When we encounter an operator,
+          we check if its precedence is high enough to be consumed at the current level. If not, we return and
+          let a lower frame handle it. This creates the natural operator precedence hierarchy - where some 
+          parsers generate an Abstract Syntax Tree, Pratt parsing avoids this by holding the equivalent 'grammar' 
+          stucture both in the stack of recursive parse calls and the rest of the structure is not necessary 
+          because it has been  evaluated as soon as possible.
+        </p>
+      </div>
+
+      <div id="compiler-state-help" class="help-section" style="display: none;">
+        <p>
+          <strong>Scope Depth and Locals:</strong> The compiler tracks lexical scope depth (0 for global scope,
+          increasing with each block) and local variables in the current function.
+        </p>
+        <p>
+          When you declare a variable inside a block (<code>{ var x = 1; }</code>), it becomes a local variable
+          stored on the stack at runtime. The compiler tracks which locals are in scope and at what depth, so it
+          can generate correct bytecode to access them (<code>OP_GET_LOCAL</code>, <code>OP_SET_LOCAL</code>)
+          instead of using the slower global lookup.
+        </p>
+        <p>
+          Local variables are indexed by their stack slot position, making them very fast to access. When a block
+          ends, locals at that depth are discarded (via <code>OP_POP</code> instructions).
+        </p>
+      </div>
+
+      <!-- Row 4: Constants and Lines (two columns) -->
+      <div class="constants-row" data-collapsible-row="constants">
+        <div id="constants-panel" class="panel">
+          <div class="panel-header">
+            <span class="collapse-indicator">▼</span>Constants Pool
+            <button class="help-btn" data-help-target="constants-help">?</button>
+          </div>
+          <div class="panel-content collapsible-content">
+            <div id="constants-pool"></div>
+          </div>
+        </div>
+
+        <div id="lines-panel" class="panel">
+          <div class="panel-header">
+            Lines Metadata
+            <button class="help-btn" data-help-target="lines-help">?</button>
+          </div>
+          <div class="panel-content collapsible-content">
+            <div id="lines-array"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Constants & Lines Explanation -->
+      <div id="constants-help" class="help-section" style="display: none;">
+        <p>
+          <strong>The Constants Pool:</strong> Bytecode instructions are small (typically 1-3 bytes), but values
+          like numbers and strings can be arbitrarily large. Rather than embedding large values directly in the
+          bytecode stream, we store them in a separate constants array.
+        </p>
+        <p>
+          When the compiler encounters a literal value (like <code>42</code> or <code>"hello"</code>), it adds
+          the value to the constants pool and emits an <code>OP_CONSTANT</code> instruction with the index.
+          At runtime, the VM uses this index to fetch the actual value from the pool and push it onto the stack.
+        </p>
+        <p>
+          This keeps the bytecode compact and makes the instruction set simpler - we only need one constant
+          instruction instead of separate instructions for different value types and sizes.
+        </p>
+      </div>
+
+      <div id="lines-help" class="help-section" style="display: none;">
+        <p>
+          <strong>Line Number Tracking:</strong> When a runtime error occurs, we want to tell the user which
+          line of source code caused it. The lines array maps each bytecode instruction back to its source line.
+        </p>
+        <p>
+          This is pure debugging metadata - it doesn't affect program execution at all. In a production compiler,
+          you might use a compressed encoding (run-length encoding) to save space, since consecutive instructions
+          often come from the same source line.
+        </p>
+      </div>
+
+      <!-- Row 5: Bytecode Carousel (full width, horizontal) -->
+      <div id="bytecode-panel" class="panel panel-full-width carousel-panel" data-collapsible-row="bytecode">
+        <div class="panel-header">
+          <span class="collapse-indicator">▼</span>Bytecode
+          <button class="help-btn" data-help-target="bytecode-help">?</button>
+        </div>
+        <div class="carousel-container collapsible-content">
+          <div class="carousel-viewport bytecode-viewport">
+            <div id="bytecode" class="carousel-track">
+              <svg id="jump-arrows" class="jump-arrows-svg">
+                <defs>
+                  <marker id="arrowhead" viewBox="0 0 10 10" refX="1" refY="5"
+                          markerUnits="strokeWidth" markerWidth="8" markerHeight="8" orient="auto">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="black" />
+                  </marker>
+                  <marker id="ip-arrowhead" viewBox="0 0 10 10" refX="5" refY="5"
+                          markerUnits="strokeWidth" markerWidth="10" markerHeight="10" orient="auto">
+                    <path d="M 10 0 L 0 5 L 10 10 z" fill="#e74c3c" />
+                  </marker>
+                </defs>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bytecode Explanation -->
+      <div id="bytecode-help" class="help-section" style="display: none;">
+        <p>
+          <strong>The Bytecode Sequence:</strong> Bytecode is the compiled representation of your source code - 
+          a linear sequence of instructions that the virtual machine executes. Each instruction is an opcode
+          (like <code>OP_ADD</code>, <code>OP_PRINT</code>) optionally followed by operands (like constant indices
+          or jump offsets).
+        </p>
+        <p>
+          The instruction pointer (IP) tracks which instruction is currently executing. It starts at the beginning
+          and advances sequentially, except when jump instructions (<code>OP_JUMP</code>, <code>OP_JUMP_IF_FALSE</code>,
+          <code>OP_LOOP</code>) redirect control flow for if/else statements and loops.
+        </p>
+        <p>
+          The black arrows show jump targets - where control flow redirects to. A forward jump implements
+          if/else (skip the else branch), while a backward jump creates a loop (jump back to repeat code).
+          Note as the compiler builds the jump bytecode the arrow reaches off the page to indicate the compiler 
+          still doesn't know how large the jump offset should be, yet.  Only after compiling to the end of code 
+          which might get jumped to does the compiler go back to that jump bytecode to 'patch' the offset.
+        </p>
+        <p>
+          This linear structure makes bytecode simple and fast to execute: just fetch, decode, execute in a loop.
+        </p>
+      </div>
+
+      <!-- Row 6: Runtime state (three columns) -->
+      <div class="runtime-row" data-collapsible-row="runtime">
+        <div id="stack-panel" class="panel">
+          <div class="panel-header">
+            <span class="collapse-indicator">▼</span>Value Stack
+            <button class="help-btn" data-help-target="runtime-help">?</button>
+          </div>
+          <div class="panel-content collapsible-content">
+            <div id="value-stack"></div>
+          </div>
+        </div>
+
+        <div id="globals-panel" class="panel">
+          <div class="panel-header">Globals</div>
+          <div class="panel-content collapsible-content">
+            <div id="globals-table"></div>
+          </div>
+        </div>
+
+        <div id="output-panel" class="panel">
+          <div class="panel-header">Program Output</div>
+          <div class="panel-content collapsible-content">
+            <div id="program-output"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Runtime Explanation -->
+      <div id="runtime-help" class="help-section" style="display: none;">
+        <p>
+          <strong>The Stack-Based VM:</strong> Our virtual machine uses a stack architecture. Most instructions
+          operate on values at the top of the stack: <code>OP_ADD</code> pops two values, adds them, and pushes
+          the result back. This is simpler than register-based VMs and maps naturally to expression evaluation.
+        </p>
+        <p>
+          <strong>Value Stack:</strong> Shows the current stack contents. The stack grows upward as values are pushed
+          (from constants, variable loads, expression results) and shrinks as values are popped (consumed by operators,
+          stored in variables, or discarded by <code>OP_POP</code>). I think of this as the running program's "short 
+          term memory".  (Not the best metaphor, I know, as we already call computer memory "memory")
+        </p>
+        <p>
+          <strong>Globals:</strong> Global variables are stored in a hash table (shown as a simple map here) keyed
+          by variable name. <code>OP_DEFINE_GLOBAL</code> creates a new global, while <code>OP_GET_GLOBAL</code>
+          and <code>OP_SET_GLOBAL</code> read and write them. Globals are slower than locals but accessible from
+          anywhere in the program.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts in dependency order -->
+  <script src="chunk.js"></script>
+  <script src="value.js"></script>
+  <script src="scanner.js"></script>
+  <script src="compiler.js"></script>
+  <script src="vm.js"></script>
+  <script src="visualizer.js"></script>
+</body>
+</html>

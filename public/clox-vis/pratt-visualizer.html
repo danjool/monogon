@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Pratt Parser Visualizer</title>
+  <style>
+    :root {
+      /* Token/Rule colors - only operators with precedence get colors */
+      --color-number: #666;
+      --color-number-light: #999;
+      --color-number-pale: #f5f5f5;
+      --color-plus: #4ade80;
+      --color-plus-light: #86efac;
+      --color-plus-pale: #dcfce7;
+      --color-minus-unary: #fb923c;
+      --color-minus-unary-light: #fdba74;
+      --color-minus-unary-pale: #fed7aa;
+      --color-minus-binary: #fbbf24;
+      --color-minus-binary-light: #fcd34d;
+      --color-minus-binary-pale: #fef3c7;
+      --color-star: #c084fc;
+      --color-star-light: #d8b4fe;
+      --color-star-pale: #f3e8ff;
+      --color-slash: #f472b6;
+      --color-slash-light: #f9a8d4;
+      --color-slash-pale: #fce7f3;
+      --color-grouping: #666;
+      --color-grouping-light: #999;
+      --color-grouping-pale: #f5f5f5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: monospace;
+      /* padding: 20px; */
+      background: #f5f5f5;
+    }
+    #app {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 5px;
+      border: 1px solid #ccc;
+    }
+    h1 { margin-bottom: 20px; font-size: 24px; }
+    #controls {
+      margin-bottom: 5px;
+      padding: 4px;
+      background: #eee;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    #expression {
+      width: 60%;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 16px;
+    }
+    button {
+      line-height: 2;
+      padding: 8px;
+      font-family: monospace;
+      cursor: pointer;
+      background: #fff;
+      border: 1px solid #999;
+    }
+    button:hover { background: #e9e9e9; }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #tokens {
+      margin: 5px 0;
+      padding: 5px;
+      background: #fafafa;
+      /* border: 1px solid #ddd; */
+      min-height: 60px;
+      font-size: 18px;
+    }
+    .token {
+      display: inline-block;
+      padding: 4px 8px;
+      margin: 2px;
+      border: 1px solid transparent;
+    }
+    .token.previous {
+      border: 2px dashed #666;
+      padding: 3px 7px;
+    }
+    .token.current {
+      border: 3px solid #000;
+      padding: 2px 6px;
+      box-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+    }
+    .token sub { font-size: 0.7em; color: #666; }
+    #state {
+      /* margin: 20px 0; */
+    }
+    #recursion-bars {
+      padding: 15px;
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      min-height: 100px;
+    }
+    .bar {
+      padding: 6px 10px;
+      margin: 4px 0;
+      background: #e0e0e0;
+      border-left: 4px solid #666;
+      font-size: 14px;
+    }
+    .bar.colored {
+      border-left-width: 6px;
+    }
+    #bottom-container {
+      min-height:400px;
+      display: flex;
+      gap: 5px;
+      margin: 5px 0;
+    }
+    #stack {
+      flex: 1;
+      padding: 15px;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      min-height: 100px;
+    }
+    .stack-item {
+      border: 2px solid #333;
+      padding: 12px;
+      margin: 4px auto;
+      width: 100px;
+      text-align: center;
+      background: white;
+      font-size: 18px;
+      font-weight: bold;
+      border-left-width: 6px;
+    }
+    .stack-label {
+      font-size: 14px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    #step-info {
+      flex: 1;
+      padding: 5px;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      min-height: 100px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    #step-info .action-box {
+      padding: 8px;
+      margin: 4px 0;
+      border-left: 4px solid transparent;
+    }
+    #step-info .action-box.colored {
+      border-left-width: 6px;
+    }
+    #parse-rules {
+      flex: 1;
+      padding: 5px;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      min-height: 100px;
+      font-size: 12px;
+    }
+    .rules-label {
+      font-size: 14px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    #parse-rules table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    #parse-rules th {
+      text-align: left;
+      padding: 4px;
+      border-bottom: 2px solid #999;
+      font-weight: bold;
+    }
+    #parse-rules td {
+      padding: 4px;
+      border-bottom: 1px solid #ddd;
+    }
+    #parse-rules tr:last-child td {
+      border-bottom: none;
+    }
+    #parse-rules td.rule-number { border-left: 4px solid var(--color-number); }
+    #parse-rules td.rule-plus { border-left: 4px solid var(--color-plus); }
+    #parse-rules td.rule-minus-unary { border-left: 4px solid var(--color-minus-unary); }
+    #parse-rules td.rule-minus-binary { border-left: 4px solid var(--color-minus-binary); }
+    #parse-rules td.rule-star { border-left: 4px solid var(--color-star); }
+    #parse-rules td.rule-slash { border-left: 4px solid var(--color-slash); }
+    #parse-rules td.rule-grouping { border-left: 4px solid var(--color-grouping); }
+    .precedence-check {
+      margin: 8px 0;
+      padding: 8px;
+      background: #f0f0f0;
+      border-left: 4px solid #999;
+      font-family: monospace;
+      font-size: 13px;
+    }
+    #step-counter {
+      margin-top: 10px;
+      color: #666;
+      font-size: 12px;
+    }
+    #about {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    #about h2 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    #about p {
+      margin-bottom: 8px;
+    }
+    #about a {
+      color: #0066cc;
+      text-decoration: none;
+    }
+    #about a:hover {
+      text-decoration: underline;
+    }
+    .quote {
+      font-style: italic;
+      padding: 10px 15px;
+      border-left: 3px solid #999;
+      background: #f0f0f0;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>Pratt Parser Visualizer</h1>
+
+    <div id="controls">
+      <input id="expression" type="text" value="3 + -2 * (8 - 4 * (1 + 1))" placeholder="Enter expression">
+      <button id="step-back" disabled>← Back</button>
+      <button id="step" disabled>Step →</button>
+    </div>
+
+    <div id="tokens">
+      <div style="color: #999;">Tokens will appear here after parsing</div>
+    </div>
+
+    <div id="state">
+      <div id="recursion-bars">
+        <div style="color: #999;">Recursion depth will appear here</div>
+      </div>
+    </div>
+
+    <div id="bottom-container">
+
+      <div id="parse-rules">
+        <div class="rules-label">Parse Rules:</div>
+        <table>
+          <tr>
+            <th>Token</th>
+            <th>Prefix</th>
+            <th>Infix</th>
+            <th>Prec</th>
+          </tr>
+          <tr>
+            <td class="rule-number">NUMBER</td>
+            <td class="rule-number">number</td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="rule-plus">+</td>
+            <td></td>
+            <td class="rule-plus">binary</td>
+            <td>6</td>
+          </tr>
+          <tr>
+            <td>-</td>
+            <td class="rule-minus-unary">unary</td>
+            <td class="rule-minus-binary">binary</td>
+            <td>6</td>
+          </tr>
+          <tr>
+            <td class="rule-star">*</td>
+            <td></td>
+            <td class="rule-star">binary</td>
+            <td>7</td>
+          </tr>
+          <tr>
+            <td class="rule-slash">/</td>
+            <td></td>
+            <td class="rule-slash">binary</td>
+            <td>7</td>
+          </tr>
+          <tr>
+            <td class="rule-grouping">(</td>
+            <td class="rule-grouping">grouping</td>
+            <td></td>
+            <td></td>
+          </tr>
+        </table>
+      </div>
+
+      <div id="step-info">
+        <div style="color: #999;">Step through to see parser actions</div>
+        <div id="step-counter"></div>
+      </div>
+
+      <div id="stack">
+        <div class="stack-label">Stack (top first):</div>
+        <div style="color: #999;">Stack will appear here</div>
+      </div>
+
+    </div>
+
+    <div id="about">
+      <h2>About Pratt Parsing</h2>
+      <p>
+        Pratt parsing (also called "top-down operator precedence parsing") was invented by Vaughan Pratt in 1973.
+        See his original paper: <a href="https://github.com/tdop/tdop.github.io/blob/master/original.pdf" target="_blank">Top Down Operator Precedence</a>.  
+      </p>
+      <p>There's <strong>proofs</strong> in that paper, so watchout, but to tease I quote: </p>
+      <p class="quote">Thus Theorem 1 takes care of what the programmer needs to know, and Theorem 2 what the computer needs to know.</p>
+      <p>
+        This visualizer is based on the Pratt parser implementation from <a href="https://craftinginterpreters.com" target="_blank">Crafting Interpreters</a>
+        by Robert Nystrom, specifically the clox <em> compiling</em> chapter 17.
+      </p>
+      <p>
+        <strong>Note:</strong> The book's implementation compiles expressions to bytecode for later execution by a virtual 
+        machine. This visualizer is more like an interpreter (evaluate-as-you-go) deal. This makes it easier to see how the parser constructs
+        the expression tree and handles operator precedence, but it's not how the actual clox compiler works. Use this tool to
+        understand Pratt parsing pedagogy, but Nystrom's book for comprehending compilers.
+      </p>
+      <p>
+        Crafting Interpreter's quotes Russell <strong>and</strong> Dunsany, so watchout!
+      </p>
+      <p>
+        Pratt's Top Down Operator Precedence Parser works by traversing the sequence of tokens, along the way referring to a table of 'precedence' rules which inform the parser how much binding power the current token has.  Comparing precedence rules combined with incrementing the precedence informs whether to keep recursively calling the main parse function, therefore putting off a binary operation for later, versus doing the operation now (for bytecode compilers emitting the operation's bytecode).  
+      </p>
+      <p>
+        Note "Pratt's Parser" isn't a parser so much as a strategy for writing parsers.  The work of figuring out and encoding the different precedence classes and their numerical ranking is up to you, the parser author.  The result should be a distinct Precedence table of prefix (nud) and infix/postfix (led) functions, and precedence values that encode the grammar you want parsed.  The two proofs from Pratt's paper offer a comforting garuntee that so long as your grammar follows a few rules, there will be such a table possible, and writing a parser for unambiguous grammar can be this 'easy'.
+      </p>
+      <p>
+        <strong>Grammar constraints for Pratt parsing:</strong>
+      </p>
+      <ul style="margin-left: 20px; margin-bottom: 10px; line-height: 1.8;">
+        <li><strong>Operator grammar:</strong> All arguments must be explicitly delimited by tokens (no bare juxtaposition like <code>f x y</code>)</li>
+        <li><strong>Fixed token structure:</strong> Each token uses a consistent pattern for its arguments (if you use <code>if a then b else c</code>, don't also allow <code>if a, b, c</code>)</li>
+        <li><strong>Type-class ordering</strong> (for Theorem 1's guarantees):
+          <ul style="margin-left: 20px; margin-top: 4px;">
+            <li>Data types organized into ordered classes</li>
+            <li>Argument types ≥ result types (no "type demotion")</li>
+            <li>Makes left-association the natural default in homogeneous cases</li>
+          </ul>
+        </li>
+        <li><strong>Expression-oriented:</strong> The language naturally forms hierarchical trees of expressions, not sequential clauses</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Token types
+    const TokenType = {
+      NUMBER: 'NUMBER',
+      PLUS: 'PLUS',
+      MINUS: 'MINUS',
+      STAR: 'STAR',
+      SLASH: 'SLASH',
+      LEFT_PAREN: 'LEFT_PAREN',
+      RIGHT_PAREN: 'RIGHT_PAREN',
+      EOF: 'EOF',
+      ERROR: 'ERROR'
+    };
+
+    // Precedence levels
+    const Precedence = {
+      NONE: 0,
+      ASSIGNMENT: 1,
+      TERM: 6,
+      FACTOR: 7,
+      UNARY: 8
+    };
+
+    const PrecedenceNames = {
+      0: 'NONE',
+      1: 'ASSIGNMENT',
+      6: 'TERM',
+      7: 'FACTOR',
+      8: 'UNARY'
+    };
+
+    // Scanner
+    class Scanner {
+      constructor(source) {
+        this.source = source;
+        this.start = 0;
+        this.current = 0;
+      }
+
+      isAtEnd() {
+        return this.current >= this.source.length;
+      }
+
+      advance() {
+        return this.source[this.current++];
+      }
+
+      peek() {
+        if (this.isAtEnd()) return '\0';
+        return this.source[this.current];
+      }
+
+      skipWhitespace() {
+        while (true) {
+          const c = this.peek();
+          if (c === ' ' || c === '\r' || c === '\t' || c === '\n') {
+            this.advance();
+          } else {
+            break;
+          }
+        }
+      }
+
+      isDigit(c) {
+        return c >= '0' && c <= '9';
+      }
+
+      number() {
+        while (this.isDigit(this.peek())) {
+          this.advance();
+        }
+        if (this.peek() === '.' && this.isDigit(this.source[this.current + 1] || '')) {
+          this.advance();
+          while (this.isDigit(this.peek())) {
+            this.advance();
+          }
+        }
+        return this.makeToken(TokenType.NUMBER);
+      }
+
+      makeToken(type) {
+        return {
+          type,
+          lexeme: this.source.substring(this.start, this.current),
+          start: this.start
+        };
+      }
+
+      errorToken(message) {
+        return {
+          type: TokenType.ERROR,
+          lexeme: message,
+          start: this.start
+        };
+      }
+
+      scanToken() {
+        this.skipWhitespace();
+        this.start = this.current;
+
+        if (this.isAtEnd()) return this.makeToken(TokenType.EOF);
+
+        const c = this.advance();
+
+        if (this.isDigit(c)) return this.number();
+
+        switch (c) {
+          case '+': return this.makeToken(TokenType.PLUS);
+          case '-': return this.makeToken(TokenType.MINUS);
+          case '*': return this.makeToken(TokenType.STAR);
+          case '/': return this.makeToken(TokenType.SLASH);
+          case '(': return this.makeToken(TokenType.LEFT_PAREN);
+          case ')': return this.makeToken(TokenType.RIGHT_PAREN);
+        }
+
+        return this.errorToken('Unexpected character.');
+      }
+
+      scanAll() {
+        const tokens = [];
+        while (true) {
+          const token = this.scanToken();
+          tokens.push(token);
+          if (token.type === TokenType.EOF || token.type === TokenType.ERROR) {
+            break;
+          }
+        }
+        return tokens;
+      }
+    }
+
+    // Global state
+    let tokens = [];
+    let parser = {
+      current: 0,
+      previous: null,
+      hadError: false
+    };
+    let stack = []; // Each item is { value, color }
+    let steps = [];
+    let currentStepIndex = -1;
+    let depth = 0;
+    let callStack = []; // Tracks {precedence, pendingOp, color} for each recursion level
+
+    // Color mapping for rules
+    const ruleColors = {
+      number: { border: 'var(--color-number)', bg: 'var(--color-number-pale)' },
+      unary: { border: 'var(--color-minus-unary)', bg: 'var(--color-minus-unary-pale)' },
+      'binary-PLUS': { border: 'var(--color-plus)', bg: 'var(--color-plus-pale)' },
+      'binary-MINUS': { border: 'var(--color-minus-binary)', bg: 'var(--color-minus-binary-pale)' },
+      'binary-STAR': { border: 'var(--color-star)', bg: 'var(--color-star-pale)' },
+      'binary-SLASH': { border: 'var(--color-slash)', bg: 'var(--color-slash-pale)' },
+      grouping: { border: 'var(--color-grouping)', bg: 'var(--color-grouping-pale)' }
+    };
+
+    // Parse rules
+    const rules = {
+      [TokenType.NUMBER]: { prefix: number, infix: null, precedence: Precedence.NONE },
+      [TokenType.PLUS]: { prefix: null, infix: binary, precedence: Precedence.TERM },
+      [TokenType.MINUS]: { prefix: unary, infix: binary, precedence: Precedence.TERM },
+      [TokenType.STAR]: { prefix: null, infix: binary, precedence: Precedence.FACTOR },
+      [TokenType.SLASH]: { prefix: null, infix: binary, precedence: Precedence.FACTOR },
+      [TokenType.LEFT_PAREN]: { prefix: grouping, infix: null, precedence: Precedence.NONE },
+      [TokenType.RIGHT_PAREN]: { prefix: null, infix: null, precedence: Precedence.NONE },
+      [TokenType.EOF]: { prefix: null, infix: null, precedence: Precedence.NONE },
+      [TokenType.ERROR]: { prefix: null, infix: null, precedence: Precedence.NONE }
+    };
+
+    function getRule(type) {
+      return rules[type];
+    }
+
+    function recordStep(stepData) {
+      steps.push({
+        ...stepData,
+        currentTokenIndex: parser.current,
+        previousToken: parser.previous,
+        stack: [...stack],
+        depth: depth,
+        callStack: [...callStack]
+      });
+    }
+
+    function currentToken() {
+      return tokens[parser.current];
+    }
+
+    function previousToken() {
+      return parser.previous;
+    }
+
+    function advance() {
+      parser.previous = currentToken();
+      parser.current++;
+      recordStep({
+        action: 'advance',
+        description: `Advanced to token '${parser.previous.lexeme}'`
+      });
+    }
+
+    function consume(type, message) {
+      if (currentToken().type === type) {
+        advance();
+        return;
+      }
+      parser.hadError = true;
+      recordStep({
+        action: 'error',
+        description: `Error: ${message}`
+      });
+    }
+
+    function number() {
+      const color = ruleColors.number;
+      recordStep({
+        action: 'call_prefix',
+        functionName: 'number',
+        description: `Calling prefix rule: number()`,
+        color: color
+      });
+
+      const value = parseFloat(parser.previous.lexeme);
+      stack.push({ value, color });
+
+      recordStep({
+        action: 'emit_value',
+        description: `Emitted CONSTANT ${value}`,
+        color: color
+      });
+    }
+
+    function unary() {
+      const color = ruleColors.unary;
+      recordStep({
+        action: 'call_prefix',
+        functionName: 'unary',
+        description: `Calling prefix rule: unary()`,
+        color: color
+      });
+
+      const operatorType = parser.previous.type;
+
+      depth++;
+      callStack.push({ precedence: Precedence.UNARY, pendingOp: 'OP_NEGATE', color: color });
+      parsePrecedence(Precedence.UNARY);
+      callStack.pop();
+      depth--;
+
+      if (operatorType === TokenType.MINUS) {
+        const item = stack.pop();
+        stack.push({ value: -item.value, color: color });
+        recordStep({
+          action: 'emit_op',
+          description: `Emitted OP_NEGATE`,
+          color: color
+        });
+      }
+    }
+
+    function binary() {
+      const operatorType = parser.previous.type;
+
+      let colorKey;
+      switch (operatorType) {
+        case TokenType.PLUS: colorKey = 'binary-PLUS'; break;
+        case TokenType.MINUS: colorKey = 'binary-MINUS'; break;
+        case TokenType.STAR: colorKey = 'binary-STAR'; break;
+        case TokenType.SLASH: colorKey = 'binary-SLASH'; break;
+      }
+      const color = ruleColors[colorKey];
+
+      recordStep({
+        action: 'call_infix',
+        functionName: 'binary',
+        operator: operatorType,
+        description: `Calling infix rule: binary(${parser.previous.lexeme})`,
+        color: color
+      });
+
+      const rule = getRule(operatorType);
+
+      let opName;
+      switch (operatorType) {
+        case TokenType.PLUS: opName = 'OP_ADD'; break;
+        case TokenType.MINUS: opName = 'OP_SUBTRACT'; break;
+        case TokenType.STAR: opName = 'OP_MULTIPLY'; break;
+        case TokenType.SLASH: opName = 'OP_DIVIDE'; break;
+      }
+
+      depth++;
+      callStack.push({ precedence: rule.precedence + 1, pendingOp: opName, color: color });
+      parsePrecedence(rule.precedence + 1);
+      callStack.pop();
+      depth--;
+
+      const right = stack.pop();
+      const left = stack.pop();
+      let result;
+
+      switch (operatorType) {
+        case TokenType.PLUS: result = left.value + right.value; break;
+        case TokenType.MINUS: result = left.value - right.value; break;
+        case TokenType.STAR: result = left.value * right.value; break;
+        case TokenType.SLASH: result = left.value / right.value; break;
+      }
+
+      stack.push({ value: result, color: color });
+      recordStep({
+        action: 'emit_op',
+        description: `Emitted ${opName}`,
+        color: color
+      });
+    }
+
+    function grouping() {
+      const color = ruleColors.grouping;
+      recordStep({
+        action: 'call_prefix',
+        functionName: 'grouping',
+        description: `Calling prefix rule: grouping()`,
+        color: color
+      });
+
+      depth++;
+      callStack.push({ precedence: Precedence.ASSIGNMENT, pendingOp: null, color: color });
+      parsePrecedence(Precedence.ASSIGNMENT);
+      callStack.pop();
+      depth--;
+
+      consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
+    }
+
+    function parsePrecedence(precedence) {
+      recordStep({
+        action: 'enter_precedence',
+        precedence: precedence,
+        precedenceName: PrecedenceNames[precedence],
+        description: `Entering parsePrecedence(${precedence} = ${PrecedenceNames[precedence]})`
+      });
+
+      advance();
+      const prefixRule = getRule(parser.previous.type).prefix;
+
+      if (prefixRule === null) {
+        parser.hadError = true;
+        recordStep({
+          action: 'error',
+          description: 'Error: Expect expression.'
+        });
+        return;
+      }
+
+      prefixRule();
+
+      while (precedence <= getRule(currentToken().type).precedence) {
+        const currentPrec = getRule(currentToken().type).precedence;
+
+        recordStep({
+          action: 'precedence_continue',
+          precedenceMin: precedence,
+          precedenceMinName: PrecedenceNames[precedence],
+          operatorPrecedence: currentPrec,
+          operatorPrecedenceName: PrecedenceNames[currentPrec],
+          operator: currentToken().lexeme,
+          description: `Precedence check: ${precedence} (${PrecedenceNames[precedence]}) ≤ ${currentPrec} (${PrecedenceNames[currentPrec]})? YES → advancing to parse '${currentToken().lexeme}'`
+        });
+
+        advance();
+        const infixRule = getRule(parser.previous.type).infix;
+        infixRule();
+      }
+
+      // Loop exit - combine check and exit into one step
+      const currentPrec = getRule(currentToken().type).precedence;
+      recordStep({
+        action: 'precedence_exit',
+        precedenceMin: precedence,
+        precedenceMinName: PrecedenceNames[precedence],
+        operatorPrecedence: currentPrec,
+        operatorPrecedenceName: PrecedenceNames[currentPrec],
+        operator: currentToken().lexeme,
+        description: `Precedence check: ${precedence} (${PrecedenceNames[precedence]}) ≤ ${currentPrec} (${PrecedenceNames[currentPrec]})? NO → exiting parsePrecedence(${precedence})`
+      });
+    }
+
+    function compile(source) {
+      // Reset state
+      const scanner = new Scanner(source);
+      tokens = scanner.scanAll();
+      parser = {
+        current: 0,
+        previous: null,
+        hadError: false
+      };
+      stack = [];
+      steps = [];
+      depth = 0;
+      callStack = [];
+
+      if (tokens[0].type === TokenType.ERROR) {
+        return false;
+      }
+
+      parsePrecedence(Precedence.ASSIGNMENT);
+      consume(TokenType.EOF, "Expect end of expression.");
+
+      return !parser.hadError;
+    }
+
+    // Visualization
+    function renderTokens(stepData) {
+      const tokensDiv = document.getElementById('tokens');
+      tokensDiv.innerHTML = '';
+
+      tokens.forEach((token, index) => {
+        if (token.type === TokenType.EOF) return;
+
+        const span = document.createElement('span');
+        span.className = 'token';
+
+        if (stepData && stepData.previousToken && stepData.previousToken === token) {
+          span.classList.add('previous');
+        }
+        if (stepData && index === stepData.currentTokenIndex) {
+          span.classList.add('current');
+        }
+
+        let text = token.lexeme;
+
+        // Add precedence subscript for operators
+        if (token.type !== TokenType.NUMBER && token.type !== TokenType.LEFT_PAREN &&
+            token.type !== TokenType.RIGHT_PAREN) {
+          const prec = getRule(token.type).precedence;
+          if (prec > 0) {
+            text += `<sub>${prec}</sub>`;
+          }
+        }
+
+        span.innerHTML = text;
+        tokensDiv.appendChild(span);
+      });
+    }
+
+    function renderRecursionBars(stepData) {
+      const barsDiv = document.getElementById('recursion-bars');
+
+      if (!stepData || stepData.callStack.length === 0) {
+        barsDiv.innerHTML = '<div style="color: #999;">No active recursion</div>';
+        return;
+      }
+
+      barsDiv.innerHTML = '';
+
+      // Create bars for each call stack level
+      stepData.callStack.forEach((call, i) => {
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        bar.style.marginLeft = (i * 20) + 'px';
+
+        // Apply color if available
+        if (call.color) {
+          bar.classList.add('colored');
+          bar.style.borderLeftColor = call.color.border;
+          bar.style.background = call.color.bg;
+        }
+
+        const precName = PrecedenceNames[call.precedence] || call.precedence;
+        let text = `parsePrecedence(${call.precedence})`;
+        if (call.pendingOp) {
+          text += ` → pending: ${call.pendingOp}`;
+        }
+
+        bar.textContent = text;
+        barsDiv.appendChild(bar);
+      });
+    }
+
+    function renderStack(stepData) {
+      const stackDiv = document.getElementById('stack');
+      stackDiv.innerHTML = '<div class="stack-label">Stack (top first):</div>';
+
+      if (!stepData || stepData.stack.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.color = '#999';
+        empty.textContent = 'Empty';
+        stackDiv.appendChild(empty);
+        return;
+      }
+
+      // Render stack top to bottom
+      for (let i = stepData.stack.length - 1; i >= 0; i--) {
+        const stackItem = stepData.stack[i];
+        const item = document.createElement('div');
+        item.className = 'stack-item';
+
+        // Handle both old format (raw values) and new format (objects with value/color)
+        if (typeof stackItem === 'object' && stackItem.value !== undefined) {
+          item.textContent = stackItem.value;
+          if (stackItem.color) {
+            item.style.borderLeftColor = stackItem.color.border;
+            item.style.background = stackItem.color.bg;
+          }
+        } else {
+          item.textContent = stackItem;
+        }
+
+        stackDiv.appendChild(item);
+      }
+    }
+
+    function renderStepInfo(stepData) {
+      const infoDiv = document.getElementById('step-info');
+
+      if (!stepData) {
+        infoDiv.innerHTML = '<div style="color: #999;">Click Step to begin...</div>';
+        return;
+      }
+
+      let html = '';
+
+      // Create action box with color if available
+      const actionBox = document.createElement('div');
+      actionBox.className = 'action-box';
+      if (stepData.color) {
+        actionBox.classList.add('colored');
+        actionBox.style.borderLeftColor = stepData.color.border;
+        actionBox.style.background = stepData.color.bg;
+      }
+      actionBox.innerHTML = `<div><strong>Action:</strong> ${stepData.action}</div><div>${stepData.description}</div>`;
+
+      html += actionBox.outerHTML;
+
+      // Show precedence check details for precedence_continue and precedence_exit
+      if (stepData.action === 'precedence_continue' || stepData.action === 'precedence_exit') {
+        const checkDiv = document.createElement('div');
+        checkDiv.className = 'precedence-check';
+        checkDiv.textContent = `${stepData.precedenceMin} (${stepData.precedenceMinName}) ≤ ${stepData.operatorPrecedence} (${stepData.operatorPrecedenceName})`;
+        html += checkDiv.outerHTML;
+      }
+
+      html += `<div id="step-counter">Step ${currentStepIndex + 1} of ${steps.length}</div>`;
+
+      infoDiv.innerHTML = html;
+    }
+
+    function renderStep(index) {
+      const stepData = steps[index];
+      renderTokens(stepData);
+      renderRecursionBars(stepData);
+      renderStack(stepData);
+      renderStepInfo(stepData);
+    }
+
+    // Update button states based on current step position
+    function updateButtonStates() {
+      const stepButton = document.getElementById('step');
+      const stepBackButton = document.getElementById('step-back');
+
+      // Step forward disabled if at end or no steps
+      stepButton.disabled = currentStepIndex >= steps.length - 1 || steps.length === 0;
+
+      // Step back disabled if at beginning
+      stepBackButton.disabled = currentStepIndex < 0;
+    }
+
+    // Auto-parse on input change
+    function autoParse() {
+      const input = document.getElementById('expression').value;
+
+      // Reset state
+      currentStepIndex = -1;
+
+      const success = compile(input);
+
+      if (success) {
+        // Render initial state
+        renderTokens(null);
+        document.getElementById('recursion-bars').innerHTML = '<div style="color: #999;">Recursion depth will appear here</div>';
+        document.getElementById('stack').innerHTML = '<div class="stack-label">Stack (top first):</div><div style="color: #999;">Stack will appear here</div>';
+        document.getElementById('step-info').innerHTML = `<div style="color: green;">✓ Parsed successfully. ${steps.length} steps recorded. Press Step or → to begin.</div>`;
+      } else {
+        renderTokens(null);
+        document.getElementById('recursion-bars').innerHTML = '<div style="color: #999;">Recursion depth will appear here</div>';
+        document.getElementById('stack').innerHTML = '<div class="stack-label">Stack (top first):</div><div style="color: #999;">Stack will appear here</div>';
+        document.getElementById('step-info').innerHTML = '<div style="color: red;">✗ Parse error.</div>';
+      }
+
+      updateButtonStates();
+    }
+
+    // Parse on input change
+    document.getElementById('expression').addEventListener('input', autoParse);
+
+    // Step forward button
+    document.getElementById('step').addEventListener('click', () => {
+      if (currentStepIndex < steps.length - 1) {
+        currentStepIndex++;
+        renderStep(currentStepIndex);
+        updateButtonStates();
+      }
+    });
+
+    // Step backward button
+    document.getElementById('step-back').addEventListener('click', () => {
+      if (currentStepIndex >= 0) {
+        currentStepIndex--;
+        if (currentStepIndex >= 0) {
+          renderStep(currentStepIndex);
+        } else {
+          // Back to initial state
+          renderTokens(null);
+          document.getElementById('recursion-bars').innerHTML = '<div style="color: #999;">Recursion depth will appear here</div>';
+          document.getElementById('stack').innerHTML = '<div class="stack-label">Stack (top first):</div><div style="color: #999;">Stack will appear here</div>';
+          document.getElementById('step-info').innerHTML = `<div style="color: green;">✓ Parsed successfully. ${steps.length} steps recorded. Press Step or → to begin.</div>`;
+        }
+        updateButtonStates();
+      }
+    });
+
+    // Keyboard support: arrow keys to step
+    document.addEventListener('keydown', (e) => {
+      // Only handle arrow keys if not focused on input
+      if (document.activeElement.tagName === 'INPUT') return;
+
+      if (e.key === 'ArrowRight' && !document.getElementById('step').disabled) {
+        document.getElementById('step').click();
+      } else if (e.key === 'ArrowLeft' && !document.getElementById('step-back').disabled) {
+        document.getElementById('step-back').click();
+      }
+    });
+
+    // Initial parse
+    autoParse();
+  </script>
+</body>
+</html>
