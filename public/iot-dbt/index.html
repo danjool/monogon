@@ -1011,29 +1011,54 @@ from building_metrics</code></pre>
     <div class="mermaid-container">
         <div class="mermaid">
 graph LR
-    A[raw_events] --> B[stg_raw_events]
-    C[devices] --> D[stg_devices]
-    E[locations] --> F[stg_locations]
+    subgraph Sources
+        A[raw_events]
+        C[devices]
+        E[locations]
+    end
 
-    B --> G[int_device_utilization]
-    B --> H[int_error_rates]
-    B --> I[int_user_sessions]
+    subgraph Staging
+        B[stg_raw_events]
+        D[stg_devices]
+        F[stg_locations]
+    end
+
+    subgraph Intermediate
+        G[int_device_utilization]
+        H[int_error_rates]
+        I[int_user_sessions]
+        J[fct_sessions]
+    end
+
+    subgraph Marts
+        K[device_health_dashboard]
+        L[building_utilization]
+        M[room_summary]
+    end
+
+    A --> B
+    C --> D
+    E --> F
+
+    B --> G
+    B --> H
+    B --> I
 
     D --> G
     D --> H
     D --> I
     F --> G
 
-    I --> J[fct_sessions]
+    I --> J
     D --> J
 
-    G --> K[device_health_dashboard]
+    G --> K
     H --> K
     D --> K
 
-    G --> L[building_utilization]
+    G --> L
 
-    J --> M[room_summary]
+    J --> M
     D --> M
     F --> M
 
@@ -1372,9 +1397,9 @@ models:
                 secondaryColor: '#f5f5f5',
                 tertiaryColor: '#fafafa'
             },
-            flowchart: {
-                curve: 'linear'
-            }
+            // flowchart: {
+            //     curve: 'linear'
+            // }
         });
     </script>
 </body>
