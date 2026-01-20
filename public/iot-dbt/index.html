@@ -386,11 +386,11 @@
     <h2>The Problem</h2>
 
     <p>
-        Imagine you've been brought in to 'clean up the database' responsible for keeping track of AV devices deployed across office buildings. Each device emits events: connections, disconnections, screen shares, errors. The raw data lands in your warehouse as a stream of timestamped records.
+        Imagine we've been brought in to 'clean up the database' responsible for keeping track of AV devices deployed across office buildings. Each device emits events: connections, disconnections, screen shares, errors. The raw data lands in our warehouse as a stream of timestamped records.
     </p>
 
     <p>
-        Now imagine your precursors 'moved fast'.  They 'broke things'.  Whatever, they made a functioning product that people like enough to buy thousands and thousands of.  But their haste has left a knot of Hasura, SQL views, and GraphQL supplying the client admin dashboards neat looking data, but does so inefficiently and incomprehensibly.  How do we simplify so that we can fix problems, speed up queries, and add new analytics?
+        Now imagine our precursors 'moved fast'.  They 'broke things'.  Whatever, they made a functioning product that people like enough to buy thousands and thousands of.  But their haste has left a knot of Hasura, SQL views, and GraphQL supplying the client admin dashboards neat looking data, but does so inefficiently and incomprehensibly.  How do we simplify so that we can fix problems, speed up queries, and add new analytics?
     </p>
 
     <div class="scenario-diagram">
@@ -470,7 +470,7 @@
     <h2>What is dbt?</h2>
 
     <p>
-        dbt (data build tool) transforms data in your warehouse using SELECT statements. You write SQL files that define how raw data becomes analytics tables. dbt handles:
+        dbt (data build tool) transforms data in our warehouse using SELECT statements. You write SQL files that define how raw data becomes analytics tables. dbt handles:
     </p>
 
     <ul>
@@ -482,7 +482,7 @@
 
     <div class="callout">
         <p>
-            <strong>Key concept:</strong> dbt does not extract or load data. It assumes data already exists in your warehouse (loaded by Fivetran, Airbyte, custom scripts, etc.). dbt only transforms.
+            <strong>Key concept:</strong> dbt does not extract or load data. It assumes data already exists in our warehouse (loaded by Fivetran, Airbyte, custom scripts, etc.). dbt only transforms.
         </p>
     </div>
 
@@ -513,7 +513,7 @@
     <h2>Layer 1: Sources</h2>
 
     <p>
-        Sources declare the raw tables that exist in your warehouse. This creates a boundary between "data we receive" and "data we transform." You can also configure freshness checks to alert when data stops arriving.
+        Sources declare the raw tables that exist in our warehouse. This creates a boundary between "data we receive" and "data we transform." You can also configure freshness checks to alert when data stops arriving.
     </p>
 
     <details>
@@ -1104,7 +1104,7 @@ graph LR
     <h2>Testing</h2>
 
     <p>
-        Tests assert properties about your data. dbt includes generic tests (unique, not_null, accepted_values, relationships) and supports custom tests.
+        Tests assert properties about our data. dbt includes generic tests (unique, not_null, accepted_values, relationships) and supports custom tests.
     </p>
 
     <h4>Generic tests (in schema.yml)</h4>
@@ -1250,7 +1250,7 @@ Completed successfully. PASS=47 WARN=0 ERROR=0 SKIP=0
     </div>
 
     <h3>dbt docs generate / serve</h3>
-    <p>Generates documentation from your schema.yml descriptions and serves it as a searchable website with lineage graphs.  Note we can also take the generated 'target' directory and serve it as a static web app.  The docs for this iot devices example can be seen <a href='target/'>here</a></p>
+    <p>Generates documentation from our schema.yml descriptions and serves it as a searchable website with lineage graphs.  Note we can also take the generated 'target' directory and serve it as a static web app.  The docs for this iot devices example can be seen <a href='target/'>here</a></p>
 
     <div class="cli-section">
         <span class="prompt">$</span> <span class="command">dbt docs generate --profiles-dir .</span>
@@ -1299,11 +1299,11 @@ Serving docs at http://localhost:8080
     </ul>
 
     <p>
-        The interval depends on your freshness requirements. Real-time dashboards might run every 5 minutes; daily reports might run once at midnight. The tradeoff is compute cost vs. staleness.
+        The interval depends on our freshness requirements. Real-time dashboards might run every 5 minutes; daily reports might run once at midnight. The tradeoff is compute cost vs. staleness.
     </p>
 
     <p>
-        And note we could make marts materialize as views as well.  The convention is to have those marts be incrementally updated tables, serving effectively as caches.  But if your mart is simple and traffic is low, a view is fine. Or if freshness matters more than query speed. It's a tradeoff you choose based on your situation.       
+        And note we could make marts materialize as views as well.  The convention is to have those marts be incrementally updated tables, serving effectively as caches.  But if our mart is simple and traffic is low, a view is fine. Or if freshness matters more than query speed. It's a tradeoff you choose based on our situation.       
     </p>
 
     <h2>Configuration</h2>
@@ -1382,7 +1382,7 @@ models:
     </table>
 
     <p>
-        The transformation layer is now documented, tested, version-controlled, and produces the exact tables your dashboards need. When requirements change, you modify SQL files, run <code>dbt build</code>, and the pipeline updates.
+        The transformation layer is now documented, tested, version-controlled, and produces the exact tables our dashboards need. When requirements change, you modify SQL files, run <code>dbt build</code>, and the pipeline updates.
     </p>
 
     <script>
