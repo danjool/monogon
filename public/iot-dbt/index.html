@@ -390,7 +390,7 @@
     </p>
 
     <p>
-        Now imagine your precursors 'moved fast'.  They 'broke things'.  Whatever, they made a functioning product that people like enough to buy thousands and thousands of.  But their haste has left a knot of Hasura, SQL views, and GraphQL supplying the client admin dashboards neat looking data, but inefficiently and incomprehensibly.  How do we simplify so that we can fix problems, speed up queries, and add new analytics?
+        Now imagine your precursors 'moved fast'.  They 'broke things'.  Whatever, they made a functioning product that people like enough to buy thousands and thousands of.  But their haste has left a knot of Hasura, SQL views, and GraphQL supplying the client admin dashboards neat looking data, but does so inefficiently and incomprehensibly.  How do we simplify so that we can fix problems, speed up queries, and add new analytics?
     </p>
 
     <div class="scenario-diagram">
@@ -1011,26 +1011,26 @@ from building_metrics</code></pre>
     <div class="mermaid-container">
         <div class="mermaid">
 graph LR
-    subgraph Sources
+    subgraph Source Tables
         A[raw_events]
         C[devices]
         E[locations]
     end
 
-    subgraph Staging
+    subgraph Staging View
         B[stg_raw_events]
         D[stg_devices]
         F[stg_locations]
     end
 
-    subgraph Intermediate
+    subgraph Intermediate View
         G[int_device_utilization]
         H[int_error_rates]
         I[int_user_sessions]
         J[fct_sessions]
     end
 
-    subgraph Marts
+    subgraph Mart Tables
         K[device_health_dashboard]
         L[building_utilization]
         M[room_summary]
