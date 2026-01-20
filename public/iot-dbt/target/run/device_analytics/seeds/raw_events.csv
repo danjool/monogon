@@ -1,0 +1,11 @@
+
+    
+    
+    truncate table "device_analytics"."main"."raw_events";
+    -- dbt seed --
+    
+          COPY "device_analytics"."main"."raw_events" FROM '/home/danny/projects/unpublished/iot-device-analytics/seeds/raw_events.csv' (FORMAT CSV, HEADER TRUE, DELIMITER ',')
+        
+
+;
+  

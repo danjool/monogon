@@ -1,0 +1,9 @@
+location_id,building,floor,room_type,sq_feet
+LOC001,North Building,3,conference,400
+LOC002,North Building,3,huddle,120
+LOC003,South Building,2,conference,800
+LOC004,South Building,1,lab,300
+LOC005,North Building,2,classroom,600
+LOC006,North Building,4,executive,350
+LOC007,South Building,2,collaboration,500
+LOC008,South Building,1,meeting,200

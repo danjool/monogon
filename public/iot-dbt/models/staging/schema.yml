@@ -1,0 +1,77 @@
+version: 2
+
+models:
+  - name: stg_raw_events
+    description: Cleaned and standardized event data from wireless presentation devices
+    columns:
+      - name: event_id
+        description: Unique event identifier
+        tests:
+          - unique
+          - not_null
+      - name: device_id
+        description: Device identifier
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_devices')
+              field: device_id
+      - name: event_type
+        description: Type of event (standardized to lowercase)
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['connect', 'disconnect', 'screen_share_start', 'screen_share_end', 'error']
+      - name: event_timestamp
+        description: When the event occurred
+        tests:
+          - not_null
+      - name: event_date
+        description: Date portion of the event timestamp
+      - name: event_hour
+        description: Hour of day (0-23) when event occurred
+      - name: day_of_week
+        description: Day of week (0=Sunday, 6=Saturday)
+
+  - name: stg_devices
+    description: Device metadata with location information
+    columns:
+      - name: device_id
+        description: Unique device identifier
+        tests:
+          - unique
+          - not_null
+      - name: model
+        description: Device model (PRO-4K, PLUS, BASIC)
+        tests:
+          - accepted_values:
+              values: ['PRO-4K', 'PLUS', 'BASIC']
+      - name: firmware_version
+        description: Current firmware version
+      - name: install_date
+        description: Date device was installed
+      - name: room_name
+        description: Name of the room where device is installed
+      - name: building
+        description: Building name
+      - name: floor
+        description: Floor number
+      - name: capacity
+        description: Room capacity (number of people)
+
+  - name: stg_locations
+    description: Location metadata for buildings and rooms
+    columns:
+      - name: location_id
+        description: Unique location identifier
+        tests:
+          - unique
+          - not_null
+      - name: building
+        description: Building name
+      - name: floor
+        description: Floor number
+      - name: room_type
+        description: Type of room
+      - name: sq_feet
+        description: Room size in square feet

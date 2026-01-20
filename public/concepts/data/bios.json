@@ -1234,7 +1234,8 @@
 	{"id": "Le roman policier", "time": 1941, "type": "essay"},
 	{"id": "D. H. Lawrence", "time": 1885, "type": "author"},
 	{"id": "Studies in Classic American Literature", "time": 1923, "type": "book"},
-	{"id": "Sam Lake", "time": 1970, "type": "writer"}
+	{"id": "Sam Lake", "time": 1970, "type": "writer"},
+	{"id": "Jared Henderson", "time": 1990, "type": "philosopher"}
 
 ],"links":[
 	{"source": "Studies in Classic American Literature", "target": "Herman Melville", "type": "review" },

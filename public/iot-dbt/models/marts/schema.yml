@@ -1,0 +1,106 @@
+version: 2
+
+models:
+  - name: device_health_dashboard
+    description: >
+      Daily health metrics per device for monitoring dashboards.
+      Combines utilization and error data into a single denormalized table
+      with a composite health score.
+    columns:
+      - name: device_id
+        description: Unique device identifier
+        tests:
+          - not_null
+      - name: model
+        description: Device model (PRO-4K, PLUS, BASIC)
+      - name: firmware_version
+        description: Current firmware version
+      - name: room_name
+        description: Room where device is installed
+      - name: building
+        description: Building name
+      - name: floor
+        description: Floor number
+      - name: capacity
+        description: Room capacity
+      - name: metric_date
+        description: Date of metrics
+        tests:
+          - not_null
+      - name: usage_minutes
+        description: Total minutes of device usage
+      - name: utilization_pct
+        description: Percentage of time device was in use
+      - name: connection_count
+        description: Number of connections
+      - name: error_count
+        description: Number of errors
+      - name: error_rate_pct
+        description: Percentage of events that were errors
+      - name: health_score
+        description: >
+          Composite health score (0-100+) based on utilization and errors.
+          Higher is better. Penalizes errors heavily, rewards reasonable utilization.
+
+  - name: building_utilization
+    description: >
+      Aggregated usage metrics by building for capacity planning.
+      Helps facility managers understand which buildings need more or fewer
+      presentation devices.
+    columns:
+      - name: building
+        description: Building name
+        tests:
+          - not_null
+      - name: event_date
+        description: Date of metrics
+        tests:
+          - not_null
+      - name: device_count
+        description: Number of devices active in building
+      - name: total_usage_minutes
+        description: Total minutes of usage across all devices
+      - name: avg_utilization_pct
+        description: Average utilization percentage
+      - name: total_connections
+        description: Total number of connections
+      - name: business_hours_usage
+        description: Usage minutes during business hours (Mon-Fri 8am-5pm)
+      - name: after_hours_usage
+        description: Usage minutes outside business hours
+      - name: business_hours_pct
+        description: Percentage of usage during business hours
+
+  - name: room_summary
+    description: >
+      Room-level analytics aggregated over all time.
+      Useful for facility managers to identify high and low usage rooms.
+    columns:
+      - name: room_name
+        description: Room name
+        tests:
+          - not_null
+      - name: building
+        description: Building name
+      - name: floor
+        description: Floor number
+      - name: capacity
+        description: Room capacity
+      - name: total_sessions
+        description: Total number of sessions in this room
+      - name: unique_users
+        description: Number of unique users
+      - name: avg_session_minutes
+        description: Average session duration in minutes
+      - name: sessions_with_screen_share
+        description: Number of sessions that included screen sharing
+      - name: screen_share_pct
+        description: Percentage of sessions with screen sharing
+      - name: business_hour_sessions
+        description: Sessions during business hours
+      - name: business_hours_pct
+        description: Percentage of sessions during business hours
+      - name: first_session_date
+        description: Date of first recorded session
+      - name: last_session_date
+        description: Date of most recent session

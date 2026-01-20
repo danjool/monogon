@@ -1,0 +1,108 @@
+version: 2
+
+models:
+  - name: int_device_utilization
+    description: Hourly device utilization metrics with business hours classification
+    columns:
+      - name: device_id
+        description: Device identifier
+        tests:
+          - not_null
+      - name: event_date
+        description: Date of the utilization measurement
+      - name: event_hour
+        description: Hour of day (0-23)
+      - name: is_business_hours
+        description: Whether this hour falls within business hours (Mon-Fri 8am-5pm)
+      - name: connection_count
+        description: Number of connections during this hour
+      - name: usage_minutes
+        description: Total minutes of usage during this hour
+      - name: utilization_pct
+        description: Percentage of the hour the device was in use
+      - name: room_name
+        description: Name of the room where device is located
+      - name: building
+        description: Building name
+      - name: capacity
+        description: Room capacity
+
+  - name: int_error_rates
+    description: Daily error rate analysis per device
+    columns:
+      - name: device_id
+        description: Device identifier
+        tests:
+          - not_null
+      - name: event_date
+        description: Date of error measurement
+      - name: firmware_version
+        description: Device firmware version
+      - name: model
+        description: Device model
+      - name: error_count
+        description: Number of errors on this date
+      - name: total_events
+        description: Total number of events on this date
+      - name: error_rate_pct
+        description: Percentage of events that were errors
+
+  - name: int_user_sessions
+    description: User sessions built from event sequences
+    columns:
+      - name: session_id
+        description: Unique session identifier (device-user-session_number)
+        tests:
+          - unique
+          - not_null
+      - name: device_id
+        description: Device identifier
+      - name: user_hash
+        description: Anonymized user identifier
+      - name: session_number
+        description: Sequential session number for this user-device pair
+      - name: session_start
+        description: Session start timestamp
+      - name: session_end
+        description: Session end timestamp
+      - name: session_duration_minutes
+        description: Session duration in minutes
+      - name: event_count
+        description: Number of events in this session
+      - name: had_screen_share
+        description: Whether screen sharing occurred during the session
+
+  - name: fct_sessions
+    description: Fact table of sessions with device context (incremental)
+    columns:
+      - name: session_id
+        description: Unique session identifier
+        tests:
+          - unique
+          - not_null
+      - name: device_id
+        description: Device identifier
+      - name: user_hash
+        description: Anonymized user identifier
+      - name: session_start
+        description: Session start timestamp
+      - name: session_end
+        description: Session end timestamp
+      - name: session_duration_minutes
+        description: Session duration in minutes
+        tests:
+          - session_duration_reasonable
+      - name: event_count
+        description: Number of events in this session
+      - name: had_screen_share
+        description: Whether screen sharing occurred
+      - name: room_name
+        description: Room where session occurred
+      - name: building
+        description: Building name
+      - name: floor
+        description: Floor number
+      - name: session_date
+        description: Date of the session
+      - name: is_business_hours
+        description: Whether session started during business hours

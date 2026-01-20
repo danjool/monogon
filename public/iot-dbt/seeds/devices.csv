@@ -1,0 +1,9 @@
+device_id,model,firmware_version,install_date,room_name,building,floor,capacity
+DEV001,PRO-4K,5.2.1,2023-01-15,Board Room A,North Building,3,12
+DEV002,PRO-4K,5.2.1,2023-01-20,Huddle 301,North Building,3,6
+DEV003,PRO-4K,5.1.8,2023-02-10,Conference 201,South Building,2,20
+DEV004,PLUS,5.2.1,2023-03-05,Innovation Lab,South Building,1,8
+DEV005,PLUS,5.1.8,2023-03-12,Training Room,North Building,2,30
+DEV006,PRO-4K,5.2.1,2023-04-01,Executive Suite,North Building,4,8
+DEV007,PLUS,5.1.8,2023-04-15,Collaboration Hub,South Building,2,15
+DEV008,BASIC,5.0.5,2023-05-01,Meeting Room 101,South Building,1,6

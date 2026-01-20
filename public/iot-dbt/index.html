@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building Analytics with dbt: A Developer's Guide</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #fafafa;
+            --text: #1a1a1a;
+            --text-light: #666;
+            --border: #e0e0e0;
+            --accent: #0066cc;
+            --accent-light: #e6f2ff;
+            --code-bg: #f5f5f5;
+            --success: #2d7a3e;
+            --warning: #d97706;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', sans-serif;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 500;
+            margin: 3rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            font-weight: 500;
+            margin: 2rem 0 0.75rem;
+            color: var(--text);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin: 1.5rem 0 0.5rem;
+            color: var(--text-light);
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        .lead {
+            font-size: 1.15rem;
+            color: var(--text-light);
+            margin-bottom: 2rem;
+        }
+
+        code {
+            font-family: 'IBM Plex Mono', monospace;
+            background: var(--code-bg);
+            padding: 0.15rem 0.4rem;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            padding: 1.25rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            border: 1px solid var(--border);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .mermaid-container {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+
+        details {
+            margin: 1rem 0;
+            border: 1px solid var(--border);
+            background: white;
+        }
+
+        summary {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            background: var(--code-bg);
+            border-bottom: 1px solid var(--border);
+            user-select: none;
+        }
+
+        summary:hover {
+            background: #eee;
+        }
+
+        details[open] summary {
+            border-bottom: 1px solid var(--border);
+        }
+
+        details pre {
+            margin: 0;
+            border: none;
+        }
+
+        .callout {
+            background: var(--accent-light);
+            border-left: 4px solid var(--accent);
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+        }
+
+        .callout p:last-child {
+            margin-bottom: 0;
+        }
+
+        .scenario-diagram {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr auto 1fr;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: white;
+            border: 1px solid var(--border);
+        }
+
+        .scenario-box {
+            padding: 1.25rem;
+            text-align: center;
+            border: 2px solid var(--border);
+        }
+
+        .scenario-box.problem {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+
+        .scenario-box.solution {
+            background: #dbeafe;
+            border-color: #3b82f6;
+        }
+
+        .scenario-box.goal {
+            background: #d1fae5;
+            border-color: #10b981;
+        }
+
+        .scenario-box strong {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .scenario-box .count {
+            font-size: 1.5rem;
+            font-weight: 600;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .scenario-box .desc {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 0.25rem;
+        }
+
+        .scenario-arrow {
+            font-size: 1.5rem;
+            color: var(--text-light);
+        }
+
+        .cli-section {
+            background: #1a1a1a;
+            color: #f0f0f0;
+            padding: 1.25rem;
+            margin: 1rem 0;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .cli-section .prompt {
+            color: #10b981;
+        }
+
+        .cli-section .command {
+            color: #f0f0f0;
+        }
+
+        .cli-section .output {
+            color: #9ca3af;
+            margin-top: 0.5rem;
+        }
+
+        .cli-section .success {
+            color: #10b981;
+        }
+
+        .file-tree {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            background: var(--code-bg);
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            margin: 1rem 0;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .file-tree .dir {
+            color: var(--accent);
+        }
+
+        .file-tree .file {
+            color: var(--text);
+        }
+
+        .file-tree .comment {
+            color: var(--text-light);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--code-bg);
+            font-weight: 500;
+        }
+
+        .layer-label {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.8rem;
+            font-family: 'IBM Plex Mono', monospace;
+            margin-right: 0.5rem;
+        }
+
+        .layer-label.source { background: #fef3c7; color: #92400e; }
+        .layer-label.staging { background: #d1fae5; color: #065f46; }
+        .layer-label.intermediate { background: #dbeafe; color: #1e40af; }
+        .layer-label.mart { background: #e9d5ff; color: #6b21a8; }
+
+        .mini-dashboard {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+            font-family: 'IBM Plex Sans', sans-serif;
+        }
+
+        .mini-dashboard-header {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mini-dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+
+        .mini-dashboard-card {
+            background: #334155;
+            padding: 0.75rem;
+        }
+
+        .mini-dashboard-card .room {
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            margin-bottom: 0.25rem;
+        }
+
+        .mini-dashboard-card .score {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .mini-dashboard-card .metric {
+            font-size: 0.7rem;
+            color: #94a3b8;
+        }
+
+        .mini-dashboard-card.healthy .score { color: #4ade80; }
+        .mini-dashboard-card.warning .score { color: #fbbf24; }
+        .mini-dashboard-card.critical .score { color: #f87171; }
+
+        .mini-dashboard-caption {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            text-align: center;
+            margin-top: 0.75rem;
+            font-style: italic;
+        }
+
+        @media (max-width: 600px) {
+            .mini-dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        ul, ol {
+            margin: 1rem 0 1rem 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .scenario-diagram {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+            }
+
+            .scenario-arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Building Analytics with dbt</h1>
+    <p class="lead">
+        A practical guide to transforming raw event data into dashboard-ready analytics tables using dbt (data build tool), demonstrated through hypothetical IoT device telemetry.
+    </p>
+
+    <h2>The Problem</h2>
+
+    <p>
+        Imagine you've been brought in to 'clean up the database' responsible for keeping track of AV devices deployed across office buildings. Each device emits events: connections, disconnections, screen shares, errors. The raw data lands in your warehouse as a stream of timestamped records.
+    </p>
+
+    <p>
+        Now imagine your precursors 'moved fast'.  They 'broke things'.  Whatever, they made a functioning product that people like enough to buy thousands and thousands of.  But their haste has left a knot of Hasura, SQL views, and GraphQL supplying the client admin dashboards neat looking data, but inefficiently and incomprehensibly.  How do we simplify so that we can fix problems, speed up queries, and add new analytics?
+    </p>
+
+    <div class="scenario-diagram">
+        <div class="scenario-box problem">
+            <strong>Raw Events</strong>
+            <div class="count">6,786</div>
+            <div class="desc">rows of timestamped events</div>
+            <div class="desc" style="margin-top: 0.5rem; font-family: monospace; font-size: 0.75rem;">
+                connect, disconnect, error...
+            </div>
+        </div>
+        <div class="scenario-arrow">→</div>
+        <div class="scenario-box solution">
+            <strong>dbt</strong>
+            <div class="count">?</div>
+            <div class="desc">transformation layer</div>
+            <div class="desc" style="margin-top: 0.5rem;">
+                SQL + testing + docs
+            </div>
+        </div>
+        <div class="scenario-arrow">→</div>
+        <div class="scenario-box goal">
+            <strong>Dashboard Tables</strong>
+            <div class="count">3</div>
+            <div class="desc">queryable marts</div>
+            <div class="desc" style="margin-top: 0.5rem; font-family: monospace; font-size: 0.75rem;">
+                health scores, utilization %
+            </div>
+        </div>
+    </div>
+
+    <div class="mini-dashboard">
+        <div class="mini-dashboard-header">
+            <span>Room Health Dashboard</span>
+            <span>Updated 15 min ago</span>
+        </div>
+        <div class="mini-dashboard-grid">
+            <div class="mini-dashboard-card healthy">
+                <div class="room">Board Room A</div>
+                <div class="score">98</div>
+                <div class="metric">45% util | 0 errors</div>
+            </div>
+            <div class="mini-dashboard-card healthy">
+                <div class="room">Huddle 301</div>
+                <div class="score">94</div>
+                <div class="metric">62% util | 1 error</div>
+            </div>
+            <div class="mini-dashboard-card warning">
+                <div class="room">Conference 201</div>
+                <div class="score">76</div>
+                <div class="metric">38% util | 12 errors</div>
+            </div>
+            <div class="mini-dashboard-card critical">
+                <div class="room">Training Room</div>
+                <div class="score">52</div>
+                <div class="metric">71% util | 31 errors</div>
+            </div>
+        </div>
+    </div>
+    <p class="mini-dashboard-caption">What the admin sees: clean, actionable metrics derived from the raw event stream.</p>
+
+    <p>
+        Our users want answers: Which devices are unhealthy? Which rooms are underutilized? How does usage compare across buildings? But the raw event stream cannot answer these questions directly. We need to:
+    </p>
+
+    <ul>
+        <li>Clean and standardize the data (lowercase event types, parse timestamps)</li>
+        <li>Build sessions from connect/disconnect pairs</li>
+        <li>Calculate utilization percentages and error rates</li>
+        <li>Aggregate into dashboard-friendly tables</li>
+    </ul>
+
+    <p>
+        This is the transformation layer. dbt provides a framework for building it with SQL, while adding version control, testing, documentation, and dependency management.
+    </p>
+
+    <h2>What is dbt?</h2>
+
+    <p>
+        dbt (data build tool) transforms data in your warehouse using SELECT statements. You write SQL files that define how raw data becomes analytics tables. dbt handles:
+    </p>
+
+    <ul>
+        <li><strong>Dependency resolution</strong> - models reference other models with <code>{{ ref('model_name') }}</code>, dbt builds them in the right order</li>
+        <li><strong>Materializations</strong> - choose whether each model becomes a view, table, or incremental table</li>
+        <li><strong>Testing</strong> - assert uniqueness, not-null constraints, referential integrity, custom logic</li>
+        <li><strong>Documentation</strong> - describe tables and columns in YAML, generate a searchable docs site</li>
+    </ul>
+
+    <div class="callout">
+        <p>
+            <strong>Key concept:</strong> dbt does not extract or load data. It assumes data already exists in your warehouse (loaded by Fivetran, Airbyte, custom scripts, etc.). dbt only transforms.
+        </p>
+    </div>
+
+    <p>
+        dbt is open source (Apache 2.0), created by Fishtown Analytics (now dbt Labs) in 2016. It is written in Python and uses Jinja2 for SQL templating. The core CLI is free; dbt Labs offers a paid Cloud product with scheduling, UI, and collaboration features. Adapters exist for most major warehouses: Snowflake, BigQuery, Redshift, Databricks, Postgres, DuckDB, and others.
+    </p>
+
+    <h2>Project Structure</h2>
+
+    <div class="file-tree">
+<span class="dir">iot-device-analytics/</span>
+├── <span class="file">dbt_project.yml</span>         <span class="comment"># project config</span>
+├── <span class="file">profiles.yml</span>            <span class="comment"># database connection</span>
+├── <span class="dir">seeds/</span>                  <span class="comment"># CSV files loaded as tables</span>
+│   ├── <span class="file">devices.csv</span>
+│   ├── <span class="file">locations.csv</span>
+│   └── <span class="file">raw_events.csv</span>
+├── <span class="dir">models/</span>
+│   ├── <span class="file">sources.yml</span>         <span class="comment"># declare raw data sources</span>
+│   ├── <span class="dir">staging/</span>            <span class="comment"># clean + standardize</span>
+│   ├── <span class="dir">intermediate/</span>       <span class="comment"># business logic</span>
+│   └── <span class="dir">marts/</span>              <span class="comment"># final tables for dashboards</span>
+├── <span class="dir">macros/</span>                 <span class="comment"># reusable SQL snippets</span>
+├── <span class="dir">tests/</span>                  <span class="comment"># custom test definitions</span>
+└── <span class="dir">snapshots/</span>              <span class="comment"># track slowly changing dimensions</span>
+    </div>
+
+    <h2>Layer 1: Sources</h2>
+
+    <p>
+        Sources declare the raw tables that exist in your warehouse. This creates a boundary between "data we receive" and "data we transform." You can also configure freshness checks to alert when data stops arriving.
+    </p>
+
+    <details>
+        <summary>models/sources.yml</summary>
+        <pre><code>version: 2
+
+sources:
+  - name: raw
+    description: Raw telemetry data from wireless presentation devices
+    schema: main
+    tables:
+      - name: raw_events
+        description: Event stream from devices
+        columns:
+          - name: event_id
+            description: Unique event identifier
+            tests:
+              - unique
+              - not_null
+          - name: device_id
+            description: Device identifier
+            tests:
+              - not_null
+          - name: event_type
+            description: Type of event (connect, disconnect, screen_share_start, screen_share_end, error)
+          - name: timestamp
+            description: When the event occurred
+
+        freshness:
+          warn_after: {count: 24, period: hour}
+          error_after: {count: 48, period: hour}
+
+      - name: devices
+        description: Device metadata including model, firmware, and location
+
+      - name: locations
+        description: Location metadata for buildings and rooms</code></pre>
+    </details>
+
+    <p>
+        Reference sources in SQL with <code>{{ source('raw', 'raw_events') }}</code>. This compiles to the actual table name and tracks what dbt calls "lineage".
+    </p>
+
+    <h2>Layer 2: Staging</h2>
+
+    <p>
+        Staging models clean and standardize raw data. They handle type casting, column renaming, basic filtering. One staging model per source table. Materialized as views (no data duplication).
+    </p>
+
+    <p><span class="layer-label staging">stg_raw_events</span> <span class="layer-label staging">stg_devices</span> <span class="layer-label staging">stg_locations</span></p>
+
+    <details>
+        <summary>models/staging/stg_raw_events.sql</summary>
+        <pre><code>-- Staging model for raw events
+-- Clean and standardize the event stream
+
+with source as (
+    select * from {{ source('raw', 'raw_events') }}
+),
+
+cleaned as (
+    select
+        event_id,
+        device_id,
+        lower(trim(event_type)) as event_type,
+        cast(timestamp as timestamp) as event_timestamp,
+        user_hash,
+        duration_seconds,
+        error_code,
+        date(cast(timestamp as timestamp)) as event_date,
+        extract(hour from cast(timestamp as timestamp)) as event_hour,
+        extract(dow from cast(timestamp as timestamp)) as day_of_week
+    from source
+)
+
+select * from cleaned</code></pre>
+    </details>
+
+    <details>
+        <summary>models/staging/stg_devices.sql</summary>
+        <pre><code>-- Staging model for device metadata
+
+with source as (
+    select * from {{ source('raw', 'devices') }}
+)
+
+select
+    device_id,
+    model,
+    firmware_version,
+    cast(install_date as date) as install_date,
+    room_name,
+    building,
+    floor,
+    capacity
+from source</code></pre>
+    </details>
+
+    <details>
+        <summary>models/staging/schema.yml</summary>
+        <pre><code>version: 2
+
+models:
+  - name: stg_raw_events
+    description: Cleaned and standardized event data
+    columns:
+      - name: event_id
+        description: Unique event identifier
+        tests:
+          - unique
+          - not_null
+      - name: device_id
+        description: Device identifier
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_devices')
+              field: device_id
+      - name: event_type
+        description: Type of event (standardized to lowercase)
+        tests:
+          - accepted_values:
+              values: ['connect', 'disconnect', 'screen_share_start', 'screen_share_end', 'error']
+
+  - name: stg_devices
+    description: Device metadata with location information
+    columns:
+      - name: device_id
+        tests:
+          - unique
+          - not_null
+      - name: model
+        tests:
+          - accepted_values:
+              values: ['PRO-4K', 'PLUS', 'BASIC']</code></pre>
+    </details>
+
+    <h2>Macros: Reusable Logic</h2>
+
+    <p>
+        Macros are Jinja templates that generate SQL. Define logic once, use it across models. Useful for business rules that appear in multiple places.
+    </p>
+
+    <details>
+        <summary>macros/business_hours.sql</summary>
+        <pre><code>{% macro is_business_hours(timestamp_column) %}
+{#
+    Returns true if timestamp falls within business hours.
+    Business hours: Monday-Friday, 8am-5pm
+#}
+    case
+        when extract(hour from {{ timestamp_column }}) between 8 and 17
+         and extract(dow from {{ timestamp_column }}) between 1 and 5
+        then true
+        else false
+    end
+{% endmacro %}</code></pre>
+    </details>
+
+    <details>
+        <summary>macros/calculate_utilization.sql</summary>
+        <pre><code>{% macro calculate_utilization(usage_minutes, total_minutes) %}
+{#
+    Calculates utilization percentage with null-safe division.
+#}
+    round(
+        ({{ usage_minutes }}::float / nullif({{ total_minutes }}::float, 0)) * 100,
+        2
+    )
+{% endmacro %}</code></pre>
+    </details>
+
+    <p>
+        Use macros in models: <code>{{ is_business_hours('event_timestamp') }}</code> compiles to the full CASE statement.
+    </p>
+
+    <h2>Layer 3: Intermediate</h2>
+
+    <p>
+        Intermediate models contain business logic: building sessions from events, calculating metrics, joining dimensions. These are the building blocks for final tables. Still materialized as views.
+    </p>
+
+    <p><span class="layer-label intermediate">int_device_utilization</span> <span class="layer-label intermediate">int_error_rates</span> <span class="layer-label intermediate">int_user_sessions</span></p>
+
+    <details>
+        <summary>models/intermediate/int_device_utilization.sql</summary>
+        <pre><code>-- Calculate hourly device utilization
+
+with events as (
+    select * from {{ ref('stg_raw_events') }}
+),
+
+devices as (
+    select * from {{ ref('stg_devices') }}
+),
+
+sessions as (
+    select
+        device_id,
+        event_date,
+        event_hour,
+        {{ is_business_hours('event_timestamp') }} as is_business_hours,
+        count(case when event_type = 'connect' then 1 end) as connection_count,
+        coalesce(sum(duration_seconds), 0) / 60.0 as usage_minutes
+    from events
+    where event_type in ('connect', 'disconnect')
+    group by 1, 2, 3, 4
+),
+
+hourly_utilization as (
+    select
+        s.device_id,
+        s.event_date,
+        s.event_hour,
+        s.is_business_hours,
+        s.connection_count,
+        s.usage_minutes,
+        {{ calculate_utilization('s.usage_minutes', '60') }} as utilization_pct,
+        d.room_name,
+        d.building,
+        d.capacity
+    from sessions s
+    left join devices d on s.device_id = d.device_id
+)
+
+select * from hourly_utilization</code></pre>
+    </details>
+
+    <details>
+        <summary>models/intermediate/int_user_sessions.sql</summary>
+        <pre><code>-- Build user sessions from event sequences
+-- New session starts after 30 minute gap
+
+with events as (
+    select * from {{ ref('stg_raw_events') }}
+),
+
+session_starts as (
+    select
+        event_id,
+        device_id,
+        user_hash,
+        event_timestamp,
+        event_type,
+        lag(event_timestamp) over (
+            partition by device_id, user_hash
+            order by event_timestamp
+        ) as prev_timestamp,
+        case
+            when datediff('minute',
+                 lag(event_timestamp) over (partition by device_id, user_hash order by event_timestamp),
+                 event_timestamp
+            ) > 30
+            then 1
+            when lag(event_timestamp) over (partition by device_id, user_hash order by event_timestamp) is null
+            then 1
+            else 0
+        end as is_new_session
+    from events
+    where event_type in ('connect', 'disconnect', 'screen_share_start', 'screen_share_end')
+),
+
+sessions_numbered as (
+    select
+        *,
+        sum(is_new_session) over (
+            partition by device_id, user_hash
+            order by event_timestamp
+            rows between unbounded preceding and current row
+        ) as session_number
+    from session_starts
+),
+
+sessions as (
+    select
+        device_id,
+        user_hash,
+        session_number,
+        concat(device_id, '-', user_hash, '-', session_number) as session_id,
+        min(event_timestamp) as session_start,
+        max(event_timestamp) as session_end,
+        datediff('minute', min(event_timestamp), max(event_timestamp)) as session_duration_minutes,
+        count(*) as event_count,
+        sum(case when event_type = 'screen_share_start' then 1 else 0 end) > 0 as had_screen_share
+    from sessions_numbered
+    group by 1, 2, 3, 4
+)
+
+select * from sessions</code></pre>
+    </details>
+
+    <details>
+        <summary>models/intermediate/int_error_rates.sql</summary>
+        <pre><code>-- Calculate daily error rates per device
+
+with events as (
+    select * from {{ ref('stg_raw_events') }}
+),
+
+devices as (
+    select * from {{ ref('stg_devices') }}
+),
+
+error_summary as (
+    select
+        e.device_id,
+        e.event_date,
+        d.firmware_version,
+        d.model,
+        count(case when e.event_type = 'error' then 1 end) as error_count,
+        count(*) as total_events,
+        round(
+            count(case when e.event_type = 'error' then 1 end)::float /
+            nullif(count(*)::float, 0) * 100,
+            2
+        ) as error_rate_pct
+    from events e
+    left join devices d on e.device_id = d.device_id
+    group by 1, 2, 3, 4
+)
+
+select * from error_summary</code></pre>
+    </details>
+
+    <h3>Incremental Models</h3>
+
+    <p>
+        For large tables, reprocessing everything on each run is expensive. Incremental models only process new or updated rows. dbt handles the merge logic.
+    </p>
+
+    <details>
+        <summary>models/intermediate/fct_sessions.sql (incremental)</summary>
+        <pre><code>{{
+    config(
+        materialized='incremental',
+        unique_key='session_id',
+        on_schema_change='append_new_columns'
+    )
+}}
+
+with sessions as (
+    select * from {{ ref('int_user_sessions') }}
+),
+
+devices as (
+    select * from {{ ref('stg_devices') }}
+)
+
+select
+    s.session_id,
+    s.device_id,
+    s.user_hash,
+    s.session_start,
+    s.session_end,
+    s.session_duration_minutes,
+    s.event_count,
+    s.had_screen_share,
+    d.room_name,
+    d.building,
+    d.floor,
+    date(s.session_start) as session_date,
+    {{ is_business_hours('s.session_start') }} as is_business_hours
+from sessions s
+left join devices d on s.device_id = d.device_id
+
+{% if is_incremental() %}
+    -- Only process sessions from last 3 days on incremental runs
+    where date(s.session_start) >= current_date - interval '3 days'
+{% endif %}</code></pre>
+    </details>
+
+    <p>
+        The <code>{% if is_incremental() %}</code> block only executes after the table exists. First run processes everything; subsequent runs only process recent data.
+    </p>
+
+    <h2>Layer 4: Marts</h2>
+
+    <p>
+        Marts are the final, denormalized tables that dashboards query. Wide tables with pre-joined dimensions and pre-calculated metrics. Materialized as tables for query performance.
+    </p>
+
+    <p><span class="layer-label mart">device_health_dashboard</span> <span class="layer-label mart">building_utilization</span> <span class="layer-label mart">room_summary</span></p>
+
+    <details>
+        <summary>models/marts/device_health_dashboard.sql</summary>
+        <pre><code>-- Daily health metrics per device for monitoring dashboards
+
+with devices as (
+    select * from {{ ref('stg_devices') }}
+),
+
+utilization as (
+    select
+        device_id,
+        event_date,
+        sum(usage_minutes) as total_usage_minutes,
+        avg(utilization_pct) as avg_utilization_pct,
+        sum(connection_count) as total_connections
+    from {{ ref('int_device_utilization') }}
+    group by 1, 2
+),
+
+errors as (
+    select
+        device_id,
+        event_date,
+        sum(error_count) as total_errors,
+        avg(error_rate_pct) as avg_error_rate_pct
+    from {{ ref('int_error_rates') }}
+    group by 1, 2
+),
+
+daily_metrics as (
+    select
+        d.device_id,
+        d.model,
+        d.firmware_version,
+        d.room_name,
+        d.building,
+        d.floor,
+        d.capacity,
+        coalesce(u.event_date, e.event_date) as metric_date,
+        coalesce(u.total_usage_minutes, 0) as usage_minutes,
+        coalesce(u.avg_utilization_pct, 0) as utilization_pct,
+        coalesce(u.total_connections, 0) as connection_count,
+        coalesce(e.total_errors, 0) as error_count,
+        coalesce(e.avg_error_rate_pct, 0) as error_rate_pct,
+        -- Health score: penalize errors, reward utilization
+        round(
+            greatest(0,
+                100
+                - (coalesce(e.avg_error_rate_pct, 0) * 2)
+                + (least(coalesce(u.avg_utilization_pct, 0), 80) * 0.25)
+            ),
+            0
+        ) as health_score
+    from devices d
+    left join utilization u on d.device_id = u.device_id
+    left join errors e on d.device_id = e.device_id
+        and u.event_date = e.event_date
+    where coalesce(u.event_date, e.event_date) is not null
+)
+
+select * from daily_metrics</code></pre>
+    </details>
+
+    <details>
+        <summary>models/marts/building_utilization.sql</summary>
+        <pre><code>-- Aggregated usage metrics by building for capacity planning
+
+with utilization as (
+    select * from {{ ref('int_device_utilization') }}
+),
+
+building_metrics as (
+    select
+        building,
+        event_date,
+        count(distinct device_id) as device_count,
+        sum(usage_minutes) as total_usage_minutes,
+        avg(utilization_pct) as avg_utilization_pct,
+        sum(connection_count) as total_connections,
+        sum(case when is_business_hours then usage_minutes else 0 end) as business_hours_usage,
+        sum(case when not is_business_hours then usage_minutes else 0 end) as after_hours_usage
+    from utilization
+    group by 1, 2
+)
+
+select
+    building,
+    event_date,
+    device_count,
+    total_usage_minutes,
+    round(avg_utilization_pct, 2) as avg_utilization_pct,
+    total_connections,
+    round(business_hours_usage, 2) as business_hours_usage,
+    round(after_hours_usage, 2) as after_hours_usage,
+    round(
+        (business_hours_usage::float / nullif(total_usage_minutes::float, 0)) * 100,
+        2
+    ) as business_hours_pct
+from building_metrics</code></pre>
+    </details>
+
+    <h2>The DAG</h2>
+
+    <p>
+        A note about Directed Acyclic Graphs: when it comes to breaking down problems or building solutions in that space where business hits computers, you're likely to see DAGs. Don't panic! If a DAG isn't necessary your problem isn't too complex; otherwise a graph (in the mathy sense, not the 📈 line graph sense) is likely the cleanest comprehensive view of your problem. If at first your graph looks like a mess, don't panic—iterate! There's no single right way to depict a graph, but the act of iterating on its structure and layout is itself an important part of data modeling and managing dependencies. If time is involved, your graph is probably directed and acyclic—even abstract concepts don't time travel.
+    </p>
+
+    <p>
+        dbt parses all <code>ref()</code> and <code>source()</code> calls to build a DAG. This determines execution order and tracks lineage.
+    </p>
+
+    <div class="mermaid-container">
+        <div class="mermaid">
+graph LR
+    A[raw_events] --> B[stg_raw_events]
+    C[devices] --> D[stg_devices]
+    E[locations] --> F[stg_locations]
+
+    B --> G[int_device_utilization]
+    B --> H[int_error_rates]
+    B --> I[int_user_sessions]
+
+    D --> G
+    D --> H
+    D --> I
+    F --> G
+
+    I --> J[fct_sessions]
+    D --> J
+
+    G --> K[device_health_dashboard]
+    H --> K
+    D --> K
+
+    G --> L[building_utilization]
+
+    J --> M[room_summary]
+    D --> M
+    F --> M
+
+    style A fill:#fef3c7,stroke:#f59e0b
+    style C fill:#fef3c7,stroke:#f59e0b
+    style E fill:#fef3c7,stroke:#f59e0b
+    style B fill:#d1fae5,stroke:#10b981
+    style D fill:#d1fae5,stroke:#10b981
+    style F fill:#d1fae5,stroke:#10b981
+    style G fill:#dbeafe,stroke:#3b82f6
+    style H fill:#dbeafe,stroke:#3b82f6
+    style I fill:#dbeafe,stroke:#3b82f6
+    style J fill:#dbeafe,stroke:#3b82f6
+    style K fill:#e9d5ff,stroke:#8b5cf6
+    style L fill:#e9d5ff,stroke:#8b5cf6
+    style M fill:#e9d5ff,stroke:#8b5cf6
+        </div>
+    </div>
+
+    <p>
+        <span class="layer-label source">source</span>
+        <span class="layer-label staging">staging</span>
+        <span class="layer-label intermediate">intermediate</span>
+        <span class="layer-label mart">mart</span>
+    </p>
+
+    <h3>The DAG in dbt Docs</h3>
+
+    <p>
+        dbt generates an interactive DAG visualization in its auto-generated docs. Click the graph icon to reveal the lineage:
+    </p>
+
+    <figure style="margin: 1.5rem 0; text-align: center;">
+        <img src="dag-button.png" alt="DAG button in dbt docs interface" style="max-width: 100%; border: 1px solid var(--border);">
+        <figcaption style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.5rem;">The lineage graph button in dbt's generated documentation</figcaption>
+    </figure>
+
+    <figure style="margin: 1.5rem 0; text-align: center;">
+        <img src="dbt-dag.png" alt="DAG visualization from dbt docs" style="max-width: 100%; border: 1px solid var(--border);">
+        <figcaption style="font-size: 0.85rem; color: var(--text-light); margin-top: 0.5rem;">The "lineage" graph from our IoT device analytics project.  Personally I find the words hard to read in this depiction and tend to use mermaidjs instead.</figcaption>
+    </figure>
+
+    <h2>Testing</h2>
+
+    <p>
+        Tests assert properties about your data. dbt includes generic tests (unique, not_null, accepted_values, relationships) and supports custom tests.
+    </p>
+
+    <h4>Generic tests (in schema.yml)</h4>
+    <pre><code>columns:
+  - name: device_id
+    tests:
+      - unique
+      - not_null
+      - relationships:
+          to: ref('stg_devices')
+          field: device_id</code></pre>
+
+    <h4>Custom test</h4>
+
+    <details>
+        <summary>tests/generic/test_session_duration_reasonable.sql</summary>
+        <pre><code>-- Validates session duration is between 0 and 24 hours
+
+{% test session_duration_reasonable(model, column_name) %}
+
+select *
+from {{ model }}
+where {{ column_name }} < 0
+   or {{ column_name }} > 1440  -- 24 hours in minutes
+
+{% endtest %}</code></pre>
+    </details>
+
+    <p>
+        Apply it in schema.yml:
+    </p>
+
+    <pre><code>- name: session_duration_minutes
+  tests:
+    - session_duration_reasonable</code></pre>
+
+    <h2>Snapshots</h2>
+
+    <p>
+        Snapshots track slowly changing dimensions (SCD Type 2). When a device's firmware version changes, the snapshot preserves the history with valid_from/valid_to timestamps.
+    </p>
+
+    <details>
+        <summary>snapshots/device_firmware_snapshot.sql</summary>
+        <pre><code>{% snapshot device_firmware_snapshot %}
+
+{{
+    config(
+      target_schema='snapshots',
+      unique_key='device_id',
+      strategy='check',
+      check_cols=['firmware_version'],
+    )
+}}
+
+select
+    device_id,
+    firmware_version,
+    model,
+    room_name,
+    building,
+    current_timestamp as updated_at
+from {{ ref('stg_devices') }}
+
+{% endsnapshot %}</code></pre>
+    </details>
+
+    <h2>CLI Commands</h2>
+
+    <p>
+        dbt runs from the command line. Here are the commands you will use most often.
+    </p>
+
+    <h3>dbt seed</h3>
+    <p>Loads CSV files from <code>seeds/</code> into tables.</p>
+
+    <div class="cli-section">
+        <span class="prompt">$</span> <span class="command">dbt seed --profiles-dir .</span>
+        <div class="output">
+Running with dbt=1.11.2
+Found 10 models, 1 snapshot, 3 seeds, 33 data tests, 3 sources
+
+1 of 3 START seed file main.devices
+2 of 3 START seed file main.locations
+3 of 3 START seed file main.raw_events
+1 of 3 OK loaded seed file main.devices .............. [<span class="success">INSERT 8</span>]
+2 of 3 OK loaded seed file main.locations ............ [<span class="success">INSERT 8</span>]
+3 of 3 OK loaded seed file main.raw_events ........... [<span class="success">INSERT 6786</span>]
+        </div>
+    </div>
+
+    <h3>dbt run</h3>
+    <p>Executes all models in dependency order. Creates views and tables.</p>
+
+    <div class="cli-section">
+        <span class="prompt">$</span> <span class="command">dbt run --profiles-dir .</span>
+        <div class="output">
+Running with dbt=1.11.2
+Concurrency: 4 threads (target='dev')
+
+1 of 10 START sql view model main_staging.stg_devices
+2 of 10 START sql view model main_staging.stg_raw_events
+3 of 10 START sql view model main_staging.stg_locations
+...
+8 of 10 START sql table model main_marts.device_health_dashboard
+9 of 10 START sql table model main_marts.building_utilization
+10 of 10 START sql table model main_marts.room_summary
+
+Completed successfully. PASS=10
+        </div>
+    </div>
+
+    <h3>dbt test</h3>
+    <p>Runs all tests defined in schema.yml files and the tests/ directory.</p>
+
+    <div class="cli-section">
+        <span class="prompt">$</span> <span class="command">dbt test --profiles-dir .</span>
+        <div class="output">
+Running with dbt=1.11.2
+Found 33 data tests
+
+1 of 33 START test unique_stg_raw_events_event_id
+2 of 33 START test not_null_stg_raw_events_device_id
+3 of 33 START test accepted_values_stg_raw_events_event_type
+...
+33 of 33 PASS session_duration_reasonable_fct_sessions
+
+Completed successfully. PASS=33 WARN=0 ERROR=0
+        </div>
+    </div>
+
+    <h3>dbt build</h3>
+    <p>Runs seeds, models, snapshots, and tests in dependency order. The command you will use most often.</p>
+
+    <div class="cli-section">
+        <span class="prompt">$</span> <span class="command">dbt build --profiles-dir .</span>
+        <div class="output">
+Running with dbt=1.11.2
+Found 10 models, 1 snapshot, 3 seeds, 33 data tests, 3 sources
+
+Completed successfully. PASS=47 WARN=0 ERROR=0 SKIP=0
+        </div>
+    </div>
+
+    <h3>dbt docs generate / serve</h3>
+    <p>Generates documentation from your schema.yml descriptions and serves it as a searchable website with lineage graphs.  Note we can also take the generated 'target' directory and serve it as a static web app.  The docs for this iot devices example can be seen <a href='target/'>here</a></p>
+
+    <div class="cli-section">
+        <span class="prompt">$</span> <span class="command">dbt docs generate --profiles-dir .</span>
+        <div class="output">
+Catalog written to target/catalog.json
+        </div>
+        <br>
+        <span class="prompt">$</span> <span class="command">dbt docs serve --profiles-dir .</span>
+        <div class="output">
+Serving docs at http://localhost:8080
+        </div>
+    </div>
+
+    <h3>Selective execution</h3>
+    <p>Run specific models or groups of models.</p>
+
+    <div class="cli-section">
+        <span class="comment"># Run a single model</span><br>
+        <span class="prompt">$</span> <span class="command">dbt run --select device_health_dashboard</span>
+        <br><br>
+        <span class="comment"># Run a model and all its upstream dependencies</span><br>
+        <span class="prompt">$</span> <span class="command">dbt run --select +device_health_dashboard</span>
+        <br><br>
+        <span class="comment"># Run all models in the marts directory</span><br>
+        <span class="prompt">$</span> <span class="command">dbt run --select marts.*</span>
+        <br><br>
+        <span class="comment"># Run models that have changed (git diff)</span><br>
+        <span class="prompt">$</span> <span class="command">dbt run --select state:modified+</span>
+    </div>
+
+    <h2>Keeping Data Fresh</h2>
+
+    <p>
+        Staging and intermediate models are materialized as <strong>views</strong>, so they always reflect current source data when queried. But mart models are <strong>tables</strong>, which means they are snapshots from when <code>dbt run</code> last executed.
+    </p>
+
+    <p>
+        To keep dashboards current, you need to run dbt on a schedule. Common approaches:
+    </p>
+
+    <ul>
+        <li><strong>Cron</strong>: <code>0 * * * * cd /path/to/project && dbt run</code> (hourly)</li>
+        <li><strong>Airflow / Dagster</strong>: DAG that triggers dbt after source data loads</li>
+        <li><strong>dbt Cloud</strong>: Built-in job scheduler with monitoring</li>
+        <li><strong>CI/CD</strong>: GitHub Actions on a timer or triggered by upstream events</li>
+    </ul>
+
+    <p>
+        The interval depends on your freshness requirements. Real-time dashboards might run every 5 minutes; daily reports might run once at midnight. The tradeoff is compute cost vs. staleness.
+    </p>
+
+    <p>
+        And note we could make marts materialize as views as well.  The convention is to have those marts be incrementally updated tables, serving effectively as caches.  But if your mart is simple and traffic is low, a view is fine. Or if freshness matters more than query speed. It's a tradeoff you choose based on your situation.       
+    </p>
+
+    <h2>Configuration</h2>
+
+    <details>
+        <summary>dbt_project.yml</summary>
+        <pre><code>name: 'device_analytics'
+version: '1.0.0'
+config-version: 2
+
+profile: 'device_analytics'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+test-paths: ["tests"]
+
+models:
+  device_analytics:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+    marts:
+      +materialized: table
+      +schema: marts</code></pre>
+    </details>
+
+    <details>
+        <summary>profiles.yml (DuckDB)</summary>
+        <pre><code>device_analytics:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: device_analytics.duckdb
+      threads: 4</code></pre>
+    </details>
+
+    <h2>Summary</h2>
+
+    <table>
+        <tr>
+            <th>Layer</th>
+            <th>Purpose</th>
+            <th>Materialization</th>
+            <th>Example</th>
+        </tr>
+        <tr>
+            <td><span class="layer-label source">source</span></td>
+            <td>Declare raw data</td>
+            <td>n/a (already exists)</td>
+            <td>raw_events, devices</td>
+        </tr>
+        <tr>
+            <td><span class="layer-label staging">staging</span></td>
+            <td>Clean, standardize</td>
+            <td>view</td>
+            <td>stg_raw_events</td>
+        </tr>
+        <tr>
+            <td><span class="layer-label intermediate">intermediate</span></td>
+            <td>Business logic</td>
+            <td>view / incremental</td>
+            <td>int_user_sessions</td>
+        </tr>
+        <tr>
+            <td><span class="layer-label mart">mart</span></td>
+            <td>Dashboard tables</td>
+            <td>table</td>
+            <td>device_health_dashboard</td>
+        </tr>
+    </table>
+
+    <p>
+        The transformation layer is now documented, tested, version-controlled, and produces the exact tables your dashboards need. When requirements change, you modify SQL files, run <code>dbt build</code>, and the pipeline updates.
+    </p>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                primaryColor: '#e6f2ff',
+                primaryTextColor: '#1a1a1a',
+                primaryBorderColor: '#0066cc',
+                lineColor: '#666',
+                secondaryColor: '#f5f5f5',
+                tertiaryColor: '#fafafa'
+            },
+            flowchart: {
+                curve: 'linear'
+            }
+        });
+    </script>
+</body>
+</html>

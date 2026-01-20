@@ -1,0 +1,76 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Raw telemetry data from wireless presentation devices
+    schema: main
+    tables:
+      - name: raw_events
+        description: Event stream from devices - connects, disconnects, screen shares, and errors
+        columns:
+          - name: event_id
+            description: Unique event identifier
+            tests:
+              - unique
+              - not_null
+          - name: device_id
+            description: Device identifier
+            tests:
+              - not_null
+          - name: event_type
+            description: Type of event (connect, disconnect, screen_share_start, screen_share_end, error)
+            tests:
+              - not_null
+          - name: timestamp
+            description: When the event occurred
+            tests:
+              - not_null
+          - name: user_hash
+            description: Anonymized user identifier
+          - name: duration_seconds
+            description: Session duration (only present on disconnect events)
+          - name: error_code
+            description: Error code (only present on error events)
+
+        # Freshness check (expect data every 24 hours)
+        freshness:
+          warn_after: {count: 24, period: hour}
+          error_after: {count: 48, period: hour}
+
+      - name: devices
+        description: Device metadata including model, firmware, and location
+        columns:
+          - name: device_id
+            description: Unique device identifier
+            tests:
+              - unique
+              - not_null
+          - name: model
+            description: Device model (PRO-4K, PLUS, BASIC)
+          - name: firmware_version
+            description: Current firmware version
+          - name: room_name
+            description: Name of the room where device is installed
+          - name: building
+            description: Building name
+          - name: floor
+            description: Floor number
+          - name: capacity
+            description: Room capacity (number of people)
+
+      - name: locations
+        description: Location metadata for buildings and rooms
+        columns:
+          - name: location_id
+            description: Unique location identifier
+            tests:
+              - unique
+              - not_null
+          - name: building
+            description: Building name
+          - name: floor
+            description: Floor number
+          - name: room_type
+            description: Type of room (conference, huddle, lab, etc.)
+          - name: sq_feet
+            description: Room size in square feet
