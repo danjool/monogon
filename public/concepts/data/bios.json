@@ -272,7 +272,7 @@
 {"id":"J. M. Coetzee","time":1940,"type":"person","category":"literary_experimentalists"},
 {"id":"Christopher de Hamel","type":"person","category":"historiography"},
 {"id":"Chiara Marletto","type":"person","category":"physics"},
-{"id":"Stephen Fry","type":"person","category":"literary_experimentalists"},
+{"id":"Stephen Fry","time":1957,"type":"person","category":"literary_experimentalists"},
 {"id":"Michael Crichton","type":"person","time":1942,"category":"science_fiction"},
 {"id":"Bryan Magee","type":"person","time":1930,"category":"critical_theory"},
 {"id":"Robert Oppenheimer","time":1904,"type":"person","category":"physics"},
