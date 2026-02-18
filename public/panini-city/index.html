@@ -1,0 +1,1844 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Panini Projection - Low Poly City</title>
+        <style>
+            :root {
+                --bg: #0b0d12;
+                --panel: rgba(14, 18, 27, 0.84);
+                --text: #e9edf7;
+                --accent: #9fd4ff;
+                --line: rgba(255, 255, 255, 0.14);
+            }
+            html,
+            body {
+                margin: 0;
+                height: 100%;
+                background: var(--bg);
+                color: var(--text);
+                overflow: hidden;
+            }
+            canvas {
+                display: block;
+            }
+            #ui {
+                position: fixed;
+                left: 12px;
+                bottom: 12px;
+                z-index: 10;
+                width: min(390px, calc(100vw - 24px));
+                background: var(--panel);
+                border: 1px solid var(--line);
+                border-radius: 0;
+                padding: 12px;
+                font:
+                    13px/1.35 ui-sans-serif,
+                    system-ui,
+                    -apple-system,
+                    Segoe UI,
+                    Roboto,
+                    Helvetica,
+                    Arial;
+                backdrop-filter: blur(8px);
+            }
+            #ui h1 {
+                margin: 0 0 10px;
+                font-size: 13px;
+                letter-spacing: 0.02em;
+                color: var(--accent);
+                text-transform: uppercase;
+            }
+            .actions {
+                margin: 0 0 10px;
+                display: flex;
+                gap: 8px;
+            }
+            .row {
+                margin: 7px 0;
+                display: grid;
+                grid-template-columns: 1fr auto;
+                align-items: center;
+                gap: 10px;
+            }
+            .row input[type="range"] {
+                width: 100%;
+            }
+            #cameraMode {
+                background: rgba(255, 255, 255, 0.08);
+                color: var(--text);
+                border: 1px solid var(--line);
+                border-radius: 0;
+                padding: 6px 8px;
+                font: inherit;
+            }
+            .hint {
+                margin-top: 10px;
+                opacity: 0.86;
+            }
+            #aboutToggle,
+            #hideToggle {
+                background: rgba(14, 18, 27, 0.84);
+                color: var(--text);
+                border: 1px solid var(--line);
+                border-radius: 0;
+                padding: 6px 8px;
+                font:
+                    13px/1.35 ui-sans-serif,
+                    system-ui,
+                    -apple-system,
+                    Segoe UI,
+                    Roboto,
+                    Helvetica,
+                    Arial;
+                cursor: pointer;
+            }
+            #aboutOverlay {
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: min(560px, 48vw);
+                height: 100dvh;
+                z-index: 19;
+                display: none;
+                background: rgba(8, 10, 16, 0.68);
+                color: var(--text);
+                box-sizing: border-box;
+                overflow-y: auto;
+                overflow-x: hidden;
+                overscroll-behavior: contain;
+                -webkit-overflow-scrolling: touch;
+                touch-action: pan-y;
+                padding: 18px 16px;
+                line-height: 1.45;
+                border-left: 1px solid var(--line);
+            }
+            #aboutOverlay.open {
+                display: block;
+            }
+            #aboutOverlay h2 {
+                margin: 0 0 10px;
+                font-size: 18px;
+                color: var(--accent);
+            }
+            #aboutOverlay h3 {
+                margin: 14px 0 8px;
+                font-size: 14px;
+                color: var(--accent);
+            }
+            #aboutOverlay p {
+                margin: 8px 0;
+                opacity: 0.95;
+            }
+            #aboutOverlay ul {
+                margin: 8px 0 0;
+                padding-left: 18px;
+            }
+            #aboutOverlay a {
+                color: #b8dcff;
+            }
+            #aboutOverlay math {
+                display: block;
+                margin: 10px 0;
+                overflow-x: auto;
+            }
+            #aboutOverlay .math-note {
+                font-size: 12px;
+                opacity: 0.85;
+            }
+            #status {
+                position: fixed;
+                right: 12px;
+                bottom: 12px;
+                z-index: 9;
+                background: rgba(14, 18, 27, 0.84);
+                border: 1px solid var(--line);
+                color: var(--text);
+                font:
+                    12px/1.25 ui-sans-serif,
+                    system-ui,
+                    -apple-system,
+                    Segoe UI,
+                    Roboto,
+                    Helvetica,
+                    Arial;
+                padding: 8px 10px;
+                max-width: min(380px, calc(100vw - 24px));
+            }
+        </style>
+    </head>
+    <body>
+        <div id="ui">
+            <h1>Panini Projection</h1>
+            <div class="actions">
+                <button id="aboutToggle" type="button">(A)bout</button>
+                <button id="hideToggle" type="button">(H)ide Settings</button>
+            </div>
+
+            <div id="settingsBody">
+            <div class="row">
+                <label for="cameraMode">Camera Mode</label>
+                <select id="cameraMode">
+                    <option value="orbit">Orbit</option>
+                    <option value="fp" selected>First Person</option>
+                </select>
+            </div>
+
+            <div class="row">
+                <label for="togglePanini">Panini Enabled</label>
+                <input id="togglePanini" type="checkbox" checked />
+            </div>
+
+            <div class="row">
+                <label for="rtMsaa">RT MSAA (WebGL2)</label>
+                <input id="rtMsaa" type="checkbox" checked />
+            </div>
+
+            <div class="row">
+                <label for="pixelRatio">DPR Multiplier</label>
+                <span id="pixelRatioLabel">1.00</span>
+            </div>
+            <div class="row">
+                <input
+                    id="pixelRatio"
+                    type="range"
+                    min="0.5"
+                    max="8"
+                    step="0.05"
+                    value="1"
+                />
+                <span></span>
+            </div>
+
+            <div class="row">
+                <label for="fov">FOV (deg)</label>
+                <span id="fovLabel">100</span>
+            </div>
+            <div class="row">
+                <input
+                    id="fov"
+                    type="range"
+                    min="40"
+                    max="150"
+                    step="1"
+                    value="140"
+                />
+                <span></span>
+            </div>
+
+            <div class="row">
+                <label for="d">Panini D</label>
+                <span id="dLabel">1.00</span>
+            </div>
+            <div class="row">
+                <input
+                    id="d"
+                    type="range"
+                    min="0"
+                    max="3"
+                    step="0.01"
+                    value="1.00"
+                />
+                <span></span>
+            </div>
+            <div class="row">
+                <label for="coordsLabel">Camera XYZ</label>
+                <span id="coordsLabel">0.00, 0.00, 0.00</span>
+            </div>
+            </div>
+        </div>
+        <div id="aboutOverlay">
+            <h2>About Panini Projection</h2>
+            <p>
+                Panini projection is a cylindrical-perspective family used for
+                wide-FOV images. Compared with rectilinear projection, it
+                reduces edge stretching while keeping vertical lines visually
+                stable, which is useful for architecture and first-person
+                wide-angle views.
+            </p>
+            <p>
+                This demo renders a standard perspective scene to a texture,
+                then applies Panini in a fullscreen post shader using inverse
+                mapping. The D slider controls projection strength.
+            </p>
+            <h3>Historical Note</h3>
+            <p>
+                Giovanni Paolo Pannini (1691-1765) was an Italian painter known
+                for architectural vedute and large interior scenes with very
+                wide perspective space. Modern Panini projection techniques are
+                a computational rediscovery/formalization of related wide-view
+                perspective practices associated with that tradition.
+            </p>
+            <h3>Shader Mapping (MathML)</h3>
+            <p>
+                The fragment shader applies an inverse Panini mapping from
+                output normalized coordinates <code>(u,v)</code> to source
+                perspective coordinates:
+            </p>
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+                <mtable columnalign="left">
+                    <mtr>
+                        <mtd>
+                            <mrow>
+                                <mi>k</mi><mo>=</mo><mi>d</mi><mo>+</mo
+                                ><mn>1</mn>
+                            </mrow>
+                        </mtd>
+                    </mtr>
+                    <mtr>
+                        <mtd>
+                            <mrow>
+                                <mi>R</mi><mo>=</mo>
+                                <msqrt>
+                                    <msup><mi>k</mi><mn>2</mn></msup>
+                                    <mo>+</mo>
+                                    <msup><mi>u</mi><mn>2</mn></msup>
+                                </msqrt>
+                            </mrow>
+                        </mtd>
+                    </mtr>
+                    <mtr>
+                        <mtd>
+                            <mrow>
+                                <mi>&#x03B1;</mi><mo>=</mo><mi>atan2</mi
+                                ><mo>(</mo><mi>u</mi><mo>,</mo><mi>k</mi
+                                ><mo>)</mo>
+                            </mrow>
+                        </mtd>
+                    </mtr>
+                    <mtr>
+                        <mtd>
+                            <mrow>
+                                <mi>&#x03B8;</mi><mo>=</mo><mi>&#x03B1;</mi
+                                ><mo>+</mo>
+                                <mi>asin</mi>
+                                <mo>(</mo>
+                                <mfrac>
+                                    <mrow><mi>u</mi><mi>d</mi></mrow>
+                                    <mi>R</mi>
+                                </mfrac>
+                                <mo>)</mo>
+                            </mrow>
+                        </mtd>
+                    </mtr>
+                    <mtr>
+                        <mtd>
+                            <mrow>
+                                <mi>c</mi><mo>=</mo><mi>cos</mi><mo>(</mo
+                                ><mi>&#x03B8;</mi><mo>)</mo>
+                            </mrow>
+                        </mtd>
+                    </mtr>
+                    <mtr>
+                        <mtd>
+                            <mrow>
+                                <mi>tan</mi><mi>&#x03D5;</mi><mo>=</mo>
+                                <mfrac>
+                                    <mrow
+                                        ><mi>v</mi><mo>(</mo><mi>d</mi><mo>+</mo
+                                        ><mi>c</mi><mo>)</mo></mrow
+                                    >
+                                    <mi>k</mi>
+                                </mfrac>
+                            </mrow>
+                        </mtd>
+                    </mtr>
+                    <mtr>
+                        <mtd>
+                            <mrow>
+                                <mi>x</mi><mo>=</mo><mi>tan</mi><mo>(</mo
+                                ><mi>&#x03B8;</mi><mo>)</mo>
+                            </mrow>
+                        </mtd>
+                    </mtr>
+                    <mtr>
+                        <mtd>
+                            <mrow>
+                                <mi>y</mi><mo>=</mo>
+                                <mfrac>
+                                    <mrow><mi>tan</mi><mi>&#x03D5;</mi></mrow>
+                                    <mi>c</mi>
+                                </mfrac>
+                            </mrow>
+                        </mtd>
+                    </mtr>
+                </mtable>
+            </math>
+            <p class="math-note">
+                Then <code>(x,y)</code> is normalized by
+                <code>tanHalfFovX</code>/<code>tanHalfFovY</code> and sampled
+                from the source render target.
+            </p>
+            <h3>References</h3>
+            <ul>
+                <li>
+                    <a
+                        href="https://dev.epicgames.com/documentation/en-us/unreal-engine/panini-projection-in-unreal-engine"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Panini Projection in Unreal Engine</a
+                    >
+                </li>
+                <li>
+                    Sharpless, Postle, German (2010):
+                    <a
+                        href="https://doi.org/10.2312/COMPAESTH/COMPAESTH10/009-016"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Pannini: A New Projection for Rendering Wide Angle
+                        Perspective Images</a
+                    >.
+                </li>
+                <li>
+                    Sharpless: <a
+                        href="http://tksharpless.net/vedutismo/Pannini/panini.pdf"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Vedutismo / Panini Notes (PDF)</a
+                    >.
+                </li>
+            </ul>
+            <h3>Creative Commons Attribution</h3>
+            <ul>
+                <li>
+                    Skybox:
+                    <a
+                        href="https://sketchfab.com/3d-models/skybox-summer-stylized-7e3555a977a442869e7efdf68d3b67bc"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Skybox Summer Stylized</a
+                    >
+                    by Tien Pham.
+                </li>
+                <li>
+                    City:
+                    <a
+                        href="https://sketchfab.com/3d-models/low-poly-city-41697300a4c643d089784b8688b2ed2c"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Low Poly City</a
+                    >
+                    by Alessandro.Diamanti.
+                </li>
+            </ul>
+        </div>
+
+        <div id="status">Loading low_poly_city/scene.gltf...</div>
+
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+                    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"
+                }
+            }
+        </script>
+
+        <script type="module">
+            import * as THREE from "three";
+            import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+            import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+            import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+            import RAPIER from "https://cdn.skypack.dev/@dimforge/rapier3d-compat";
+
+            const ui = {
+                panel: document.getElementById("ui"),
+                cameraMode: document.getElementById("cameraMode"),
+                paniniToggle: document.getElementById("togglePanini"),
+                rtMsaa: document.getElementById("rtMsaa"),
+                pixelRatio: document.getElementById("pixelRatio"),
+                pixelRatioLabel: document.getElementById("pixelRatioLabel"),
+                fov: document.getElementById("fov"),
+                fovLabel: document.getElementById("fovLabel"),
+                d: document.getElementById("d"),
+                dLabel: document.getElementById("dLabel"),
+                coordsLabel: document.getElementById("coordsLabel"),
+                aboutToggle: document.getElementById("aboutToggle"),
+                hideToggle: document.getElementById("hideToggle"),
+                settingsBody: document.getElementById("settingsBody"),
+                aboutOverlay: document.getElementById("aboutOverlay"),
+                status: document.getElementById("status"),
+            };
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.35;
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x171c27);
+            scene.fog = new THREE.Fog(0x171c27, 180, 700);
+
+            const camera = new THREE.PerspectiveCamera(
+                140,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1200,
+            );
+            camera.position.set(23.2, 8.15, -23.75);
+
+            const orbit = new OrbitControls(camera, renderer.domElement);
+            orbit.enableDamping = true;
+            orbit.dampingFactor = 0.06;
+            orbit.target.set(0, 10, 0);
+            orbit.maxDistance = 700;
+            orbit.minDistance = 3;
+            orbit.update();
+
+            const fp = new PointerLockControls(camera, renderer.domElement);
+            scene.add(fp.getObject());
+
+            let mode = "orbit";
+            let uiVisible = true;
+            const keyState = {
+                w: false,
+                a: false,
+                s: false,
+                d: false,
+                up: false,
+                down: false,
+                sprint: false,
+            };
+            const moveDir = new THREE.Vector3();
+            const FP_START_POS = new THREE.Vector3(21.6, 8.15, -23.75);
+            const FP_START_FORWARD = new THREE.Vector3(-1, 0, 0);
+            const FP_EYE_HEIGHT = 1.4;
+            const FP_RADIUS = 0.125;
+            const FP_HALF_HEIGHT = FP_EYE_HEIGHT - FP_RADIUS;
+            const FP_STEP_HEIGHT = 1.0;
+            const FP_GRAVITY = -9.81;
+            const FP_JUMP_VELOCITY = 8.5;
+            const FP_MAX_FALL_SPEED = 400;
+            const BAKED_PANINI_IMAGE_URL =
+                "./Ca'_Rezzonico_-_Interno_della_basilica_di_San_Pietro_a_Roma_-_Giampaolo_Pannini.jpg";
+            const PLACEMENT_PANINI_IMAGE_URL =
+                "./Pannini,_Giovanni_Paolo_-_Interior_of_the_Santa_Maria_Maggiore_in_Rome_-_1750s.jpg";
+            const PANINI_WIDTH = 6.6;
+            const PLACEMENT_PANINI_SCALE = 1.4;
+            const PANINI_BRIGHTNESS = 2.0;
+            const PANINI_FRAME_THICKNESS = 0.08;
+            const PANINI_OFFSET = 0.06;
+            const PANINI_GHOST_OPACITY = 0.45;
+            const ENABLE_DYNAMIC_PANINI_PLACEMENT = false;
+            const ENABLE_DYNAMIC_MATH_GRAFFITI_PLACEMENT = false;
+            const MATH_GRAFFITI_WIDTH = 10.0;
+            const MATH_GRAFFITI_OFFSET = 0.03;
+            const MATH_GRAFFITI_OPACITY = 0.95;
+            const MATH_GRAFFITI_GHOST_OPACITY = 0.45;
+            const BAKED_MATH_GRAFFITI_PLACEMENTS = [
+                {
+                    position: { x: 18.1818, y: 8.0596, z: -22.2875 },
+                    normal: { x: 0, y: 0, z: -1 },
+                    rotationEuler: { x: 3.141592, y: 0, z: -3.141593 },
+                },
+            ];
+            const BAKED_PANINI_PLACEMENTS = [
+                {
+                    image: "baked",
+                    scale: 1.0,
+                    position: { x: 13.854, y: 10.4641, z: -9.7652 },
+                    normal: { x: -1, y: 0, z: 0 },
+                    rotationEuler: { x: 0, y: -1.570796, z: 0 },
+                },
+                {
+                    image: "placement",
+                    scale: PLACEMENT_PANINI_SCALE,
+                    position: { x: 12.2988, y: 10.5738, z: -37.6584 },
+                    normal: { x: 0, y: 0, z: 1 },
+                    rotationEuler: { x: 0, y: 0, z: 0 },
+                },
+            ];
+            let rapierReady = false;
+            let physicsWorld = null;
+            let staticBody = null;
+            let playerBody = null;
+            let playerCollider = null;
+            let characterController = null;
+            let skyboxRoot = null;
+            let skyboxBaseMaxSize = 1;
+            let cityFitSize = null;
+            let paniniTexture = null;
+            let bakedPaniniTexture = null;
+            let paniniPreview = null;
+            let paniniPendingPlacement = null;
+            let mathGraffitiTexture = null;
+            let mathGraffitiPreview = null;
+            let mathGraffitiPendingPlacement = null;
+            let bakedPaniniSpawned = false;
+            let bakedMathGraffitiSpawned = false;
+            let fpVerticalVelocity = 0;
+            const tempForward = new THREE.Vector3();
+            const tempRight = new THREE.Vector3();
+            const desiredMove = new THREE.Vector3();
+            const scratchVec = new THREE.Vector3();
+            const raycaster = new THREE.Raycaster();
+            const cityRaycastTargets = [];
+            const hitNormal = new THREE.Vector3();
+            const placementUp = new THREE.Vector3(0, 1, 0);
+            const placementForward = new THREE.Vector3();
+
+            const hemi = new THREE.HemisphereLight(0xf0f6ff, 0x546075, 4.15);
+            scene.add(hemi);
+
+            const sun = new THREE.DirectionalLight(0xffffff, 1.8);
+            sun.position.set(120, 220, 90);
+            scene.add(sun);
+
+            const fill = new THREE.DirectionalLight(0xcfd9ff, 0.8);
+            fill.position.set(-120, 80, -120);
+            scene.add(fill);
+
+            const floor = new THREE.Mesh(
+                new THREE.PlaneGeometry(2000, 2000),
+                new THREE.MeshStandardMaterial({
+                    color: 0x4f8a3b,
+                    roughness: 0.98,
+                    metalness: 0.0,
+                }),
+            );
+            floor.rotation.x = -Math.PI * 0.5;
+            scene.add(floor);
+            cityRaycastTargets.push(floor);
+
+            const textureLoader = new THREE.TextureLoader();
+
+            function loadTexture(url, onLoad, label) {
+                textureLoader.load(
+                    url,
+                    (tex) => {
+                        tex.colorSpace = THREE.SRGBColorSpace;
+                        onLoad(tex);
+                    },
+                    undefined,
+                    (err) => {
+                        console.warn(
+                            `${label} failed to load:`,
+                            err?.message || err,
+                        );
+                    },
+                );
+            }
+
+            loadTexture(
+                BAKED_PANINI_IMAGE_URL,
+                (tex) => {
+                    bakedPaniniTexture = tex;
+                    spawnBakedPaninis();
+                },
+                "Baked panini image",
+            );
+            loadTexture(
+                PLACEMENT_PANINI_IMAGE_URL,
+                (tex) => {
+                    paniniTexture = tex;
+                    spawnBakedPaninis();
+                },
+                "Placement panini image",
+            );
+
+            function createMathGraffitiTexture() {
+                const w = 2048;
+                const h = 1024;
+                const mml = `
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+  <mtable columnalign="left">
+    <mtr>
+      <mtd>
+        <mrow>
+          <mi>x</mi><mo>=</mo>
+          <mi>tan</mi><mo>(</mo>
+          <mi>atan2</mi><mo>(</mo><mi>u</mi><mo>,</mo><mo>(</mo><mi>d</mi><mo>+</mo><mn>1</mn><mo>)</mo><mo>)</mo>
+          <mo>+</mo>
+          <mi>asin</mi><mo>(</mo>
+          <mfrac>
+            <mrow><mi>u</mi><mi>d</mi></mrow>
+            <msqrt>
+              <msup><mrow><mo>(</mo><mi>d</mi><mo>+</mo><mn>1</mn><mo>)</mo></mrow><mn>2</mn></msup>
+              <mo>+</mo>
+              <msup><mi>u</mi><mn>2</mn></msup>
+            </msqrt>
+          </mfrac>
+          <mo>)</mo>
+          <mo>)</mo>
+        </mrow>
+      </mtd>
+    </mtr>
+    <mtr>
+      <mtd>
+        <mrow>
+          <mi>y</mi><mo>=</mo>
+          <mfrac>
+            <mrow>
+              <mi>v</mi>
+              <mo>(</mo>
+              <mi>d</mi>
+              <mo>+</mo>
+              <mi>cos</mi><mo>(</mo>
+              <mi>atan2</mi><mo>(</mo><mi>u</mi><mo>,</mo><mo>(</mo><mi>d</mi><mo>+</mo><mn>1</mn><mo>)</mo><mo>)</mo>
+              <mo>+</mo>
+              <mi>asin</mi><mo>(</mo>
+              <mfrac>
+                <mrow><mi>u</mi><mi>d</mi></mrow>
+                <msqrt>
+                  <msup><mrow><mo>(</mo><mi>d</mi><mo>+</mo><mn>1</mn><mo>)</mo></mrow><mn>2</mn></msup>
+                  <mo>+</mo>
+                  <msup><mi>u</mi><mn>2</mn></msup>
+                </msqrt>
+              </mfrac>
+              <mo>)</mo>
+              <mo>)</mo>
+              <mo>)</mo>
+            </mrow>
+            <mrow>
+              <mo>(</mo><mi>d</mi><mo>+</mo><mn>1</mn><mo>)</mo>
+              <mi>cos</mi><mo>(</mo>
+              <mi>atan2</mi><mo>(</mo><mi>u</mi><mo>,</mo><mo>(</mo><mi>d</mi><mo>+</mo><mn>1</mn><mo>)</mo><mo>)</mo>
+              <mo>+</mo>
+              <mi>asin</mi><mo>(</mo>
+              <mfrac>
+                <mrow><mi>u</mi><mi>d</mi></mrow>
+                <msqrt>
+                  <msup><mrow><mo>(</mo><mi>d</mi><mo>+</mo><mn>1</mn><mo>)</mo></mrow><mn>2</mn></msup>
+                  <mo>+</mo>
+                  <msup><mi>u</mi><mn>2</mn></msup>
+                </msqrt>
+              </mfrac>
+              <mo>)</mo>
+              <mo>)</mo>
+            </mrow>
+          </mfrac>
+        </mrow>
+      </mtd>
+    </mtr>
+  </mtable>
+</math>`;
+                const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}">
+  <foreignObject width="100%" height="100%">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:transparent;color:white;font-size:58px;line-height:1.2;">
+      ${mml}
+    </div>
+  </foreignObject>
+</svg>`;
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement("canvas");
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext("2d");
+                        if (!ctx) {
+                            reject(new Error("No 2D context for math texture"));
+                            return;
+                        }
+                        ctx.clearRect(0, 0, w, h);
+                        ctx.drawImage(img, 0, 0);
+                        const tex = new THREE.CanvasTexture(canvas);
+                        tex.colorSpace = THREE.SRGBColorSpace;
+                        tex.needsUpdate = true;
+                        resolve(tex);
+                    };
+                    img.onerror = () =>
+                        reject(
+                            new Error("MathML texture image creation failed"),
+                        );
+                    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+                });
+            }
+
+            createMathGraffitiTexture()
+                .then((tex) => {
+                    mathGraffitiTexture = tex;
+                    spawnBakedMathGraffiti();
+                })
+                .catch((err) => {
+                    console.warn("Math graffiti texture failed:", err);
+                });
+
+            function fitSkyboxToCity(citySize) {
+                cityFitSize = citySize.clone();
+                if (!skyboxRoot) return;
+                const citySpan = Math.max(citySize.x, citySize.z);
+                const targetSpan = Math.max(600, citySpan * 4.0);
+                const scale = targetSpan / Math.max(1e-6, skyboxBaseMaxSize);
+                skyboxRoot.scale.setScalar(scale);
+            }
+
+            function loadSkyboxModel() {
+                const loader = new GLTFLoader();
+                loader.load(
+                    "./skybox_summer_stylized/scene.gltf",
+                    (gltf) => {
+                        skyboxRoot = gltf.scene;
+                        skyboxRoot.traverse((obj) => {
+                            if (!obj.isMesh) return;
+                            obj.frustumCulled = false;
+                            const materials = Array.isArray(obj.material)
+                                ? obj.material
+                                : [obj.material];
+                            for (const mat of materials) {
+                                if (!mat) continue;
+                                if ("side" in mat) mat.side = THREE.DoubleSide;
+                                if ("fog" in mat) mat.fog = false;
+                                if ("depthWrite" in mat) mat.depthWrite = false;
+                                if ("toneMapped" in mat) mat.toneMapped = false;
+                                mat.needsUpdate = true;
+                            }
+                        });
+
+                        const sbBox = new THREE.Box3().setFromObject(
+                            skyboxRoot,
+                        );
+                        const sbCenter = sbBox.getCenter(new THREE.Vector3());
+                        const sbSize = sbBox.getSize(new THREE.Vector3());
+                        const sbMinY = sbBox.min.y;
+                        skyboxBaseMaxSize = Math.max(
+                            1,
+                            sbSize.x,
+                            sbSize.y,
+                            sbSize.z,
+                        );
+
+                        skyboxRoot.position.x -= sbCenter.x;
+                        skyboxRoot.position.z -= sbCenter.z;
+                        skyboxRoot.position.y -= sbMinY;
+
+                        scene.add(skyboxRoot);
+                        if (cityFitSize) fitSkyboxToCity(cityFitSize);
+                    },
+                    undefined,
+                    (err) => {
+                        console.warn(
+                            "Skybox load failed:",
+                            err?.message || err,
+                        );
+                    },
+                );
+            }
+
+            function syncPlayerToCamera() {
+                if (!playerBody) return;
+                playerBody.setTranslation(
+                    new RAPIER.Vector3(
+                        camera.position.x,
+                        camera.position.y,
+                        camera.position.z,
+                    ),
+                    true,
+                );
+            }
+
+            function orientCameraToFpStartForward() {
+                const fwd = FP_START_FORWARD.clone().normalize();
+                const yaw = Math.atan2(-fwd.x, -fwd.z);
+                const pitch = Math.asin(THREE.MathUtils.clamp(fwd.y, -1, 1));
+                camera.quaternion.setFromEuler(
+                    new THREE.Euler(pitch, yaw, 0, "YXZ"),
+                );
+            }
+
+            async function initPhysics(cityRoot) {
+                ui.status.style.display = "block";
+                ui.status.textContent = "Building collision world...";
+
+                await RAPIER.init();
+                physicsWorld = new RAPIER.World({ x: 0, y: FP_GRAVITY, z: 0 });
+                staticBody = physicsWorld.createRigidBody(
+                    RAPIER.RigidBodyDesc.fixed(),
+                );
+
+                const floorDesc = RAPIER.ColliderDesc.cuboid(1000, 0.2, 1000);
+                floorDesc.setTranslation(0, -0.2, 0);
+                floorDesc.setFriction(0.9);
+                physicsWorld.createCollider(floorDesc, staticBody);
+
+                cityRoot.updateMatrixWorld(true);
+                let colliderCount = 0;
+
+                cityRoot.traverse((obj) => {
+                    if (!obj.isMesh || !obj.geometry) return;
+                    const geom = obj.geometry;
+                    const pos = geom.attributes?.position;
+                    if (!pos) return;
+
+                    const vertices = new Float32Array(pos.count * 3);
+                    for (let i = 0; i < pos.count; i++) {
+                        scratchVec.fromBufferAttribute(pos, i);
+                        scratchVec.applyMatrix4(obj.matrixWorld);
+                        const i3 = i * 3;
+                        vertices[i3] = scratchVec.x;
+                        vertices[i3 + 1] = scratchVec.y;
+                        vertices[i3 + 2] = scratchVec.z;
+                    }
+
+                    let indices;
+                    if (geom.index) {
+                        indices =
+                            geom.index.array instanceof Uint32Array
+                                ? geom.index.array
+                                : Uint32Array.from(geom.index.array);
+                    } else {
+                        indices = new Uint32Array(pos.count);
+                        for (let i = 0; i < pos.count; i++) indices[i] = i;
+                    }
+
+                    const desc = RAPIER.ColliderDesc.trimesh(vertices, indices);
+                    desc.setFriction(0.8);
+                    desc.setRestitution(0.0);
+                    physicsWorld.createCollider(desc, staticBody);
+                    colliderCount++;
+                });
+
+                playerBody = physicsWorld.createRigidBody(
+                    RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(
+                        camera.position.x,
+                        camera.position.y,
+                        camera.position.z,
+                    ),
+                );
+                playerCollider = physicsWorld.createCollider(
+                    RAPIER.ColliderDesc.capsule(FP_HALF_HEIGHT, FP_RADIUS),
+                    playerBody,
+                );
+
+                characterController =
+                    physicsWorld.createCharacterController(0.02);
+                if (typeof characterController.enableAutostep === "function") {
+                    characterController.enableAutostep(
+                        FP_STEP_HEIGHT,
+                        FP_RADIUS * 0.75,
+                        true,
+                    );
+                }
+                if (
+                    typeof characterController.enableSnapToGround === "function"
+                ) {
+                    characterController.enableSnapToGround(FP_STEP_HEIGHT);
+                }
+                if (
+                    typeof characterController.setMaxSlopeClimbAngle ===
+                    "function"
+                ) {
+                    characterController.setMaxSlopeClimbAngle(
+                        (55 * Math.PI) / 180,
+                    );
+                }
+                if (
+                    typeof characterController.setMinSlopeSlideAngle ===
+                    "function"
+                ) {
+                    characterController.setMinSlopeSlideAngle(
+                        (65 * Math.PI) / 180,
+                    );
+                }
+
+                rapierReady = true;
+                ui.status.textContent = `Collision ready (${colliderCount} mesh colliders)`;
+                setTimeout(() => {
+                    ui.status.style.display = "none";
+                }, 1800);
+            }
+
+            function loadCityModel() {
+                const loader = new GLTFLoader();
+                loader.load(
+                    "./low_poly_city/scene.gltf",
+                    (gltf) => {
+                        const city = gltf.scene;
+                        cityRaycastTargets.length = 1;
+                        city.traverse((obj) => {
+                            if (!obj.isMesh) return;
+                            obj.frustumCulled = true;
+                            cityRaycastTargets.push(obj);
+                            if (obj.material && "flatShading" in obj.material) {
+                                obj.material.flatShading = true;
+                                obj.material.needsUpdate = true;
+                            }
+                        });
+
+                        const box = new THREE.Box3().setFromObject(city);
+                        const center = box.getCenter(new THREE.Vector3());
+                        const minY = box.min.y;
+
+                        city.position.x -= center.x;
+                        city.position.z -= center.z;
+                        city.position.y -= minY;
+
+                        scene.add(city);
+
+                        const fitBox = new THREE.Box3().setFromObject(city);
+                        const fitSize = fitBox.getSize(new THREE.Vector3());
+
+                        const targetY = Math.max(4, fitSize.y * 0.18);
+                        orbit.target.set(0, targetY, 0);
+
+                        const distX = Math.max(18, fitSize.x * 0.45);
+                        const distZ = Math.max(28, fitSize.z * 0.55);
+                        const camY = Math.max(FP_EYE_HEIGHT, fitSize.y * 0.28);
+                        if (mode === "fp") {
+                            camera.position.copy(FP_START_POS);
+                            orientCameraToFpStartForward();
+                        } else {
+                            camera.position.set(distX, camY, distZ);
+                            camera.lookAt(orbit.target);
+                            orbit.update();
+                        }
+
+                        scene.fog.near = Math.max(
+                            80,
+                            Math.min(fitSize.x, fitSize.z) * 0.4,
+                        );
+                        scene.fog.far = Math.max(
+                            350,
+                            Math.max(fitSize.x, fitSize.z) * 2.2,
+                        );
+                        fitSkyboxToCity(fitSize);
+
+                        initPhysics(city).catch((err) => {
+                            ui.status.textContent = `Collision setup failed: ${err?.message || err}`;
+                        });
+                    },
+                    undefined,
+                    (err) => {
+                        ui.status.textContent = `Model load failed: ${err?.message || err}`;
+                    },
+                );
+            }
+
+            function clearPaniniPreview() {
+                if (paniniPreview) {
+                    scene.remove(paniniPreview);
+                    paniniPreview = null;
+                }
+                paniniPendingPlacement = null;
+            }
+
+            function getPaniniPlacementFromCrosshair() {
+                if (!paniniTexture) {
+                    console.warn("Panini image not loaded yet.");
+                    return null;
+                }
+                raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+                const hits = raycaster.intersectObjects(
+                    cityRaycastTargets,
+                    true,
+                );
+                if (!hits.length) return null;
+
+                const hit = hits[0];
+                if (!hit.face) return null;
+
+                const aspect =
+                    paniniTexture.image && paniniTexture.image.width
+                        ? paniniTexture.image.height / paniniTexture.image.width
+                        : 1.0;
+                const paniniHeight = PANINI_WIDTH * aspect;
+
+                hitNormal
+                    .copy(hit.face.normal)
+                    .transformDirection(hit.object.matrixWorld)
+                    .normalize();
+                const placePos = hit.point
+                    .clone()
+                    .addScaledVector(hitNormal, PANINI_OFFSET);
+
+                placementForward.copy(hitNormal).normalize();
+                if (Math.abs(placementForward.dot(placementUp)) > 0.98) {
+                    placementUp.set(0, 0, 1);
+                } else {
+                    placementUp.set(0, 1, 0);
+                }
+
+                return {
+                    paniniHeight,
+                    position: placePos.clone(),
+                    normal: hitNormal.clone(),
+                    up: placementUp.clone(),
+                    forward: placementForward.clone(),
+                };
+            }
+
+            function getPlacementFromCrosshair(offset) {
+                raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+                const hits = raycaster.intersectObjects(
+                    cityRaycastTargets,
+                    true,
+                );
+                if (!hits.length) return null;
+                const hit = hits[0];
+                if (!hit.face) return null;
+
+                hitNormal
+                    .copy(hit.face.normal)
+                    .transformDirection(hit.object.matrixWorld)
+                    .normalize();
+                const placePos = hit.point
+                    .clone()
+                    .addScaledVector(hitNormal, offset);
+                placementForward.copy(hitNormal).normalize();
+                if (Math.abs(placementForward.dot(placementUp)) > 0.98) {
+                    placementUp.set(0, 0, 1);
+                } else {
+                    placementUp.set(0, 1, 0);
+                }
+                return {
+                    position: placePos.clone(),
+                    normal: hitNormal.clone(),
+                    up: placementUp.clone(),
+                    forward: placementForward.clone(),
+                };
+            }
+
+            function buildPaniniFrame(paniniHeight, texture, ghost = false) {
+                const artMat = ghost
+                    ? new THREE.MeshBasicMaterial({
+                          map: texture,
+                          color: new THREE.Color(
+                              PANINI_BRIGHTNESS,
+                              PANINI_BRIGHTNESS,
+                              PANINI_BRIGHTNESS,
+                          ),
+                          transparent: true,
+                          opacity: PANINI_GHOST_OPACITY,
+                      })
+                    : new THREE.MeshBasicMaterial({
+                          map: texture,
+                          color: new THREE.Color(
+                              PANINI_BRIGHTNESS,
+                              PANINI_BRIGHTNESS,
+                              PANINI_BRIGHTNESS,
+                          ),
+                      });
+                const frameMat = ghost
+                    ? new THREE.MeshStandardMaterial({
+                          color: 0x3b2c1f,
+                          roughness: 0.65,
+                          metalness: 0.12,
+                          transparent: true,
+                          opacity: PANINI_GHOST_OPACITY,
+                      })
+                    : new THREE.MeshStandardMaterial({
+                          color: 0x3b2c1f,
+                          roughness: 0.65,
+                          metalness: 0.12,
+                      });
+                const backingMat = ghost
+                    ? new THREE.MeshStandardMaterial({
+                          color: 0x1d1611,
+                          roughness: 0.85,
+                          metalness: 0.02,
+                          transparent: true,
+                          opacity: PANINI_GHOST_OPACITY,
+                      })
+                    : new THREE.MeshStandardMaterial({
+                          color: 0x1d1611,
+                          roughness: 0.85,
+                          metalness: 0.02,
+                      });
+
+                const group = new THREE.Group();
+
+                const art = new THREE.Mesh(
+                    new THREE.PlaneGeometry(PANINI_WIDTH, paniniHeight),
+                    artMat,
+                );
+                group.add(art);
+
+                const frameDepth = PANINI_FRAME_THICKNESS * 0.5;
+                const halfW = PANINI_WIDTH * 0.5;
+                const halfH = paniniHeight * 0.5;
+
+                const frameTop = new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        PANINI_WIDTH + PANINI_FRAME_THICKNESS * 2,
+                        PANINI_FRAME_THICKNESS,
+                        frameDepth,
+                    ),
+                    frameMat,
+                );
+                frameTop.position.set(
+                    0,
+                    halfH + PANINI_FRAME_THICKNESS * 0.5,
+                    0,
+                );
+                group.add(frameTop);
+
+                const frameBottom = frameTop.clone();
+                frameBottom.position.y = -halfH - PANINI_FRAME_THICKNESS * 0.5;
+                group.add(frameBottom);
+
+                const frameLeft = new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        PANINI_FRAME_THICKNESS,
+                        paniniHeight,
+                        frameDepth,
+                    ),
+                    frameMat,
+                );
+                frameLeft.position.set(
+                    -halfW - PANINI_FRAME_THICKNESS * 0.5,
+                    0,
+                    0,
+                );
+                group.add(frameLeft);
+
+                const frameRight = frameLeft.clone();
+                frameRight.position.x = halfW + PANINI_FRAME_THICKNESS * 0.5;
+                group.add(frameRight);
+
+                const backing = new THREE.Mesh(
+                    new THREE.BoxGeometry(
+                        PANINI_WIDTH + PANINI_FRAME_THICKNESS * 2,
+                        paniniHeight + PANINI_FRAME_THICKNESS * 2,
+                        PANINI_FRAME_THICKNESS * 0.35,
+                    ),
+                    backingMat,
+                );
+                backing.position.z = -PANINI_FRAME_THICKNESS * 0.2;
+                group.add(backing);
+                return group;
+            }
+
+            function getPaniniHeight(texture, width = PANINI_WIDTH) {
+                if (texture && texture.image && texture.image.width) {
+                    return width * (texture.image.height / texture.image.width);
+                }
+                return width;
+            }
+
+            function spawnBakedPaninis() {
+                if (bakedPaniniSpawned || !bakedPaniniTexture || !paniniTexture)
+                    return;
+                for (const p of BAKED_PANINI_PLACEMENTS) {
+                    const texture =
+                        p.image === "placement"
+                            ? paniniTexture
+                            : bakedPaniniTexture;
+                    const scale = p.scale ?? 1.0;
+                    const paniniHeight = getPaniniHeight(texture, PANINI_WIDTH);
+                    const placed = buildPaniniFrame(
+                        paniniHeight,
+                        texture,
+                        false,
+                    );
+                    placed.scale.setScalar(scale);
+                    placed.position.set(
+                        p.position.x,
+                        p.position.y,
+                        p.position.z,
+                    );
+                    placed.rotation.set(
+                        p.rotationEuler.x,
+                        p.rotationEuler.y,
+                        p.rotationEuler.z,
+                    );
+                    scene.add(placed);
+                }
+                bakedPaniniSpawned = true;
+            }
+
+            function applyPaniniPlacement(group, placement) {
+                group.position.copy(placement.position);
+                group.up.copy(placement.up);
+                group.lookAt(placement.position.clone().add(placement.forward));
+            }
+
+            function logPaniniPlacement(group, placement) {
+                const e = group.rotation;
+                console.log("panini_placement", {
+                    position: {
+                        x: Number(group.position.x.toFixed(4)),
+                        y: Number(group.position.y.toFixed(4)),
+                        z: Number(group.position.z.toFixed(4)),
+                    },
+                    normal: {
+                        x: Number(placement.normal.x.toFixed(4)),
+                        y: Number(placement.normal.y.toFixed(4)),
+                        z: Number(placement.normal.z.toFixed(4)),
+                    },
+                    rotationEuler: {
+                        x: Number(e.x.toFixed(6)),
+                        y: Number(e.y.toFixed(6)),
+                        z: Number(e.z.toFixed(6)),
+                    },
+                });
+            }
+
+            function handlePaniniPlacementClick() {
+                if (!paniniPreview) {
+                    const placement = getPaniniPlacementFromCrosshair();
+                    if (!placement) return;
+                    const placementHeight = getPaniniHeight(
+                        paniniTexture,
+                        PANINI_WIDTH,
+                    );
+                    paniniPreview = buildPaniniFrame(
+                        placementHeight,
+                        paniniTexture,
+                        true,
+                    );
+                    paniniPreview.scale.setScalar(PLACEMENT_PANINI_SCALE);
+                    applyPaniniPlacement(paniniPreview, placement);
+                    scene.add(paniniPreview);
+                    paniniPendingPlacement = placement;
+                    return;
+                }
+
+                if (!paniniPendingPlacement) return;
+                const placed = buildPaniniFrame(
+                    getPaniniHeight(paniniTexture, PANINI_WIDTH),
+                    paniniTexture,
+                    false,
+                );
+                placed.scale.setScalar(PLACEMENT_PANINI_SCALE);
+                applyPaniniPlacement(placed, paniniPendingPlacement);
+                scene.add(placed);
+                logPaniniPlacement(placed, paniniPendingPlacement);
+                clearPaniniPreview();
+            }
+
+            function updatePaniniPreview() {
+                if (!paniniPreview || !paniniPendingPlacement) return;
+                if (mode !== "fp" || !fp.isLocked) return;
+                const placement = getPaniniPlacementFromCrosshair();
+                if (!placement) return;
+                paniniPendingPlacement = placement;
+                applyPaniniPlacement(paniniPreview, placement);
+            }
+
+            function clearMathGraffitiPreview() {
+                if (mathGraffitiPreview) {
+                    scene.remove(mathGraffitiPreview);
+                    mathGraffitiPreview = null;
+                }
+                mathGraffitiPendingPlacement = null;
+            }
+
+            function buildMathGraffiti(ghost = false) {
+                const aspect =
+                    mathGraffitiTexture &&
+                    mathGraffitiTexture.image &&
+                    mathGraffitiTexture.image.width
+                        ? mathGraffitiTexture.image.height /
+                          mathGraffitiTexture.image.width
+                        : 0.5;
+                const height = MATH_GRAFFITI_WIDTH * aspect;
+                const mat = new THREE.MeshBasicMaterial({
+                    map: mathGraffitiTexture,
+                    transparent: true,
+                    opacity: ghost
+                        ? MATH_GRAFFITI_GHOST_OPACITY
+                        : MATH_GRAFFITI_OPACITY,
+                    depthWrite: false,
+                    side: THREE.DoubleSide,
+                    alphaTest: 0.01,
+                });
+                return new THREE.Mesh(
+                    new THREE.PlaneGeometry(MATH_GRAFFITI_WIDTH, height),
+                    mat,
+                );
+            }
+
+            function spawnBakedMathGraffiti() {
+                if (bakedMathGraffitiSpawned || !mathGraffitiTexture) return;
+                for (const p of BAKED_MATH_GRAFFITI_PLACEMENTS) {
+                    const placed = buildMathGraffiti(false);
+                    placed.position.set(
+                        p.position.x,
+                        p.position.y,
+                        p.position.z,
+                    );
+                    placed.rotation.set(
+                        p.rotationEuler.x,
+                        p.rotationEuler.y,
+                        p.rotationEuler.z,
+                    );
+                    scene.add(placed);
+                }
+                bakedMathGraffitiSpawned = true;
+            }
+
+            function logMathGraffitiPlacement(mesh, placement) {
+                const e = mesh.rotation;
+                console.log("math_graffiti_placement", {
+                    position: {
+                        x: Number(mesh.position.x.toFixed(4)),
+                        y: Number(mesh.position.y.toFixed(4)),
+                        z: Number(mesh.position.z.toFixed(4)),
+                    },
+                    normal: {
+                        x: Number(placement.normal.x.toFixed(4)),
+                        y: Number(placement.normal.y.toFixed(4)),
+                        z: Number(placement.normal.z.toFixed(4)),
+                    },
+                    rotationEuler: {
+                        x: Number(e.x.toFixed(6)),
+                        y: Number(e.y.toFixed(6)),
+                        z: Number(e.z.toFixed(6)),
+                    },
+                });
+            }
+
+            function handleMathGraffitiPlacementClick() {
+                if (!mathGraffitiTexture) {
+                    console.warn("Math graffiti texture not ready yet.");
+                    return;
+                }
+                if (!mathGraffitiPreview) {
+                    const placement =
+                        getPlacementFromCrosshair(MATH_GRAFFITI_OFFSET);
+                    if (!placement) return;
+                    mathGraffitiPreview = buildMathGraffiti(true);
+                    applyPaniniPlacement(mathGraffitiPreview, placement);
+                    scene.add(mathGraffitiPreview);
+                    mathGraffitiPendingPlacement = placement;
+                    return;
+                }
+                if (!mathGraffitiPendingPlacement) return;
+                const placed = buildMathGraffiti(false);
+                applyPaniniPlacement(placed, mathGraffitiPendingPlacement);
+                scene.add(placed);
+                logMathGraffitiPlacement(placed, mathGraffitiPendingPlacement);
+                clearMathGraffitiPreview();
+            }
+
+            function updateMathGraffitiPreview() {
+                if (!mathGraffitiPreview || !mathGraffitiPendingPlacement)
+                    return;
+                if (mode !== "fp" || !fp.isLocked) return;
+                const placement =
+                    getPlacementFromCrosshair(MATH_GRAFFITI_OFFSET);
+                if (!placement) return;
+                mathGraffitiPendingPlacement = placement;
+                applyPaniniPlacement(mathGraffitiPreview, placement);
+            }
+
+            loadSkyboxModel();
+            loadCityModel();
+
+            const renderTarget = new THREE.WebGLRenderTarget(
+                window.innerWidth,
+                window.innerHeight,
+                {
+                    depthBuffer: true,
+                    stencilBuffer: false,
+                },
+            );
+            renderTarget.texture.minFilter = THREE.LinearFilter;
+            renderTarget.texture.magFilter = THREE.LinearFilter;
+            const supportsRtMsaa = renderer.capabilities.isWebGL2;
+            const RT_MSAA_SAMPLES = 4;
+            if (!supportsRtMsaa) {
+                ui.rtMsaa.checked = false;
+                ui.rtMsaa.disabled = true;
+                ui.rtMsaa.title = "Requires WebGL2";
+            }
+
+            function resizeRenderTargetToViewport() {
+                const pixelRatio = renderer.getPixelRatio();
+                renderTarget.setSize(
+                    Math.max(1, Math.floor(window.innerWidth * pixelRatio)),
+                    Math.max(1, Math.floor(window.innerHeight * pixelRatio)),
+                );
+            }
+
+            function applyRtMsaa() {
+                const nextSamples =
+                    supportsRtMsaa && ui.rtMsaa.checked ? RT_MSAA_SAMPLES : 0;
+                if (renderTarget.samples === nextSamples) return;
+                renderTarget.samples = nextSamples;
+                resizeRenderTargetToViewport();
+            }
+
+            const postScene = new THREE.Scene();
+            const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+            const postMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    tColor: { value: renderTarget.texture },
+                    d: { value: 1.0 },
+                    tanHalfFovY: {
+                        value: Math.tan(
+                            THREE.MathUtils.degToRad(camera.fov * 0.5),
+                        ),
+                    },
+                    aspect: { value: camera.aspect },
+                    uMax: { value: 1.0 },
+                    vMax: { value: 1.0 },
+                    bgColor: { value: new THREE.Color(0x171c27) },
+                },
+                vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = vec4(position.xy, 0.0, 1.0);
+        }
+      `,
+                fragmentShader: `
+        precision highp float;
+        varying vec2 vUv;
+        uniform sampler2D tColor;
+        uniform float d;
+        uniform float tanHalfFovY;
+        uniform float aspect;
+        uniform float uMax;
+        uniform float vMax;
+        uniform vec3 bgColor;
+
+        void main() {
+          vec2 ndcOut = vUv * 2.0 - 1.0;
+          float u = ndcOut.x * uMax;
+          float v = ndcOut.y * vMax;
+
+          float k = d + 1.0;
+          float R = sqrt(k * k + u * u);
+          float arg = clamp((u * d) / max(R, 1e-7), -1.0, 1.0);
+          float alpha = atan(u, k);
+          float theta = alpha + asin(arg);
+          float c = cos(theta);
+
+          float tanPhi = v * (d + c) / max(k, 1e-7);
+          float srcX = tan(theta);
+          float srcY = tanPhi / max(c, 1e-5);
+
+          float tanHalfFovX = tanHalfFovY * aspect;
+          vec2 ndcSrc = vec2(srcX / tanHalfFovX, srcY / tanHalfFovY);
+          vec2 uvSrc = ndcSrc * 0.5 + 0.5;
+
+          if (uvSrc.x < 0.0 || uvSrc.x > 1.0 || uvSrc.y < 0.0 || uvSrc.y > 1.0) {
+            gl_FragColor = vec4(bgColor, 1.0);
+            return;
+          }
+
+          gl_FragColor = texture2D(tColor, uvSrc);
+        }
+      `,
+            });
+
+            postScene.add(
+                new THREE.Mesh(new THREE.PlaneGeometry(2, 2), postMaterial),
+            );
+
+            function paniniX(theta, d) {
+                return ((d + 1) * Math.sin(theta)) / (d + Math.cos(theta));
+            }
+
+            function updatePaniniBounds() {
+                const d = postMaterial.uniforms.d.value;
+                const tanHalfFovY = Math.tan(
+                    THREE.MathUtils.degToRad(camera.fov * 0.5),
+                );
+                const thetaMax = Math.atan(camera.aspect * tanHalfFovY);
+                const cosThetaMax = Math.cos(thetaMax);
+                const k = d + 1.0;
+
+                postMaterial.uniforms.tanHalfFovY.value = tanHalfFovY;
+                postMaterial.uniforms.aspect.value = camera.aspect;
+                postMaterial.uniforms.uMax.value = paniniX(thetaMax, d);
+                postMaterial.uniforms.vMax.value =
+                    (k * tanHalfFovY * cosThetaMax) / (d + cosThetaMax);
+            }
+
+            const baseDevicePixelRatio = window.devicePixelRatio || 1;
+            let currentEffectiveDpr = Math.min(baseDevicePixelRatio, 3);
+
+            function applyPixelRatio() {
+                const mult = Number(ui.pixelRatio.value);
+                const effectiveDpr = Math.min(baseDevicePixelRatio * mult, 3);
+                currentEffectiveDpr = effectiveDpr;
+                renderer.setPixelRatio(effectiveDpr);
+                ui.pixelRatioLabel.textContent = `${mult.toFixed(2)}x (${effectiveDpr.toFixed(2)} DPR)`;
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                resizeRenderTargetToViewport();
+            }
+
+            function setMode(nextMode) {
+                mode = nextMode;
+                const useFp = mode === "fp";
+                orbit.enabled = !useFp;
+
+                if (useFp) {
+                    if (!fp.isLocked) {
+                        camera.position.copy(FP_START_POS);
+                        orientCameraToFpStartForward();
+                    }
+                    fpVerticalVelocity = 0;
+                    syncPlayerToCamera();
+                } else {
+                    clearPaniniPreview();
+                    clearMathGraffitiPreview();
+                    if (fp.isLocked) fp.unlock();
+                    const forward = new THREE.Vector3();
+                    camera.getWorldDirection(forward);
+                    orbit.target
+                        .copy(camera.position)
+                        .addScaledVector(forward, 20);
+                    orbit.update();
+                }
+            }
+
+            function syncUi() {
+                ui.fovLabel.textContent = String(Math.round(camera.fov));
+                ui.dLabel.textContent =
+                    postMaterial.uniforms.d.value.toFixed(2);
+                const mult = Number(ui.pixelRatio.value);
+                const effectiveDpr = Math.min(baseDevicePixelRatio * mult, 3);
+                ui.pixelRatioLabel.textContent = `${mult.toFixed(2)}x (${effectiveDpr.toFixed(2)} DPR)`;
+                ui.coordsLabel.textContent = `${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)}`;
+            }
+
+            function setAboutOpen(isOpen) {
+                ui.aboutOverlay.classList.toggle("open", isOpen);
+                if (isOpen) {
+                    keyState.w = false;
+                    keyState.a = false;
+                    keyState.s = false;
+                    keyState.d = false;
+                    keyState.up = false;
+                    keyState.down = false;
+                    keyState.sprint = false;
+                    if (fp.isLocked) fp.unlock();
+                }
+            }
+
+            function setSettingsVisible(isVisible) {
+                uiVisible = isVisible;
+                ui.panel.style.display = isVisible ? "block" : "none";
+            }
+
+            ui.fov.addEventListener("input", () => {
+                camera.fov = Number(ui.fov.value);
+                camera.updateProjectionMatrix();
+                updatePaniniBounds();
+                syncUi();
+            });
+
+            ui.d.addEventListener("input", () => {
+                postMaterial.uniforms.d.value = Number(ui.d.value);
+                updatePaniniBounds();
+                syncUi();
+            });
+
+            ui.pixelRatio.addEventListener("input", () => {
+                applyPixelRatio();
+                syncUi();
+            });
+            ui.rtMsaa.addEventListener("input", () => {
+                applyRtMsaa();
+            });
+
+            ui.cameraMode.addEventListener("change", () => {
+                setMode(ui.cameraMode.value);
+            });
+            ui.aboutToggle.addEventListener("click", () => {
+                setAboutOpen(!ui.aboutOverlay.classList.contains("open"));
+            });
+            ui.hideToggle.addEventListener("click", () => {
+                setSettingsVisible(!uiVisible);
+            });
+            ui.aboutOverlay.addEventListener("click", (e) => {
+                if (e.target === ui.aboutOverlay) setAboutOpen(false);
+            });
+
+            renderer.domElement.addEventListener("click", () => {
+                if (ui.aboutOverlay.classList.contains("open")) return;
+                if (mode === "fp" && !fp.isLocked) {
+                    fpVerticalVelocity = 0;
+                    syncPlayerToCamera();
+                    fp.lock();
+                    return;
+                }
+                if (
+                    ENABLE_DYNAMIC_PANINI_PLACEMENT &&
+                    mode === "fp" &&
+                    fp.isLocked
+                ) {
+                    handlePaniniPlacementClick();
+                    return;
+                }
+                if (
+                    ENABLE_DYNAMIC_MATH_GRAFFITI_PLACEMENT &&
+                    mode === "fp" &&
+                    fp.isLocked
+                ) {
+                    handleMathGraffitiPlacementClick();
+                }
+            });
+
+            fp.addEventListener("unlock", () => {
+                clearPaniniPreview();
+                clearMathGraffitiPreview();
+            });
+
+            window.addEventListener("keydown", (e) => {
+                const aboutOpen = ui.aboutOverlay.classList.contains("open");
+                if (aboutOpen && e.code === "Escape") {
+                    setAboutOpen(false);
+                    return;
+                }
+                if (e.code === "KeyH") {
+                    setSettingsVisible(!uiVisible);
+                    return;
+                }
+                if (e.code === "KeyA" && !fp.isLocked) {
+                    setAboutOpen(!aboutOpen);
+                    return;
+                }
+                if (
+                    aboutOpen &&
+                    (e.code === "KeyW" ||
+                        e.code === "KeyA" ||
+                        e.code === "KeyS" ||
+                        e.code === "KeyD" ||
+                        e.code === "Space" ||
+                        e.code === "ControlLeft" ||
+                        e.code === "ControlRight" ||
+                        e.code === "ShiftLeft" ||
+                        e.code === "ShiftRight")
+                ) {
+                    return;
+                }
+                if (e.code === "KeyW") keyState.w = true;
+                if (e.code === "KeyA") keyState.a = true;
+                if (e.code === "KeyS") keyState.s = true;
+                if (e.code === "KeyD") keyState.d = true;
+                if (e.code === "Space") keyState.up = true;
+                if (e.code === "ControlLeft" || e.code === "ControlRight")
+                    keyState.down = true;
+                if (e.code === "ShiftLeft" || e.code === "ShiftRight")
+                    keyState.sprint = true;
+            });
+
+            window.addEventListener("keyup", (e) => {
+                if (ui.aboutOverlay.classList.contains("open")) return;
+                if (e.code === "KeyW") keyState.w = false;
+                if (e.code === "KeyA") keyState.a = false;
+                if (e.code === "KeyS") keyState.s = false;
+                if (e.code === "KeyD") keyState.d = false;
+                if (e.code === "Space") keyState.up = false;
+                if (e.code === "ControlLeft" || e.code === "ControlRight")
+                    keyState.down = false;
+                if (e.code === "ShiftLeft" || e.code === "ShiftRight")
+                    keyState.sprint = false;
+            });
+
+            function updateFpMovement(dt) {
+                if (mode !== "fp" || !fp.isLocked) return;
+
+                const speed = keyState.sprint ? 35 : 15;
+                const inputX = Number(keyState.d) - Number(keyState.a);
+                const inputZ = Number(keyState.w) - Number(keyState.s);
+
+                if (
+                    !rapierReady ||
+                    !physicsWorld ||
+                    !playerBody ||
+                    !playerCollider ||
+                    !characterController
+                ) {
+                    moveDir.set(inputX, 0, inputZ);
+                    if (moveDir.lengthSq() > 0) moveDir.normalize();
+                    fp.moveRight(moveDir.x * speed * dt);
+                    fp.moveForward(moveDir.z * speed * dt);
+                    return;
+                }
+
+                tempForward.set(0, 0, -1).applyQuaternion(camera.quaternion);
+                tempForward.y = 0;
+                if (tempForward.lengthSq() > 0) tempForward.normalize();
+
+                tempRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
+                tempRight.y = 0;
+                if (tempRight.lengthSq() > 0) tempRight.normalize();
+
+                desiredMove.set(0, 0, 0);
+                desiredMove.addScaledVector(tempRight, inputX);
+                desiredMove.addScaledVector(tempForward, inputZ);
+                if (desiredMove.lengthSq() > 1) desiredMove.normalize();
+                desiredMove.multiplyScalar(speed * dt);
+                const grounded =
+                    typeof characterController.computedGrounded === "function"
+                        ? characterController.computedGrounded()
+                        : false;
+                if (grounded) {
+                    if (fpVerticalVelocity < 0) fpVerticalVelocity = 0;
+                    if (keyState.up) fpVerticalVelocity = FP_JUMP_VELOCITY;
+                } else {
+                    fpVerticalVelocity = Math.max(
+                        -FP_MAX_FALL_SPEED,
+                        fpVerticalVelocity + FP_GRAVITY * dt,
+                    );
+                }
+                desiredMove.y = fpVerticalVelocity * dt;
+
+                characterController.computeColliderMovement(
+                    playerCollider,
+                    new RAPIER.Vector3(
+                        desiredMove.x,
+                        desiredMove.y,
+                        desiredMove.z,
+                    ),
+                );
+                const corrected = characterController.computedMovement();
+                const t = playerBody.translation();
+                playerBody.setNextKinematicTranslation(
+                    new RAPIER.Vector3(
+                        t.x + corrected.x,
+                        t.y + corrected.y,
+                        t.z + corrected.z,
+                    ),
+                );
+                physicsWorld.step();
+                const resolved = playerBody.translation();
+                camera.position.set(resolved.x, resolved.y, resolved.z);
+            }
+
+            function onResize() {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                resizeRenderTargetToViewport();
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                updatePaniniBounds();
+            }
+
+            window.addEventListener("resize", onResize);
+
+            const clock = new THREE.Clock();
+            applyPixelRatio();
+            applyRtMsaa();
+            setMode("fp");
+            setSettingsVisible(true);
+            syncUi();
+            updatePaniniBounds();
+
+            function animate() {
+                requestAnimationFrame(animate);
+                const dt = Math.min(clock.getDelta(), 1 / 30);
+
+                if (mode === "orbit") {
+                    orbit.update();
+                } else {
+                    updateFpMovement(dt);
+                }
+                if (ENABLE_DYNAMIC_PANINI_PLACEMENT) updatePaniniPreview();
+                if (ENABLE_DYNAMIC_MATH_GRAFFITI_PLACEMENT)
+                    updateMathGraffitiPreview();
+                syncUi();
+
+                if (ui.paniniToggle.checked) {
+                    renderer.setRenderTarget(renderTarget);
+                    renderer.render(scene, camera);
+                    renderer.setRenderTarget(null);
+                    renderer.render(postScene, postCamera);
+                } else {
+                    renderer.render(scene, camera);
+                }
+            }
+
+            animate();
+        </script>
+    </body>
+</html>

@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Panini Projection - Orbit + First Person</title>
+        <style>
+            :root {
+                --bg: #0b0d12;
+                --panel: rgba(14, 18, 27, 0.84);
+                --text: #e9edf7;
+                --accent: #9fd4ff;
+                --line: rgba(255, 255, 255, 0.14);
+            }
+            html,
+            body {
+                margin: 0;
+                height: 100%;
+                background: var(--bg);
+                color: var(--text);
+                overflow: hidden;
+            }
+            canvas {
+                display: block;
+            }
+            #ui {
+                position: fixed;
+                left: 12px;
+                bottom: 12px;
+                z-index: 10;
+                width: min(390px, calc(100vw - 24px));
+                background: var(--panel);
+                border: 1px solid var(--line);
+                border-radius: 0;
+                padding: 12px;
+                font:
+                    13px/1.35 ui-sans-serif,
+                    system-ui,
+                    -apple-system,
+                    Segoe UI,
+                    Roboto,
+                    Helvetica,
+                    Arial;
+                backdrop-filter: blur(8px);
+            }
+            #ui h1 {
+                margin: 0 0 10px;
+                font-size: 13px;
+                letter-spacing: 0.02em;
+                color: var(--accent);
+                text-transform: uppercase;
+            }
+            .row {
+                margin: 7px 0;
+                display: grid;
+                grid-template-columns: 1fr auto;
+                align-items: center;
+                gap: 10px;
+            }
+            .row input[type="range"] {
+                width: 100%;
+            }
+            #cameraMode,
+            #lockBtn {
+                background: rgba(255, 255, 255, 0.08);
+                color: var(--text);
+                border: 1px solid var(--line);
+                border-radius: 0;
+                padding: 6px 8px;
+                font: inherit;
+            }
+            #lockBtn:disabled {
+                opacity: 0.55;
+                cursor: not-allowed;
+            }
+            .hint {
+                margin-top: 10px;
+                opacity: 0.86;
+            }
+            details#about {
+                margin-top: 10px;
+                border-top: 1px solid var(--line);
+                padding-top: 8px;
+                line-height: 1.4;
+            }
+            details#about summary {
+                cursor: pointer;
+                color: var(--accent);
+                user-select: none;
+                margin-bottom: 6px;
+            }
+            details#about p {
+                margin: 6px 0;
+                opacity: 0.93;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="ui">
+            <h1>Panini Projection</h1>
+
+            <div class="row">
+                <label for="cameraMode">Camera Mode</label>
+                <select id="cameraMode">
+                    <option value="orbit">Orbit</option>
+                    <option value="fp">First Person</option>
+                </select>
+            </div>
+
+            <div class="row">
+                <label for="lockBtn">Pointer Lock</label>
+                <button id="lockBtn" type="button" disabled>FP Disabled</button>
+            </div>
+
+            <div class="row">
+                <label for="togglePanini">Panini Enabled</label>
+                <input id="togglePanini" type="checkbox" checked />
+            </div>
+
+            <div class="row">
+                <label for="pixelRatio">DPR Multiplier</label>
+                <span id="pixelRatioLabel">1.00</span>
+            </div>
+            <div class="row">
+                <input
+                    id="pixelRatio"
+                    type="range"
+                    min="0.5"
+                    max="8"
+                    step="0.05"
+                    value="1"
+                />
+                <span></span>
+            </div>
+
+            <div class="row">
+                <label for="fov">FOV (deg)</label>
+                <span id="fovLabel">100</span>
+            </div>
+            <div class="row">
+                <input
+                    id="fov"
+                    type="range"
+                    min="40"
+                    max="140"
+                    step="1"
+                    value="100"
+                />
+                <span></span>
+            </div>
+
+            <div class="row">
+                <label for="d">Panini D</label>
+                <span id="dLabel">1.00</span>
+            </div>
+            <div class="row">
+                <input
+                    id="d"
+                    type="range"
+                    min="0"
+                    max="3"
+                    step="0.01"
+                    value="1.00"
+                />
+                <span></span>
+            </div>
+
+            <div class="hint">
+                Orbit: mouse orbit/pan/zoom. First Person: click lock, use WASD,
+                Space/Ctrl up-down, Shift sprint. Press H to hide/show settings.
+            </div>
+            <details id="about">
+                <summary>About Panini Projection</summary>
+                <p>
+                    Panini projection is a cylindrical-perspective family designed
+                    for very wide fields of view. Compared with standard
+                    rectilinear perspective, it reduces edge stretching and keeps
+                    many verticals visually straighter, which is why it is popular
+                    for architectural and game-camera wide shots.
+                </p>
+                <p>
+                    The modern graphics formulation is commonly associated with
+                    Sharpless, Smid, and Salama (2010), building on earlier
+                    “vedutismo” perspective practices from wide city views. It has
+                    been used in engines and game rendering pipelines as a practical
+                    wide-FOV post effect.
+                </p>
+                <p>
+                    This demo renders a normal perspective scene first, then applies
+                    Panini in a fullscreen shader using inverse mapping per pixel
+                    (not per-vertex warping). The D control adjusts projection
+                    strength, DPR Multiplier raises source sampling resolution to
+                    reduce post-warp jaggies, and corner-safe vertical fitting keeps
+                    the screen filled.
+                </p>
+            </details>
+        </div>
+
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+                    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"
+                }
+            }
+        </script>
+
+        <script type="module">
+            import * as THREE from "three";
+            import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+            import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+
+            const ui = {
+                panel: document.getElementById("ui"),
+                cameraMode: document.getElementById("cameraMode"),
+                lockBtn: document.getElementById("lockBtn"),
+                paniniToggle: document.getElementById("togglePanini"),
+                pixelRatio: document.getElementById("pixelRatio"),
+                pixelRatioLabel: document.getElementById("pixelRatioLabel"),
+                fov: document.getElementById("fov"),
+                fovLabel: document.getElementById("fovLabel"),
+                d: document.getElementById("d"),
+                dLabel: document.getElementById("dLabel"),
+            };
+
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.outputColorSpace = THREE.SRGBColorSpace;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.35;
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x171c27);
+            scene.fog = new THREE.Fog(0x171c27, 180, 700);
+
+            const camera = new THREE.PerspectiveCamera(
+                100,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1200,
+            );
+            camera.position.set(18, 8, 24);
+
+            const orbit = new OrbitControls(camera, renderer.domElement);
+            orbit.enableDamping = true;
+            orbit.dampingFactor = 0.06;
+            orbit.target.set(0, 10, 0);
+            orbit.maxDistance = 700;
+            orbit.minDistance = 3;
+            orbit.update();
+
+            const fp = new PointerLockControls(camera, renderer.domElement);
+            scene.add(fp.getObject());
+
+            let mode = "orbit";
+            let uiVisible = true;
+            const keyState = {
+                w: false,
+                a: false,
+                s: false,
+                d: false,
+                up: false,
+                down: false,
+                sprint: false,
+            };
+            const moveDir = new THREE.Vector3();
+
+            const hemi = new THREE.HemisphereLight(0xf0f6ff, 0x546075, 1.15);
+            scene.add(hemi);
+
+            const sun = new THREE.DirectionalLight(0xffffff, 1.8);
+            sun.position.set(120, 220, 90);
+            scene.add(sun);
+
+            const fill = new THREE.DirectionalLight(0xcfd9ff, 0.8);
+            fill.position.set(-120, 80, -120);
+            scene.add(fill);
+
+            const floor = new THREE.Mesh(
+                new THREE.PlaneGeometry(1600, 1600),
+                new THREE.MeshStandardMaterial({
+                    color: 0x2e3644,
+                    roughness: 0.9,
+                    metalness: 0.03,
+                    flatShading: true,
+                }),
+            );
+            floor.rotation.x = -Math.PI * 0.5;
+            scene.add(floor);
+
+            const roadMat = new THREE.MeshStandardMaterial({
+                color: 0x3a4556,
+                roughness: 0.9,
+                metalness: 0.02,
+                flatShading: true,
+            });
+
+            const concrete = [
+                new THREE.MeshStandardMaterial({
+                    color: 0xa9b3c0,
+                    roughness: 0.88,
+                    metalness: 0.01,
+                    flatShading: true,
+                }),
+                new THREE.MeshStandardMaterial({
+                    color: 0x96a2b0,
+                    roughness: 0.88,
+                    metalness: 0.01,
+                    flatShading: true,
+                }),
+                new THREE.MeshStandardMaterial({
+                    color: 0x8793a1,
+                    roughness: 0.88,
+                    metalness: 0.01,
+                    flatShading: true,
+                }),
+                new THREE.MeshStandardMaterial({
+                    color: 0xb8c1cd,
+                    roughness: 0.88,
+                    metalness: 0.01,
+                    flatShading: true,
+                }),
+            ];
+
+            function hash2(x, z) {
+                const n = Math.sin(x * 127.1 + z * 311.7) * 43758.5453123;
+                return n - Math.floor(n);
+            }
+
+            function generateCity() {
+                const city = new THREE.Group();
+                const half = 13;
+                const block = 14;
+                const road = 25;
+                const stride = block + road;
+
+                const hRoadGeom = new THREE.BoxGeometry(
+                    (half * 2 + 1) * stride + road,
+                    0.16,
+                    road,
+                );
+                const vRoadGeom = new THREE.BoxGeometry(
+                    road,
+                    0.16,
+                    (half * 2 + 1) * stride + road,
+                );
+
+                for (let i = -half; i <= half; i++) {
+                    const rx = new THREE.Mesh(hRoadGeom, roadMat);
+                    rx.position.set(0, 0.08, i * stride);
+                    city.add(rx);
+
+                    const rz = new THREE.Mesh(vRoadGeom, roadMat);
+                    rz.position.set(i * stride, 0.08, 0);
+                    city.add(rz);
+                }
+
+                const box = new THREE.BoxGeometry(1, 1, 1);
+
+                for (let gx = -half; gx <= half; gx++) {
+                    for (let gz = -half; gz <= half; gz++) {
+                        const seed = hash2(gx, gz);
+                        if (seed < 0.1) continue;
+
+                        const cx = gx * stride;
+                        const cz = gz * stride;
+                        const towerCount =
+                            1 + Math.floor(hash2(gx + 2.6, gz - 4.1) * 3);
+
+                        for (let t = 0; t < towerCount; t++) {
+                            const r = hash2(
+                                gx * 8.13 + t * 2.1,
+                                gz * 5.73 - t * 4.7,
+                            );
+                            const width =
+                                3.2 +
+                                hash2(gx + t * 0.77, gz - t * 0.41) *
+                                    (block * 0.72);
+                            const depth =
+                                3.2 +
+                                hash2(gx - t * 0.93, gz + t * 0.69) *
+                                    (block * 0.72);
+                            const height = 8 + Math.pow(r, 0.38) * 140;
+                            const offX =
+                                (hash2(gx - t * 1.31, gz + t * 0.37) - 0.5) *
+                                (block - width) *
+                                0.9;
+                            const offZ =
+                                (hash2(gx + t * 0.57, gz - t * 1.23) - 0.5) *
+                                (block - depth) *
+                                0.9;
+                            const mat =
+                                concrete[
+                                    Math.floor(
+                                        hash2(gx + t * 3.17, gz + t * 2.71) *
+                                            concrete.length,
+                                    )
+                                ];
+
+                            const b = new THREE.Mesh(box, mat);
+                            b.scale.set(width, height, depth);
+                            b.position.set(cx + offX, height * 0.5, cz + offZ);
+                            city.add(b);
+
+                            if (
+                                height > 30 &&
+                                hash2(gx + t * 5.2, gz - t * 6.4) > 0.35
+                            ) {
+                                const setback = new THREE.Mesh(
+                                    box,
+                                    concrete[
+                                        (concrete.indexOf(mat) + 1) %
+                                            concrete.length
+                                    ],
+                                );
+                                setback.scale.set(
+                                    width * 0.58,
+                                    Math.max(5, height * 0.12),
+                                    depth * 0.58,
+                                );
+                                setback.position.set(
+                                    cx + offX,
+                                    height + setback.scale.y * 0.5,
+                                    cz + offZ,
+                                );
+                                city.add(setback);
+                            }
+                        }
+                    }
+                }
+
+                scene.add(city);
+            }
+
+            generateCity();
+
+            const renderTarget = new THREE.WebGLRenderTarget(
+                window.innerWidth,
+                window.innerHeight,
+                {
+                    depthBuffer: true,
+                    stencilBuffer: false,
+                },
+            );
+            renderTarget.texture.minFilter = THREE.LinearFilter;
+            renderTarget.texture.magFilter = THREE.LinearFilter;
+            if (renderer.capabilities.isWebGL2) {
+                renderTarget.samples = 4;
+            }
+
+            const postScene = new THREE.Scene();
+            const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+            const postMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    tColor: { value: renderTarget.texture },
+                    d: { value: 1.0 },
+                    tanHalfFovY: {
+                        value: Math.tan(
+                            THREE.MathUtils.degToRad(camera.fov * 0.5),
+                        ),
+                    },
+                    aspect: { value: camera.aspect },
+                    uMax: { value: 1.0 },
+                    vMax: { value: 1.0 },
+                    bgColor: { value: new THREE.Color(0x171c27) },
+                },
+                vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = vec4(position.xy, 0.0, 1.0);
+        }
+      `,
+                fragmentShader: `
+        precision highp float;
+        varying vec2 vUv;
+        uniform sampler2D tColor;
+        uniform float d;
+        uniform float tanHalfFovY;
+        uniform float aspect;
+        uniform float uMax;
+        uniform float vMax;
+        uniform vec3 bgColor;
+
+        void main() {
+          vec2 ndcOut = vUv * 2.0 - 1.0;
+          float u = ndcOut.x * uMax;
+          float v = ndcOut.y * vMax;
+
+          float k = d + 1.0;
+          float R = sqrt(k * k + u * u);
+          float arg = clamp((u * d) / max(R, 1e-7), -1.0, 1.0);
+          float alpha = atan(u, k);
+          float theta = alpha + asin(arg);
+          float c = cos(theta);
+
+          float tanPhi = v * (d + c) / max(k, 1e-7);
+          float srcX = tan(theta);
+          float srcY = tanPhi / max(c, 1e-5);
+
+          float tanHalfFovX = tanHalfFovY * aspect;
+          vec2 ndcSrc = vec2(srcX / tanHalfFovX, srcY / tanHalfFovY);
+          vec2 uvSrc = ndcSrc * 0.5 + 0.5;
+
+          if (uvSrc.x < 0.0 || uvSrc.x > 1.0 || uvSrc.y < 0.0 || uvSrc.y > 1.0) {
+            gl_FragColor = vec4(bgColor, 1.0);
+            return;
+          }
+
+          gl_FragColor = texture2D(tColor, uvSrc);
+        }
+      `,
+            });
+
+            postScene.add(
+                new THREE.Mesh(new THREE.PlaneGeometry(2, 2), postMaterial),
+            );
+
+            function paniniX(theta, d) {
+                return ((d + 1) * Math.sin(theta)) / (d + Math.cos(theta));
+            }
+
+            function updatePaniniBounds() {
+                const d = postMaterial.uniforms.d.value;
+                const tanHalfFovY = Math.tan(
+                    THREE.MathUtils.degToRad(camera.fov * 0.5),
+                );
+                const thetaMax = Math.atan(camera.aspect * tanHalfFovY);
+                const cosThetaMax = Math.cos(thetaMax);
+                const k = d + 1.0;
+
+                postMaterial.uniforms.tanHalfFovY.value = tanHalfFovY;
+                postMaterial.uniforms.aspect.value = camera.aspect;
+                postMaterial.uniforms.uMax.value = paniniX(thetaMax, d);
+                // Corner-safe vertical bound: avoids black screen corners for D > 0.
+                // Tradeoff: slight vertical crop compared to uncropped Panini.
+                postMaterial.uniforms.vMax.value =
+                    (k * tanHalfFovY * cosThetaMax) / (d + cosThetaMax);
+            }
+
+            const baseDevicePixelRatio = window.devicePixelRatio || 1;
+            let currentEffectiveDpr = Math.min(baseDevicePixelRatio, 3);
+
+            function applyPixelRatio() {
+                const mult = Number(ui.pixelRatio.value);
+                const effectiveDpr = Math.min(baseDevicePixelRatio * mult, 3);
+                currentEffectiveDpr = effectiveDpr;
+                renderer.setPixelRatio(effectiveDpr);
+                ui.pixelRatioLabel.textContent = `${mult.toFixed(2)}x (${effectiveDpr.toFixed(2)} DPR)`;
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderTarget.setSize(
+                    Math.max(
+                        1,
+                        Math.floor(window.innerWidth * currentEffectiveDpr),
+                    ),
+                    Math.max(
+                        1,
+                        Math.floor(window.innerHeight * currentEffectiveDpr),
+                    ),
+                );
+            }
+
+            function setMode(nextMode) {
+                mode = nextMode;
+                const useFp = mode === "fp";
+                orbit.enabled = !useFp;
+                ui.lockBtn.disabled = !useFp;
+
+                if (useFp) {
+                    ui.lockBtn.textContent = fp.isLocked
+                        ? "Pointer Locked"
+                        : "Click To Enter";
+                } else {
+                    if (fp.isLocked) fp.unlock();
+                    ui.lockBtn.textContent = "FP Disabled";
+                    const forward = new THREE.Vector3();
+                    camera.getWorldDirection(forward);
+                    orbit.target
+                        .copy(camera.position)
+                        .addScaledVector(forward, 20);
+                    orbit.update();
+                }
+            }
+
+            function syncUi() {
+                ui.fovLabel.textContent = String(Math.round(camera.fov));
+                ui.dLabel.textContent =
+                    postMaterial.uniforms.d.value.toFixed(2);
+                const mult = Number(ui.pixelRatio.value);
+                const effectiveDpr = Math.min(baseDevicePixelRatio * mult, 3);
+                ui.pixelRatioLabel.textContent = `${mult.toFixed(2)}x (${effectiveDpr.toFixed(2)} DPR)`;
+            }
+
+            ui.fov.addEventListener("input", () => {
+                camera.fov = Number(ui.fov.value);
+                camera.updateProjectionMatrix();
+                updatePaniniBounds();
+                syncUi();
+            });
+
+            ui.d.addEventListener("input", () => {
+                postMaterial.uniforms.d.value = Number(ui.d.value);
+                updatePaniniBounds();
+                syncUi();
+            });
+
+            ui.pixelRatio.addEventListener("input", () => {
+                applyPixelRatio();
+                syncUi();
+            });
+
+            ui.cameraMode.addEventListener("change", () => {
+                setMode(ui.cameraMode.value);
+            });
+
+            ui.lockBtn.addEventListener("click", () => {
+                if (mode === "fp") fp.lock();
+            });
+
+            fp.addEventListener("lock", () => {
+                ui.lockBtn.textContent = "Pointer Locked";
+            });
+
+            fp.addEventListener("unlock", () => {
+                ui.lockBtn.textContent = "Click To Enter";
+            });
+
+            window.addEventListener("keydown", (e) => {
+                if (e.code === "KeyH") {
+                    uiVisible = !uiVisible;
+                    ui.panel.style.display = uiVisible ? "block" : "none";
+                    return;
+                }
+                if (e.code === "KeyW") keyState.w = true;
+                if (e.code === "KeyA") keyState.a = true;
+                if (e.code === "KeyS") keyState.s = true;
+                if (e.code === "KeyD") keyState.d = true;
+                if (e.code === "Space") keyState.up = true;
+                if (e.code === "ControlLeft" || e.code === "ControlRight")
+                    keyState.down = true;
+                if (e.code === "ShiftLeft" || e.code === "ShiftRight")
+                    keyState.sprint = true;
+            });
+
+            window.addEventListener("keyup", (e) => {
+                if (e.code === "KeyW") keyState.w = false;
+                if (e.code === "KeyA") keyState.a = false;
+                if (e.code === "KeyS") keyState.s = false;
+                if (e.code === "KeyD") keyState.d = false;
+                if (e.code === "Space") keyState.up = false;
+                if (e.code === "ControlLeft" || e.code === "ControlRight")
+                    keyState.down = false;
+                if (e.code === "ShiftLeft" || e.code === "ShiftRight")
+                    keyState.sprint = false;
+            });
+
+            function updateFpMovement(dt) {
+                if (mode !== "fp" || !fp.isLocked) return;
+
+                const speed = keyState.sprint ? 65 : 35;
+                moveDir.set(
+                    Number(keyState.d) - Number(keyState.a),
+                    Number(keyState.up) - Number(keyState.down),
+                    Number(keyState.w) - Number(keyState.s),
+                );
+
+                if (moveDir.lengthSq() > 0) {
+                    moveDir.normalize();
+                }
+
+                fp.moveRight(moveDir.x * speed * dt);
+                fp.moveForward(moveDir.z * speed * dt);
+                camera.position.y += moveDir.y * speed * dt;
+                camera.position.y = Math.max(1.7, camera.position.y);
+            }
+
+            function onResize() {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderTarget.setSize(
+                    Math.max(
+                        1,
+                        Math.floor(window.innerWidth * currentEffectiveDpr),
+                    ),
+                    Math.max(
+                        1,
+                        Math.floor(window.innerHeight * currentEffectiveDpr),
+                    ),
+                );
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                updatePaniniBounds();
+            }
+
+            window.addEventListener("resize", onResize);
+
+            const clock = new THREE.Clock();
+            applyPixelRatio();
+            setMode("orbit");
+            syncUi();
+            updatePaniniBounds();
+
+            function animate() {
+                requestAnimationFrame(animate);
+                const dt = Math.min(clock.getDelta(), 1 / 30);
+
+                if (mode === "orbit") {
+                    orbit.update();
+                } else {
+                    updateFpMovement(dt);
+                }
+
+                if (ui.paniniToggle.checked) {
+                    renderer.setRenderTarget(renderTarget);
+                    renderer.render(scene, camera);
+                    renderer.setRenderTarget(null);
+                    renderer.render(postScene, postCamera);
+                } else {
+                    renderer.render(scene, camera);
+                }
+            }
+
+            animate();
+        </script>
+    </body>
+</html>
