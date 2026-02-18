@@ -1235,9 +1235,13 @@
 	{"id": "D. H. Lawrence", "time": 1885, "type": "author"},
 	{"id": "Studies in Classic American Literature", "time": 1923, "type": "book"},
 	{"id": "Sam Lake", "time": 1970, "type": "writer"},
-	{"id": "Jared Henderson", "time": 1990, "type": "philosopher"}
+	{"id": "Jared Henderson", "time": 1990, "type": "philosopher"},
+	{"id": "Nassim Nicholas Taleb", "time": 1960, "type": "author"},
+	{"id": "The Black Swan: The Impact of the Highly Improbable", "time": 2007, "type": "book"}
 
 ],"links":[
+	{"source": "The Black Swan: The Impact of the Highly Improbable", "target": "Funes the Memorious", "type": "references" },
+	{"source": "Nassim Nicholas Taleb", "target": "The Black Swan: The Impact of the Highly Improbable", "type": "wrote" },
 	{"source": "Studies in Classic American Literature", "target": "Herman Melville", "type": "review" },
 	{"source": "D. H. Lawrence", "target": "Studies in Classic American Literature", "type": "wrote" },
 	{"source": "Roger Caillois's \"Le roman policier\"", "target": "Le roman policier", "type": "review" },
