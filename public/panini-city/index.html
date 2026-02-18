@@ -1578,6 +1578,7 @@
                         .addScaledVector(forward, 20);
                     orbit.update();
                 }
+                syncUi();
             }
 
             function syncUi() {
@@ -1794,6 +1795,7 @@
                 physicsWorld.step();
                 const resolved = playerBody.translation();
                 camera.position.set(resolved.x, resolved.y, resolved.z);
+                ui.coordsLabel.textContent = `${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)}`;
             }
 
             function onResize() {
@@ -1826,7 +1828,6 @@
                 if (ENABLE_DYNAMIC_PANINI_PLACEMENT) updatePaniniPreview();
                 if (ENABLE_DYNAMIC_MATH_GRAFFITI_PLACEMENT)
                     updateMathGraffitiPreview();
-                syncUi();
 
                 if (ui.paniniToggle.checked) {
                     renderer.setRenderTarget(renderTarget);
