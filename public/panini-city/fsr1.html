@@ -301,6 +301,15 @@
                 <label for="coordsLabel">Camera XYZ</label>
                 <span id="coordsLabel">0.00, 0.00, 0.00</span>
             </div>
+
+            <div id="perf" style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px;font-size:11px;opacity:0.85;line-height:1.7;">
+                <div style="color:var(--accent);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">Performance</div>
+                <div id="perfFps">FPS: —</div>
+                <div id="perfRes">Render res: —</div>
+                <div id="perfScene">Scene: —</div>
+                <div id="perfEasu">EASU: —</div>
+                <div id="perfRcas">RCAS: —</div>
+            </div>
             </div>
         </div>
         <div id="aboutOverlay">
@@ -515,6 +524,11 @@
                 d: document.getElementById("d"),
                 dLabel: document.getElementById("dLabel"),
                 coordsLabel: document.getElementById("coordsLabel"),
+                perfFps:     document.getElementById("perfFps"),
+                perfRes:     document.getElementById("perfRes"),
+                perfScene:   document.getElementById("perfScene"),
+                perfEasu:    document.getElementById("perfEasu"),
+                perfRcas:    document.getElementById("perfRcas"),
                 aboutToggle: document.getElementById("aboutToggle"),
                 hideToggle: document.getElementById("hideToggle"),
                 settingsBody: document.getElementById("settingsBody"),
@@ -2156,6 +2170,14 @@
             syncUi();
             updatePaniniBounds();
 
+            // Perf tracking
+            let perfFpsSmooth    = 0;
+            let perfSceneSmooth  = 0;
+            let perfEasuSmooth   = 0;
+            let perfRcasSmooth   = 0;
+            let perfTick = 0;
+            const PERF_ALPHA = 0.1;
+
             function animate() {
                 requestAnimationFrame(animate);
                 const dt = Math.min(clock.getDelta(), 1 / 30);
@@ -2169,11 +2191,14 @@
                 if (ENABLE_DYNAMIC_MATH_GRAFFITI_PLACEMENT)
                     updateMathGraffitiPreview();
 
-                const fsr = ui.fsrEnabled.checked;
+                const fsr  = ui.fsrEnabled.checked;
                 const rcas = fsr && ui.rcasEnabled.checked;
 
+                let tScene0, tScene1, tEasu0, tEasu1, tRcas0, tRcas1;
+
+                tScene0 = performance.now();
                 if (fsr) {
-                    // Pass 0: scene → fsrInputTarget  (low res)
+                    // Pass 0: scene (+ optional Panini) → fsrInputTarget (low res)
                     if (ui.paniniToggle.checked) {
                         renderer.setRenderTarget(renderTarget);
                         renderer.render(scene, camera);
@@ -2182,21 +2207,8 @@
                     } else {
                         renderer.setRenderTarget(fsrInputTarget);
                         renderer.render(scene, camera);
-                    }
-
-                    // Pass 1: EASU  fsrInputTarget → easuTarget (or screen if no RCAS)
-                    easuMaterial.uniforms.tColor.value = fsrInputTarget.texture;
-                    renderer.setRenderTarget(rcas ? easuTarget : null);
-                    renderer.render(easuScene, easuCamera);
-
-                    // Pass 2: RCAS  easuTarget → screen
-                    if (rcas) {
-                        rcasMaterial.uniforms.tColor.value = easuTarget.texture;
-                        renderer.setRenderTarget(null);
-                        renderer.render(rcasScene, rcasCamera);
                     }
                 } else {
-                    // FSR disabled — original path
                     if (ui.paniniToggle.checked) {
                         renderer.setRenderTarget(renderTarget);
                         renderer.render(scene, camera);
@@ -2205,6 +2217,50 @@
                     } else {
                         renderer.render(scene, camera);
                     }
+                }
+                tScene1 = performance.now();
+
+                tEasu0 = tEasu1 = tScene1;
+                tRcas0 = tRcas1 = tScene1;
+
+                if (fsr) {
+                    // Pass 1: EASU
+                    easuMaterial.uniforms.tColor.value = fsrInputTarget.texture;
+                    tEasu0 = performance.now();
+                    renderer.setRenderTarget(rcas ? easuTarget : null);
+                    renderer.render(easuScene, easuCamera);
+                    tEasu1 = performance.now();
+
+                    // Pass 2: RCAS
+                    if (rcas) {
+                        rcasMaterial.uniforms.tColor.value = easuTarget.texture;
+                        tRcas0 = performance.now();
+                        renderer.setRenderTarget(null);
+                        renderer.render(rcasScene, rcasCamera);
+                        tRcas1 = performance.now();
+                    }
+                }
+
+                // EMA smoothed stats
+                const rawFps = dt > 0 ? 1 / dt : 0;
+                perfFpsSmooth   += PERF_ALPHA * (rawFps            - perfFpsSmooth);
+                perfSceneSmooth += PERF_ALPHA * ((tScene1 - tScene0) - perfSceneSmooth);
+                perfEasuSmooth  += PERF_ALPHA * ((tEasu1  - tEasu0)  - perfEasuSmooth);
+                perfRcasSmooth  += PERF_ALPHA * ((tRcas1  - tRcas0)  - perfRcasSmooth);
+
+                perfTick++;
+                if (perfTick % 20 === 0) {
+                    const inW = fsr ? fsrInputTarget.width  : renderTarget.width;
+                    const inH = fsr ? fsrInputTarget.height : renderTarget.height;
+                    ui.perfFps.textContent   = `FPS: ${perfFpsSmooth.toFixed(1)}`;
+                    ui.perfRes.textContent   = `Render res: ${inW}×${inH}`;
+                    ui.perfScene.textContent = `Scene+Panini: ${perfSceneSmooth.toFixed(2)} ms`;
+                    ui.perfEasu.textContent  = fsr
+                        ? `EASU: ${perfEasuSmooth.toFixed(2)} ms`
+                        : `EASU: off`;
+                    ui.perfRcas.textContent  = rcas
+                        ? `RCAS: ${perfRcasSmooth.toFixed(2)} ms`
+                        : `RCAS: off`;
                 }
             }
 
