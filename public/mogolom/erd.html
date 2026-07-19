@@ -97,7 +97,7 @@
         
         <div class="optimization-stats">
           <div class="stat-card">
-            <h3>Score</h3>
+            <h3>Score <small style="font-weight:400;color:#888">(predicted)</small></h3>
             <p id="score">N/A</p>
             <div class="stat-details">
               <span>Edge-Edge: <span id="edge-edge-count">0</span></span>
@@ -105,11 +105,11 @@
             </div>
           </div>
           <div class="stat-card">
-            <h3>Improvements Found</h3>
-            <p id="improvements-count">0</p>
+            <h3>Method</h3>
+            <p id="method">&ndash;</p>
           </div>
           <div class="stat-card">
-            <h3>Iterations</h3>
+            <h3>Layouts Tried</h3>
             <p id="iteration-count">0</p>
           </div>
         </div>
@@ -117,10 +117,10 @@
     </div>
   </main>
   
-  <!-- Load scripts -->
-  <script src="js/erd-svg-analyzer.js"></script>
-  <script src="js/erd-syntax-swapper.js"></script>
-  <script src="js/erd-example-manager.js"></script>
-  <script src="js/erd-optimizer.js"></script>
+  <!-- Load scripts: the deterministic pipeline bundle + page glue.
+       (Old engine files erd-svg-analyzer/erd-syntax-swapper/erd-example-manager/
+       erd-optimizer are retired — see proto/TRANSPLANT.md.) -->
+  <script src="js/erd-proto.bundle.js"></script>
+  <script src="js/erd-app.js"></script>
 </body>
 </html> 

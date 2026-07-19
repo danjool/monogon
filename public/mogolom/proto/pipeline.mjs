@@ -69,6 +69,10 @@ export async function bestRoot(parsed, opts = {}) {
     }
     if (perfect(best.score)) break;
     opts.onProgress?.({ evals, best: best.score });
+    // Yield per root so the UI repaints and Stop registers during the scan —
+    // on large diagrams this phase dominates the runtime.
+    await new Promise((r) => setTimeout(r, 0));
+    if (opts.isCancelled?.()) break;
   }
   return { ...best, evals };
 }
@@ -93,6 +97,7 @@ async function polish(model, opts, cycles = 3) {
 
 export async function search(parsed, opts = {}) {
   const maxK = opts.maxExhaustiveK ?? 11;
+  const cancelled = () => opts.isCancelled?.() ?? false;
   const pre = preprocess(parsed);
   let evals = 0;
 
@@ -100,20 +105,27 @@ export async function search(parsed, opts = {}) {
   evals += rootSel.evals;
 
   let seed = rootSel.variant;
+  let seedScore = rootSel.score;
   let method = 'multi-root + feedback';
-  if (!perfect(rootSel.score) && pre.nonTreeCount <= maxK) {
+  if (!perfect(rootSel.score) && !cancelled() && pre.nonTreeCount <= maxK) {
     const ex = await exhaustiveNonTree(rootSel.rawPre, scoreErd, opts);
     evals += ex.evals;
-    if (betterScore(ex.score, rootSel.score)) seed = ex.variant;
+    if (betterScore(ex.score, rootSel.score)) {
+      seed = ex.variant;
+      seedScore = ex.score;
+    }
     method += ' + exhaustive';
   }
 
-  let best = await polish(seed, opts);
+  let best = { variant: seed, score: seedScore, evals: 0 };
+  if (!perfect(seedScore) && !cancelled()) {
+    best = await polish(seed, opts);
+    method += ' + descent';
+  }
   evals += best.evals;
-  method += ' + descent';
 
   // Fallback path: the pre-multi-root pipeline (default root vs original).
-  if (!perfect(best.score)) {
+  if (!perfect(best.score) && !cancelled()) {
     const origScore = scoreErd(parsed);
     evals++;
     const fallbackStart = betterScore(origScore, scoreErd(pre)) ? parsed : pre;

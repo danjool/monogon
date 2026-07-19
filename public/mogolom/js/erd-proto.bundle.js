@@ -5772,6 +5772,8 @@ var ErdProto = (() => {
       }
       if (perfect(best.score)) break;
       opts.onProgress?.({ evals, best: best.score });
+      await new Promise((r) => setTimeout(r, 0));
+      if (opts.isCancelled?.()) break;
     }
     return { ...best, evals };
   }
@@ -5793,22 +5795,30 @@ var ErdProto = (() => {
   }
   async function search(parsed, opts = {}) {
     const maxK = opts.maxExhaustiveK ?? 11;
+    const cancelled = () => opts.isCancelled?.() ?? false;
     const pre = preprocess(parsed);
     let evals = 0;
     const rootSel = await bestRoot(parsed, opts);
     evals += rootSel.evals;
     let seed = rootSel.variant;
+    let seedScore = rootSel.score;
     let method = "multi-root + feedback";
-    if (!perfect(rootSel.score) && pre.nonTreeCount <= maxK) {
+    if (!perfect(rootSel.score) && !cancelled() && pre.nonTreeCount <= maxK) {
       const ex = await exhaustiveNonTree(rootSel.rawPre, scoreErd, opts);
       evals += ex.evals;
-      if (betterScore(ex.score, rootSel.score)) seed = ex.variant;
+      if (betterScore(ex.score, rootSel.score)) {
+        seed = ex.variant;
+        seedScore = ex.score;
+      }
       method += " + exhaustive";
     }
-    let best = await polish(seed, opts);
+    let best = { variant: seed, score: seedScore, evals: 0 };
+    if (!perfect(seedScore) && !cancelled()) {
+      best = await polish(seed, opts);
+      method += " + descent";
+    }
     evals += best.evals;
-    method += " + descent";
-    if (!perfect(best.score)) {
+    if (!perfect(best.score) && !cancelled()) {
       const origScore = scoreErd(parsed);
       evals++;
       const fallbackStart = betterScore(origScore, scoreErd(pre)) ? parsed : pre;
