@@ -1,0 +1,18 @@
+{
+  "name": "mogolom-proto",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "dependencies": {
+    "dagre-d3-es": "^7.0.10"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1",
+    "puppeteer-core": "^25.3.0"
+  },
+  "scripts": {
+    "bench": "node bench.mjs",
+    "build:web": "esbuild web-entry.mjs --bundle --format=iife --global-name=ErdProto --loader:.mmd=text --outfile=../js/erd-proto.bundle.js",
+    "test:web": "node test-web.mjs"
+  }
+}

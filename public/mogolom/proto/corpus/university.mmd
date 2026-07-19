@@ -1,0 +1,32 @@
+erDiagram
+    STUDENT }|..|{ COURSE : enrolls
+    PROFESSOR ||--o{ COURSE : teaches
+    DEPARTMENT ||--|{ PROFESSOR : employs
+    DEPARTMENT ||--|{ COURSE : offers
+    STUDENT {
+        string studentId PK
+        string name
+        string email
+        date enrollmentDate
+        string major
+    }
+    PROFESSOR {
+        string professorId PK
+        string name
+        string email
+        string title
+        string departmentId FK
+    }
+    COURSE {
+        string courseId PK
+        string title
+        int credits
+        string departmentId FK
+        string professorId FK
+    }
+    DEPARTMENT {
+        string departmentId PK
+        string name
+        string building
+        string budget
+    }

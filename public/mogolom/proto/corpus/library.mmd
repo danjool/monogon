@@ -1,0 +1,46 @@
+erDiagram
+    LIBRARY ||--|{ BOOK : contains
+    BOOK }o--|| PUBLISHER : published_by
+    BOOK ||--o{ BOOK_COPY : has
+    BOOK_COPY ||--o{ CHECKOUT : involved_in
+    MEMBER ||--o{ CHECKOUT : makes
+    BOOK_COPY {
+        string copyId PK
+        string bookId FK
+        string status
+        date acquisitionDate
+    }
+    BOOK {
+        string bookId PK
+        string title
+        string ISBN
+        string authors
+        int publicationYear
+        string publisherId FK
+    }
+    LIBRARY {
+        string libraryId PK
+        string name
+        string address
+        string phone
+    }
+    PUBLISHER {
+        string publisherId PK
+        string name
+        string address
+    }
+    MEMBER {
+        string memberId PK
+        string name
+        string email
+        date joinDate
+        string status
+    }
+    CHECKOUT {
+        string checkoutId PK
+        string copyId FK
+        string memberId FK
+        date checkoutDate
+        date dueDate
+        date returnDate
+    }

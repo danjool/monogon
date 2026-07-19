@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOGOLOM - ER Diagram Optimizer v2 (deterministic)</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.8.0/dist/mermaid.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="css/mogolom.css">
+  <style>
+    .compare-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      min-height: 0;
+      padding: 0.5rem;
+    }
+    .compare-panel {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .compare-panel h2 {
+      font-size: 0.85rem;
+      padding: 0.35rem 0.6rem;
+      background: var(--light-bg);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 600;
+      color: var(--dark-text);
+    }
+    .compare-panel .panel-score { font-weight: 400; font-size: 0.8rem; }
+    .compare-panel .diagram-box {
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+    }
+    .compare-panel .diagram-box svg { max-width: 100%; height: auto; }
+    .status-bar {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.85rem;
+      color: var(--dark-text);
+      background: var(--light-bg);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .status-bar .stat b { color: var(--primary-color); }
+    .copy-btn {
+      margin-left: auto;
+      border: 1px solid var(--border-color);
+      background: white;
+      border-radius: 4px;
+      padding: 0.25rem 0.6rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .copy-btn:hover { background: var(--light-bg); }
+    .right-pane { display: flex; flex-direction: column; }
+    .parse-warning { color: #b00020; font-size: 0.8rem; }
+  </style>
+<!-- Matomo, a fingerprintless, GDPR compliant, no-cookies analytics -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//analytics.monogon.net/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '1']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+</head>
+<body>
+  <header>
+    <div class="title-container">
+      <h1><span class="big-letter">M</span>ogolom ER <span class="big-letter">v2</span> <button id="optimize-btn" class="optimize-btn pulse-until-click">Optimize</button> deterministic: spanning-tree + orientation search</h1>
+    </div>
+    <div class="header-controls">
+      <div class="examples-dropdown">
+        <button class="examples-btn header-btn">
+          <i class="fas fa-list"></i> Examples
+        </button>
+        <div class="examples-content" id="examples-list"></div>
+      </div>
+      <button id="stop-btn" class="stop-btn header-btn" disabled>
+        <i class="fas fa-stop"></i> Stop
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <div class="split-pane">
+      <div class="pane left-pane">
+        <div class="code-container">
+          <textarea id="code-editor" class="code-editor" spellcheck="false"></textarea>
+        </div>
+      </div>
+
+      <div class="resizer" id="resizer"></div>
+
+      <div class="pane right-pane">
+        <div class="compare-grid">
+          <div class="compare-panel">
+            <h2>Original <span class="panel-score" id="original-score">–</span></h2>
+            <div class="diagram-box" id="original-diagram"></div>
+          </div>
+          <div class="compare-panel">
+            <h2>Optimized
+              <span class="panel-score" id="optimized-score">–</span>
+              <button id="copy-btn" class="copy-btn" disabled><i class="fas fa-copy"></i> Copy code</button>
+            </h2>
+            <div class="diagram-box" id="optimized-diagram"></div>
+          </div>
+        </div>
+        <div class="status-bar">
+          <span class="stat" id="status">Paste an erDiagram or pick an example, then hit Optimize.</span>
+          <span class="stat" id="run-stats"></span>
+          <span class="parse-warning" id="parse-warning"></span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/erd-proto.bundle.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: 'loose',
+      er: { useMaxWidth: false, diagramPadding: 20 }
+    });
+
+    const codeEditor = document.getElementById('code-editor');
+    const optimizeBtn = document.getElementById('optimize-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    const statusEl = document.getElementById('status');
+    const runStatsEl = document.getElementById('run-stats');
+    const parseWarningEl = document.getElementById('parse-warning');
+
+    let renderSeq = 0;
+    let cancelled = false;
+    let running = false;
+    let optimizedCode = '';
+
+    function fmtScore(s) {
+      return `${s.edgeEdge} crossing${s.edgeEdge === 1 ? '' : 's'}, ${s.edgeNode} through-box`;
+    }
+
+    async function renderInto(containerId, code) {
+      const container = document.getElementById(containerId);
+      const id = `render-${containerId}-${++renderSeq}`;
+      try {
+        const { svg } = await mermaid.render(id, code);
+        container.innerHTML = svg;
+        const el = container.querySelector('svg');
+        if (el) {
+          el.removeAttribute('width');
+          el.removeAttribute('height');
+          el.style.maxWidth = '100%';
+        }
+      } catch (err) {
+        container.innerHTML = '<div style="color:#b00020;padding:1rem;">Mermaid could not render this diagram</div>';
+        // mermaid.render leaves an orphaned error element behind on failure
+        document.getElementById('d' + id)?.remove();
+      }
+    }
+
+    function renderOriginal() {
+      const code = codeEditor.value.trim();
+      if (!code) return;
+      try {
+        const score = ErdProto.scoreErd(ErdProto.parseErd(code));
+        document.getElementById('original-score').textContent = fmtScore(score) + ' (predicted)';
+      } catch (e) { /* scoring is best-effort while typing */ }
+      renderInto('original-diagram', code);
+    }
+
+    let renderTimer = null;
+    codeEditor.addEventListener('input', () => {
+      clearTimeout(renderTimer);
+      renderTimer = setTimeout(renderOriginal, 400);
+    });
+
+    async function runOptimization() {
+      const code = codeEditor.value.trim();
+      if (!code || running) return;
+      running = true;
+      cancelled = false;
+      optimizeBtn.disabled = true;
+      optimizeBtn.classList.remove('pulse-until-click');
+      stopBtn.disabled = false;
+      copyBtn.disabled = true;
+      parseWarningEl.textContent = '';
+      statusEl.textContent = 'Optimizing…';
+      runStatsEl.textContent = '';
+
+      try {
+        const result = await ErdProto.optimize(code, {
+          yieldEvery: 20,
+          isCancelled: () => cancelled,
+          onProgress: (p) => {
+            statusEl.textContent =
+              `Optimizing (${p.evals} layouts tried, best so far: ${p.best.edgeEdge} crossings)…`;
+          },
+        });
+
+        optimizedCode = result.bestCode;
+        await renderInto('optimized-diagram', result.bestCode);
+        document.getElementById('optimized-score').textContent = fmtScore(result.bestScore) + ' (predicted)';
+        copyBtn.disabled = false;
+
+        const searchLabel = result.method;
+        statusEl.textContent = cancelled ? 'Stopped early — best found so far shown.' : 'Done.';
+        runStatsEl.innerHTML =
+          `<b>${result.originalScore.edgeEdge}</b> &rarr; <b>${result.bestScore.edgeEdge}</b> crossings, ` +
+          `<b>${result.originalScore.edgeNode}</b> &rarr; <b>${result.bestScore.edgeNode}</b> through-box &middot; ` +
+          `${searchLabel}, ${result.evals} layouts in ${(result.ms / 1000).toFixed(1)}s`;
+        if (result.unparsedLines.length) {
+          parseWarningEl.textContent =
+            `${result.unparsedLines.length} line(s) not understood and left as-is: ` +
+            result.unparsedLines.slice(0, 3).join(' | ');
+        }
+      } catch (err) {
+        statusEl.textContent = 'Optimization failed: ' + err.message;
+        console.error(err);
+      }
+
+      running = false;
+      optimizeBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
+
+    optimizeBtn.addEventListener('click', runOptimization);
+    stopBtn.addEventListener('click', () => { cancelled = true; });
+
+    copyBtn.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(optimizedCode);
+      copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied';
+      setTimeout(() => { copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy code'; }, 1500);
+    });
+
+    // Examples dropdown from the bundled corpus
+    const examplesList = document.getElementById('examples-list');
+    ErdProto.examples.forEach((ex) => {
+      const btn = document.createElement('button');
+      btn.textContent = ex.name;
+      btn.addEventListener('click', () => {
+        codeEditor.value = ex.code;
+        document.getElementById('optimized-diagram').innerHTML = '';
+        document.getElementById('optimized-score').textContent = '–';
+        copyBtn.disabled = true;
+        renderOriginal();
+      });
+      examplesList.appendChild(btn);
+    });
+
+    // Resizable split pane (same behavior as the other pages)
+    const resizer = document.getElementById('resizer');
+    const leftPane = document.querySelector('.left-pane');
+    const rightPane = document.querySelector('.right-pane');
+    leftPane.style.flex = '0 0 30%';
+    rightPane.style.flex = '0 0 70%';
+    resizer.addEventListener('mousedown', (e) => {
+      const startX = e.clientX;
+      const startWidth = leftPane.getBoundingClientRect().width;
+      const totalWidth = resizer.parentNode.getBoundingClientRect().width;
+      const onMove = (ev) => {
+        const pct = ((startWidth + ev.clientX - startX) / totalWidth) * 100;
+        leftPane.style.flex = `0 0 ${pct}%`;
+        rightPane.style.flex = `0 0 ${100 - pct}%`;
+      };
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+
+    // Load first example on startup
+    codeEditor.value = ErdProto.examples[0].code;
+    renderOriginal();
+  </script>
+</body>
+</html>
