@@ -63,6 +63,17 @@ app.use('/', express.static(path.join(__dirname, 'public')))
 // JSON body parser with size limits to prevent DoS attacks
 app.use(express.json({ limit: '1mb' }))
 
+// Swedish spaced-repetition app. The built SPA is served statically from
+// public/swedish (handled by the express.static above); this mounts its API and
+// media/data routes under the same /swedish prefix. Mounted after express.json
+// so the app's POST routes get parsed bodies. The SQLite DB lives on a mounted
+// volume (see docker-compose SWEDISH_DB_PATH) so review history survives redeploys.
+try {
+	app.use('/swedish', require('./swedish/server/app'))
+} catch (e) {
+	console.log('errored mounting swedish subapp:', e.message)
+}
+
 // SSL handling removed - nginx-proxy handles SSL termination
 console.log('Running in HTTP mode - nginx-proxy handles SSL termination')
 

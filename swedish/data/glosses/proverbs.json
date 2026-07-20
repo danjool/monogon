@@ -1,0 +1,25 @@
+{
+  "id": "proverbs",
+  "title": "Swedish proverbs (ordspråk)",
+  "source": "Traditional sayings — public domain.",
+  "lines": [
+    {
+      "original": "Borta bra men hemma bäst .",
+      "morphemes": ["Borta", "bra", "men", "hemma", "bäst", "."],
+      "glosses": ["away", "good", "but", "at.home", "best", "."],
+      "translation": "Away is good, but home is best. (≈ There's no place like home.)"
+    },
+    {
+      "original": "Övning ger färdighet .",
+      "morphemes": ["Övning", "ge-r", "färdighet", "."],
+      "glosses": ["practice", "give-PRS", "skill", "."],
+      "translation": "Practice gives skill. (≈ Practice makes perfect.)"
+    },
+    {
+      "original": "Det är ingen ko på isen .",
+      "morphemes": ["Det", "är", "ingen", "ko", "på", "is-en", "."],
+      "glosses": ["3SG.N", "be.PRS", "no", "cow", "on", "ice-DEF", "."],
+      "translation": "There's no cow on the ice. (Idiom: there's no rush / no need to worry.)"
+    }
+  ]
+}

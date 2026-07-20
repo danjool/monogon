@@ -1,0 +1,367 @@
+{
+  "id": "lagerlof-nils-ch1",
+  "title": "Nils Holgersson – kapitel I: Pojken",
+  "source": "Selma Lagerlöf, Nils Holgerssons underbara resa genom Sverige (1906). Public domain. Text via Project Runeberg.",
+  "lines": [
+    {
+      "original": "Det var en gång en pojke.",
+      "morphemes": ["Det", "var", "en", "gång", "en", "pojke", "."],
+      "glosses": ["3SG.N", "be.PST", "INDEF", "time", "INDEF", "boy", "."],
+      "translation": "Once upon a time there was a boy."
+    },
+    {
+      "original": "Han var så där en fjorton år gammal, lång och ranglig och linhårig.",
+      "morphemes": ["Han", "var", "så", "där", "en", "fjorton", "år", "gammal", ",", "lång", "och", "ranglig", "och", "lin-hårig", "."],
+      "glosses": ["3SG.M", "be.PST", "so", "adv", "INDEF", "fourteen", "years", "old", ",", "tall", "conj", "lanky", "conj", "flax-haired", "."],
+      "translation": "He was about fourteen years old, tall and lanky and flax-haired."
+    },
+    {
+      "original": "Inte stort dugde han till: han hade mest av allt lust att sova och äta, och därnäst tyckte han om att ställa till.",
+      "morphemes": ["Inte", "stort", "dug-de", "han", "till", ":", "han", "hade", "mest", "av", "allt", "lust", "att", "sov-a", "och", "ät-a", ",", "och", "där-näst", "tyck-te", "han", "om", "att", "ställ-a", "till", "."],
+      "glosses": ["NEG", "much", "be.fit-PST", "3SG.M", "PRT", ":", "3SG.M", "have.PST", "most", "of", "all", "desire", "to", "sleep-INF", "conj", "eat-INF", ",", "conj", "there-next", "like-PST", "3SG.M", "PRT", "to", "cause.trouble-INF", "PRT", "."],
+      "translation": "He was not much good for anything: above all he wanted to sleep and eat, and next he liked to cause mischief."
+    },
+    {
+      "original": "Nu var det en söndagsmorgon, och pojkens föräldrar höllo på att göra sig i ordning för att gå i kyrkan.",
+      "morphemes": ["Nu", "var", "det", "en", "söndag-s-morgon", ",", "och", "pojk-en-s", "föräldrar", "höll-o", "på", "att", "gör-a", "sig", "i", "ordning", "för", "att", "gå", "i", "kyrk-an", "."],
+      "glosses": ["now", "be.PST", "3SG.N", "INDEF", "Sunday-GEN-morning", ",", "conj", "boy-DEF-GEN", "parents", "hold-PST.PL", "PRT", "to", "do-INF", "REFL", "in", "order", "for", "to", "go.INF", "in", "church-DEF", "."],
+      "translation": "Now it was a Sunday morning, and the boy's parents were busy getting themselves ready to go to church."
+    },
+    {
+      "original": "Pojken själv satt i skjortärmarn på bordskanten och tänkte på hur lyckligt det var, att både far och mor gingo sin väg.",
+      "morphemes": ["Pojk-en", "själv", "satt", "i", "skjort-ärm-arn", "på", "bords-kant-en", "och", "tänk-te", "på", "hur", "lyckligt", "det", "var", ",", "att", "både", "far", "och", "mor", "ging-o", "sin", "väg", "."],
+      "glosses": ["boy-DEF", "self", "sit.PST", "in", "shirt-sleeve-DEF", "on", "table-edge-DEF", "conj", "think-PST", "PRT", "how", "fortunate", "3SG.N", "be.PST", ",", "that", "both", "father", "conj", "mother", "go-PST.PL", "POSS.REFL", "way", "."],
+      "translation": "The boy himself sat in his shirtsleeves on the edge of the table and thought how fortunate it was that both father and mother were going their way."
+    },
+    {
+      "original": "Men det var nästan, som om far skulle ha gissat sig till pojkens tankar.",
+      "morphemes": ["Men", "det", "var", "nästan", ",", "som", "om", "far", "skull-e", "ha", "gissat", "sig", "till", "pojk-en-s", "tankar", "."],
+      "glosses": ["conj", "3SG.N", "be.PST", "almost", ",", "as", "if", "father", "shall-COND", "have.INF", "guess.SUP", "REFL", "PRT", "boy-DEF-GEN", "thoughts", "."],
+      "translation": "But it was almost as if father had guessed the boy's thoughts."
+    },
+    {
+      "original": "\"Eftersom du inte vill gå i kyrkan med mor och mig,\" sade han, \"så tycker jag, att du åtminstone kan läsa predikan hemma.\"",
+      "morphemes": ["\"", "Eftersom", "du", "inte", "vill", "gå", "i", "kyrk-an", "med", "mor", "och", "mig", ",", "\"", "sade", "han", ",", "\"", "så", "tyck-er", "jag", ",", "att", "du", "åt-minstone", "kan", "läs-a", "predik-an", "hemma", ".", "\""],
+      "glosses": ["\"", "since", "2SG", "NEG", "want.PRS", "go.INF", "in", "church-DEF", "with", "mother", "conj", "1SG.ACC", ",", "\"", "say.PST", "3SG.M", ",", "\"", "then", "think-PRS", "1SG", ",", "that", "2SG", "at-least", "can.PRS", "read-INF", "sermon-DEF", "at.home", ".", "\""],
+      "translation": "\"Since you don't want to go to church with Mother and me,\" he said, \"I think you can at least read the sermon at home.\""
+    },
+    {
+      "original": "Han gick fram till pojken och sade med sträng röst: \"Kom nu ihåg, att du läser ordentligt!\"",
+      "morphemes": ["Han", "gick", "fram", "till", "pojk-en", "och", "sade", "med", "sträng", "röst", ":", "\"", "Kom", "nu", "i-håg", ",", "att", "du", "läs-er", "ordentligt", "!", "\""],
+      "glosses": ["3SG.M", "go.PST", "PRT", "to", "boy-DEF", "conj", "say.PST", "with", "strict", "voice", ":", "\"", "come.IMP", "now", "in-mind", ",", "that", "2SG", "read-PRS", "properly", "!", "\""],
+      "translation": "He walked up to the boy and said in a stern voice: \"Now remember that you read properly!\""
+    },
+    {
+      "original": "Pojken stod en lång stund och funderade om han skulle läsa predikan eller inte.",
+      "morphemes": ["Pojk-en", "stod", "en", "lång", "stund", "och", "funder-ade", "om", "han", "skull-e", "läs-a", "predik-an", "eller", "inte", "."],
+      "glosses": ["boy-DEF", "stand.PST", "INDEF", "long", "while", "conj", "ponder-PST", "whether", "3SG.M", "shall-COND", "read-INF", "sermon-DEF", "or", "NEG", "."],
+      "translation": "The boy stood for a long while pondering whether he should read the sermon or not."
+    },
+    {
+      "original": "Han satte sig i prästgårdslänstolen och började läsa.",
+      "morphemes": ["Han", "satt-e", "sig", "i", "präst-gårds-läns-tol-en", "och", "börj-ade", "läs-a", "."],
+      "glosses": ["3SG.M", "sit-PST", "REFL", "in", "vicarage-GEN-arm-chair-DEF", "conj", "begin-PST", "read-INF", "."],
+      "translation": "He sat himself down in the vicarage armchair and began to read."
+    },
+    {
+      "original": "Men då han hade hållit på en stund med att rabbla upp orden halvhögt, så var det, som om det där mumlandet skulle ha sövt honom.",
+      "morphemes": ["Men", "då", "han", "hade", "hållit", "på", "en", "stund", "med", "att", "rabbl-a", "upp", "orden", "halv-högt", ",", "så", "var", "det", ",", "som", "om", "det", "där", "mumland-et", "skull-e", "ha", "söv-t", "honom", "."],
+      "glosses": ["conj", "when", "3SG.M", "have.PST", "hold.SUP", "PRT", "INDEF", "while", "with", "to", "rattle-INF", "PRT", "words.DEF", "half-aloud", ",", "then", "be.PST", "3SG.N", ",", "as", "if", "3SG.N", "there", "mumbling-DEF", "shall-COND", "have.INF", "put.to.sleep-SUP", "3SG.M.ACC", "."],
+      "translation": "But when he had been droning through the words half-aloud for a while, it was as if that mumbling would have lulled him to sleep."
+    },
+    {
+      "original": "Han märkte, att han nickade till.",
+      "morphemes": ["Han", "märk-te", ",", "att", "han", "nickade", "till", "."],
+      "glosses": ["3SG.M", "notice-PST", ",", "that", "3SG.M", "nod.PST", "PRT", "."],
+      "translation": "He noticed that he was nodding off."
+    },
+    {
+      "original": "Ute var det allra vackraste vårväder.",
+      "morphemes": ["Ute", "var", "det", "allra", "vackr-aste", "vår-väder", "."],
+      "glosses": ["outside", "be.PST", "3SG.N", "by.far", "beautiful-SUP", "spring-weather", "."],
+      "translation": "Outside it was the most beautiful spring weather."
+    },
+    {
+      "original": "Året var inte längre kommet än till den tjugonde mars, men pojken bodde i Västra Vemmenhögs socken långt nere i södra Skåne, och där var våren redan i full gång.",
+      "morphemes": ["År-et", "var", "inte", "längre", "kommet", "än", "till", "den", "tjugond-e", "mars", ",", "men", "pojk-en", "bodde", "i", "Västra", "Vemmenhögs", "socken", "långt", "nere", "i", "södra", "Skåne", ",", "och", "där", "var", "vår-en", "redan", "i", "full", "gång", "."],
+      "glosses": ["year-DEF", "be.PST", "NEG", "further", "come.SUP", "than", "to", "DEF.ART", "twentieth-DEF", "March", ",", "conj", "boy-DEF", "live.PST", "in", "Western", "Vemmenhög.GEN", "parish", "far", "down", "in", "southern", "Scania", ",", "conj", "there", "be.PST", "spring-DEF", "already", "in", "full", "swing", "."],
+      "translation": "The year had not advanced further than the twentieth of March, but the boy lived in the parish of Västra Vemmenhög, far down in southern Scania, and there spring was already in full swing."
+    },
+    {
+      "original": "Men hur det var, så somnade han.",
+      "morphemes": ["Men", "hur", "det", "var", ",", "så", "somn-ade", "han", "."],
+      "glosses": ["conj", "however", "3SG.N", "be.PST", ",", "then", "fall.asleep-PST", "3SG.M", "."],
+      "translation": "But however it was, he fell asleep."
+    },
+    {
+      "original": "På själva fönsterbrädet rätt framför pojken stod en liten spegel, och i den syntes nästan hela rummet.",
+      "morphemes": ["På", "själva", "fönster-bräd-et", "rätt", "fram-för", "pojk-en", "stod", "en", "liten", "spegel", ",", "och", "i", "den", "syn-tes", "nästan", "hela", "rumm-et", "."],
+      "glosses": ["on", "very", "window-sill-DEF", "directly", "in.front-of", "boy-DEF", "stand.PST", "INDEF", "small", "mirror", ",", "conj", "in", "3SG", "see-PST.PASS", "almost", "whole", "room-DEF", "."],
+      "translation": "On the very windowsill directly in front of the boy stood a small mirror, and in it almost the whole room was reflected."
+    },
+    {
+      "original": "Det var inte bättre, det, än att en tomte satt och red gränsle över kistkanten.",
+      "morphemes": ["Det", "var", "inte", "bättre", ",", "det", ",", "än", "att", "en", "tomte", "satt", "och", "red", "gränsle", "över", "kist-kant-en", "."],
+      "glosses": ["3SG.N", "be.PST", "NEG", "better", ",", "3SG.N", ",", "than", "that", "INDEF", "house.gnome", "sit.PST", "conj", "ride.PST", "astride", "over", "chest-edge-DEF", "."],
+      "translation": "It was no better than that a house gnome sat astride the edge of the chest."
+    },
+    {
+      "original": "Pojken blev bra förvånad att få se tomten, men så särdeles rädd blev han däremot inte.",
+      "morphemes": ["Pojk-en", "blev", "bra", "för-vånad", "att", "få", "se", "tomt-en", ",", "men", "så", "särdeles", "rädd", "blev", "han", "där-emot", "inte", "."],
+      "glosses": ["boy-DEF", "become.PST", "very", "PASS-surprised", "to", "get.INF", "see.INF", "house.gnome-DEF", ",", "conj", "so", "particularly", "frightened", "become.PST", "3SG.M", "there-against", "NEG", "."],
+      "translation": "The boy was quite amazed to catch sight of the gnome, but he was not particularly afraid of him either."
+    },
+    {
+      "original": "Han lät blickarna vandra från liggsoffan till slagbordet och från slagbordet till spisen.",
+      "morphemes": ["Han", "lät", "blick-arna", "vandra", "från", "ligg-soff-an", "till", "slag-bord-et", "och", "från", "slag-bord-et", "till", "spis-en", "."],
+      "glosses": ["3SG.M", "let.PST", "glance-DEF.PL", "wander.INF", "from", "lie-sofa-DEF", "to", "drop-leaf.table-DEF", "conj", "from", "drop-leaf.table-DEF", "to", "stove-DEF", "."],
+      "translation": "He let his gaze wander from the chaise lounge to the drop-leaf table and from the drop-leaf table to the stove."
+    },
+    {
+      "original": "Knappast hade han fått syn på flughåven, förrän han ryckte den till sig och sprang upp och svängde den utmed kistkanten.",
+      "morphemes": ["Knappast", "hade", "han", "fått", "syn", "på", "flug-håv-en", ",", "förrän", "han", "ryck-te", "den", "till", "sig", "och", "sprang", "upp", "och", "sväng-de", "den", "ut-med", "kist-kant-en", "."],
+      "glosses": ["barely", "have.PST", "3SG.M", "get.SUP", "sight", "PRT", "fly-net-DEF", ",", "before", "3SG.M", "snatch-PST", "3SG.ACC", "to", "REFL", "conj", "run.PST", "PRT", "conj", "swing-PST", "3SG.ACC", "out-along", "chest-edge-DEF", "."],
+      "translation": "He had barely caught sight of the butterfly net before he snatched it to himself, jumped up, and swept it along the edge of the chest."
+    },
+    {
+      "original": "Han hade verkligen fångat tomten.",
+      "morphemes": ["Han", "hade", "verkligen", "fång-at", "tomt-en", "."],
+      "glosses": ["3SG.M", "have.PST", "truly", "catch-SUP", "house.gnome-DEF", "."],
+      "translation": "He had truly caught the gnome."
+    },
+    {
+      "original": "Tomten började tala och bad så innerligt att bli frigiven.",
+      "morphemes": ["Tomt-en", "börj-ade", "tal-a", "och", "bad", "så", "innerligt", "att", "bli", "fri-given", "."],
+      "glosses": ["house.gnome-DEF", "begin-PST", "speak-INF", "conj", "ask.PST", "so", "earnestly", "to", "become.INF", "free-given", "."],
+      "translation": "The gnome began to speak and begged so earnestly to be set free."
+    },
+    {
+      "original": "Om nu pojken släppte lös honom, så skulle han ge honom en gammal speciedaler, en silversked och en guldpenning.",
+      "morphemes": ["Om", "nu", "pojk-en", "släppt-e", "lös", "honom", ",", "så", "skull-e", "han", "ge", "honom", "en", "gammal", "specie-daler", ",", "en", "silver-sked", "och", "en", "guld-penning", "."],
+      "glosses": ["if", "now", "boy-DEF", "release-PST.SUBJ", "PRT", "3SG.M.ACC", ",", "then", "shall-COND", "3SG.M", "give.INF", "3SG.M.DAT", "INDEF", "old", "specie-thaler", ",", "INDEF", "silver-spoon", "conj", "INDEF", "gold-coin", "."],
+      "translation": "If the boy would now let him go, he would give him an old specie-thaler, a silver spoon, and a gold coin."
+    },
+    {
+      "original": "Pojken tyckte inte, att detta var mycket bjudet, men det hade gått honom så, att sedan han hade fått tomten i sitt våld, hade han blivit rädd för honom.",
+      "morphemes": ["Pojk-en", "tyck-te", "inte", ",", "att", "detta", "var", "mycket", "bjud-et", ",", "men", "det", "hade", "gått", "honom", "så", ",", "att", "sedan", "han", "hade", "fått", "tomt-en", "i", "sitt", "våld", ",", "hade", "han", "blivit", "rädd", "för", "honom", "."],
+      "glosses": ["boy-DEF", "think-PST", "NEG", ",", "that", "this", "be.PST", "much", "offer-SUP", ",", "conj", "3SG.N", "have.PST", "go.SUP", "3SG.M.DAT", "so", ",", "that", "since", "3SG.M", "have.PST", "get.SUP", "house.gnome-DEF", "in", "POSS.REFL", "power", ",", "have.PST", "3SG.M", "become.SUP", "afraid", "of", "3SG.M.ACC", "."],
+      "translation": "The boy did not think this was much of an offer, but it had gone so with him that since he had gotten the gnome in his power, he had become afraid of him."
+    },
+    {
+      "original": "Men i samma stund, som pojken gjorde detta, fick han en så förfärlig örfil, att han trodde huvudet skulle springa i bitar.",
+      "morphemes": ["Men", "i", "samma", "stund", ",", "som", "pojk-en", "gjord-e", "detta", ",", "fick", "han", "en", "så", "förfärlig", "örfil", ",", "att", "han", "trodde", "huvud-et", "skull-e", "spring-a", "i", "bitar", "."],
+      "glosses": ["conj", "in", "same", "moment", ",", "as", "boy-DEF", "do-PST", "this", ",", "get.PST", "3SG.M", "INDEF", "so", "terrible", "slap", ",", "that", "3SG.M", "believe.PST", "head-DEF", "shall-COND", "burst-INF", "in", "pieces", "."],
+      "translation": "But at the very moment the boy did this, he received such a terrible slap that he thought his head would burst into pieces."
+    },
+    {
+      "original": "Då han vaknade upp igen, var han ensam i stugan.",
+      "morphemes": ["Då", "han", "vak-nade", "upp", "igen", ",", "var", "han", "ensam", "i", "stug-an", "."],
+      "glosses": ["when", "3SG.M", "wake-PST", "PRT", "again", ",", "be.PST", "3SG.M", "alone", "in", "cottage-DEF", "."],
+      "translation": "When he woke up again, he was alone in the cottage."
+    },
+    {
+      "original": "Kistlocket var stängt, och flughåven hängde på sin vanliga plats i fönstret.",
+      "morphemes": ["Kist-lock-et", "var", "stängt", ",", "och", "flug-håv-en", "häng-de", "på", "sin", "vanliga", "plats", "i", "fönstr-et", "."],
+      "glosses": ["chest-lid-DEF", "be.PST", "close.SUP", ",", "conj", "fly-net-DEF", "hang-PST", "on", "POSS.REFL", "usual", "place", "in", "window-DEF", "."],
+      "translation": "The chest lid was closed, and the butterfly net hung in its usual place in the window."
+    },
+    {
+      "original": "Men när han nu gick fram mot bordet, så lade han märke till något underligt.",
+      "morphemes": ["Men", "när", "han", "nu", "gick", "fram", "mot", "bord-et", ",", "så", "lade", "han", "märke", "till", "något", "underligt", "."],
+      "glosses": ["conj", "when", "3SG.M", "now", "go.PST", "PRT", "toward", "table-DEF", ",", "then", "lay.PST", "3SG.M", "notice", "PRT", "something", "strange", "."],
+      "translation": "But when he now walked up toward the table, he noticed something strange."
+    },
+    {
+      "original": "\"Vad i all världen är detta?\" sade pojken.",
+      "morphemes": ["\"", "Vad", "i", "all", "världen", "är", "detta", "?", "\"", "sade", "pojk-en", "."],
+      "glosses": ["\"", "what", "in", "all", "world.DEF", "be.PRS", "this", "?", "\"", "say.PST", "boy-DEF", "."],
+      "translation": "\"What in the whole world is this?\" said the boy."
+    },
+    {
+      "original": "\"Jag menar tomten har förgjort både länstolen och bordet och hela stugan.\"",
+      "morphemes": ["\"", "Jag", "menar", "tomt-en", "har", "för-gjort", "både", "läns-tol-en", "och", "bord-et", "och", "hela", "stug-an", ".", "\""],
+      "glosses": ["\"", "1SG", "mean.PRS", "house.gnome-DEF", "have.PRS", "PREF-do.SUP", "both", "arm-chair-DEF", "conj", "table-DEF", "conj", "whole", "cottage-DEF", ".", "\""],
+      "translation": "\"I think the gnome has bewitched both the armchair and the table and the whole cottage.\""
+    },
+    {
+      "original": "För i spegeln såg han tydligt en liten, liten parvel, som var klädd i toppluva och skinnbyxor.",
+      "morphemes": ["För", "i", "spegeln", "såg", "han", "tydligt", "en", "liten", ",", "liten", "parvel", ",", "som", "var", "klädd", "i", "topp-luv-a", "och", "skinn-byxor", "."],
+      "glosses": ["for", "in", "mirror.DEF", "see.PST", "3SG.M", "clearly", "INDEF", "small", ",", "small", "tot", ",", "REL", "be.PST", "dress.SUP.PASS", "in", "pointed-cap-INDEF", "conj", "leather-trousers", "."],
+      "translation": "For in the mirror he could clearly see a tiny, tiny little mite, who was dressed in a pointed cap and leather breeches."
+    },
+    {
+      "original": "Pojken kunde rakt inte förmå sig att tro, att han hade blivit förvandlad till tomte.",
+      "morphemes": ["Pojk-en", "kunn-de", "rakt", "inte", "för-må", "sig", "att", "tro", ",", "att", "han", "hade", "blivit", "för-vandlad", "till", "tomte", "."],
+      "glosses": ["boy-DEF", "can-PST", "simply", "NEG", "PREF-manage", "REFL", "to", "believe.INF", ",", "that", "3SG.M", "have.PST", "become.SUP", "PREF-transformed", "to", "house.gnome", "."],
+      "translation": "The boy simply could not bring himself to believe that he had been transformed into a gnome."
+    },
+    {
+      "original": "Han ställde sig framför spegeln och slöt ögonen.",
+      "morphemes": ["Han", "ställ-de", "sig", "fram-för", "spegeln", "och", "slöt", "ögon-en", "."],
+      "glosses": ["3SG.M", "place-PST", "REFL", "in.front-of", "mirror.DEF", "conj", "close.PST", "eye-DEF.PL", "."],
+      "translation": "He placed himself in front of the mirror and closed his eyes."
+    },
+    {
+      "original": "Han öppnade dem först efter ett par minuter och väntade då, att det skulle ha gått över.",
+      "morphemes": ["Han", "öppn-ade", "dem", "först", "efter", "ett", "par", "minuter", "och", "väntade", "då", ",", "att", "det", "skull-e", "ha", "gått", "över", "."],
+      "glosses": ["3SG.M", "open-PST", "3PL.ACC", "first", "after", "INDEF.N", "pair", "minutes", "conj", "wait.PST", "then", ",", "that", "3SG.N", "shall-COND", "have.INF", "go.SUP", "PRT", "."],
+      "translation": "He opened them only after a couple of minutes, expecting that it would have passed."
+    },
+    {
+      "original": "Han fick lov att försöka med något annat.",
+      "morphemes": ["Han", "fick", "lov", "att", "försök-a", "med", "något", "annat", "."],
+      "glosses": ["3SG.M", "get.PST", "permission", "to", "try-INF", "with", "something", "else", "."],
+      "translation": "He had to try something else."
+    },
+    {
+      "original": "Medan han sökte, grät han och bad och lovade allt tänkbart.",
+      "morphemes": ["Medan", "han", "sökt-e", ",", "grät", "han", "och", "bad", "och", "lovade", "allt", "tänkbart", "."],
+      "glosses": ["while", "3SG.M", "search-PST", ",", "weep.PST", "3SG.M", "conj", "beg.PST", "conj", "promise.PST", "everything", "imaginable", "."],
+      "translation": "While he searched, he wept and begged and promised everything imaginable."
+    },
+    {
+      "original": "Med ens kom han ihåg, att han hade hört mor säga, att småfolket brukade bo i kostallet.",
+      "morphemes": ["Med", "ens", "kom", "han", "i-håg", ",", "att", "han", "hade", "hört", "mor", "säga", ",", "att", "små-folk-et", "bruk-ade", "bo", "i", "ko-stallet", "."],
+      "glosses": ["with", "once", "come.PST", "3SG.M", "in-mind", ",", "that", "3SG.M", "have.PST", "hear.SUP", "mother", "say.INF", ",", "that", "small-folk-DEF", "use-PST", "live.INF", "in", "cow-stable.DEF", "."],
+      "translation": "All at once he remembered that he had heard his mother say that the little folk usually lived in the cowshed."
+    },
+    {
+      "original": "Då han kom ut i förstun, såg han sig om efter sina träskor.",
+      "morphemes": ["Då", "han", "kom", "ut", "i", "förstun", ",", "såg", "han", "sig", "om", "efter", "sina", "träskor", "."],
+      "glosses": ["when", "3SG.M", "come.PST", "PRT", "in", "hallway.DEF", ",", "see.PST", "3SG.M", "REFL", "PRT", "after", "POSS.PL", "wooden.clogs", "."],
+      "translation": "When he came out into the hallway, he looked around for his wooden clogs."
+    },
+    {
+      "original": "\"Tititt! Tititt! Se på Nils gåsapåg! Se på Tummetott!\"",
+      "morphemes": ["\"", "Tititt", "!", "Tititt", "!", "Se", "på", "Nils", "gåsa-påg", "!", "Se", "på", "Tumme-tott", "!", "\""],
+      "glosses": ["\"", "tweet.tweet", "!", "tweet.tweet", "!", "look.IMP", "PRT", "Nils", "goose-boy", "!", "look.IMP", "PRT", "Thumb-tot", "!", "\""],
+      "translation": "\"Tweet tweet! Tweet tweet! Look at Nils the goose-boy! Look at Tom Thumb!\""
+    },
+    {
+      "original": "Katten svarade inte genast. Han satte sig ner, lade svansen prydligt i ring framför benen och stirrade på pojken.",
+      "morphemes": ["Katt-en", "svarade", "inte", "genast", ".", "Han", "satt-e", "sig", "ner", ",", "lade", "svans-en", "prydligt", "i", "ring", "fram-för", "ben-en", "och", "stirr-ade", "på", "pojk-en", "."],
+      "glosses": ["cat-DEF", "answer.PST", "NEG", "immediately", ".", "3SG.M", "sit-PST", "REFL", "PRT", ",", "lay.PST", "tail-DEF", "neatly", "in", "ring", "in.front-of", "leg-DEF.PL", "conj", "stare-PST", "PRT", "boy-DEF", "."],
+      "translation": "The cat did not answer immediately. He sat himself down, laid his tail neatly in a ring in front of his paws, and stared at the boy."
+    },
+    {
+      "original": "\"Nog vet jag var tomten bor,\" sade han med len röst, \"men inte är det sagt, att jag vill tala om det för dig.\"",
+      "morphemes": ["\"", "Nog", "vet", "jag", "var", "tomt-en", "bor", ",", "\"", "sade", "han", "med", "len", "röst", ",", "\"", "men", "inte", "är", "det", "sagt", ",", "att", "jag", "vill", "tala", "om", "det", "för", "dig", ".", "\""],
+      "glosses": ["\"", "surely", "know.PRS", "1SG", "where", "house.gnome-DEF", "live.PRS", ",", "\"", "say.PST", "3SG.M", "with", "smooth", "voice", ",", "\"", "conj", "NEG", "be.PRS", "3SG.N", "say.SUP.PASS", ",", "that", "1SG", "want.PRS", "speak.INF", "PRT", "3SG.N", "for", "2SG.ACC", ".", "\""],
+      "translation": "\"I certainly know where the gnome lives,\" he said in a smooth voice, \"but it is not to say that I want to tell you about it.\""
+    },
+    {
+      "original": "Pojken ville inte låta skrämma sig av en katt, utan tog än ett steg framåt.",
+      "morphemes": ["Pojk-en", "vill-e", "inte", "låta", "skrämm-a", "sig", "av", "en", "katt", ",", "utan", "tog", "än", "ett", "steg", "fram-åt", "."],
+      "glosses": ["boy-DEF", "want-PST", "NEG", "let.INF", "scare-INF", "REFL", "by", "INDEF", "cat", ",", "conj", "take.PST", "yet", "INDEF.N", "step", "forward-toward", "."],
+      "translation": "The boy did not want to let himself be frightened by a cat, but took yet another step forward."
+    },
+    {
+      "original": "Pojken kände hur klorna trängde genom västen och skjortan in i skinnet.",
+      "morphemes": ["Pojk-en", "känn-de", "hur", "klor-na", "träng-de", "genom", "väst-en", "och", "skjort-an", "in", "i", "skinn-et", "."],
+      "glosses": ["boy-DEF", "feel-PST", "how", "claw-DEF.PL", "press-PST", "through", "waistcoat-DEF", "conj", "shirt-DEF", "PRT", "into", "skin-DEF", "."],
+      "translation": "The boy felt how the claws pressed through his waistcoat and shirt into his skin."
+    },
+    {
+      "original": "\"Så där,\" sade han, \"nu kan det vara nog. Jag ska låta dig slippa undan den här gången för matmors skull.\"",
+      "morphemes": ["\"", "Så", "där", ",", "\"", "sade", "han", ",", "\"", "nu", "kan", "det", "vara", "nog", ".", "Jag", "ska", "låta", "dig", "slippa", "undan", "den", "här", "gången", "för", "mat-mors", "skull", ".", "\""],
+      "glosses": ["\"", "so", "there", ",", "\"", "say.PST", "3SG.M", ",", "\"", "now", "can.PRS", "3SG.N", "be.INF", "enough", ".", "1SG", "shall.PRS", "let.INF", "2SG.ACC", "escape.INF", "PRT", "DEF.ART", "here", "time.DEF", "for", "food-mother.GEN", "sake", ".", "\""],
+      "translation": "\"There now,\" he said, \"that can be enough. I'll let you get away this time for the mistress's sake.\""
+    },
+    {
+      "original": "Han kröp upp på den breda stengärdsgården, som gick runt omkring torpet och var övervuxen med törne och björnbärsrankor.",
+      "morphemes": ["Han", "kröp", "upp", "på", "den", "breda", "sten-gärds-gård-en", ",", "som", "gick", "runt", "om-kring", "torp-et", "och", "var", "över-vuxen", "med", "törne", "och", "björn-bärs-rankor", "."],
+      "glosses": ["3SG.M", "crawl.PST", "PRT", "on", "DEF.ART", "wide", "stone-fence-wall-DEF", ",", "REL", "go.PST", "around", "around-around", "croft-DEF", "conj", "be.PST", "over-grown", "with", "thorns", "conj", "bear-berry-vines", "."],
+      "translation": "He crept up onto the wide stone wall that ran all around the smallholding and was overgrown with thorns and blackberry vines."
+    },
+    {
+      "original": "Han var ikke en människa mer, utan ett vidunder.",
+      "morphemes": ["Han", "var", "inte", "en", "människa", "mer", ",", "utan", "ett", "vidunder", "."],
+      "glosses": ["3SG.M", "be.PST", "NEG", "INDEF", "human", "more", ",", "conj", "INDEF.N", "monster", "."],
+      "translation": "He was no longer a human being, but a monster."
+    },
+    {
+      "original": "Han hade aldrig sett himlen så blå som i dag.",
+      "morphemes": ["Han", "hade", "aldrig", "sett", "himm-eln", "så", "blå", "som", "i", "dag", "."],
+      "glosses": ["3SG.M", "have.PST", "never", "see.SUP", "sky-DEF", "so", "blue", "as", "in", "day", "."],
+      "translation": "He had never seen the sky so blue as today."
+    },
+    {
+      "original": "Då vildgässen sågo tamgässen, som gingo på gården, sänkte de sig mot jorden och ropade: \"Kom med! Kom med! Nu bär det till fjälls.\"",
+      "morphemes": ["Då", "vild-gäss-en", "sågo", "tam-gäss-en", ",", "som", "ging-o", "på", "gård-en", ",", "sänkte", "de", "sig", "mot", "jord-en", "och", "ropade", ":", "\"", "Kom", "med", "!", "Kom", "med", "!", "Nu", "bär", "det", "till", "fjälls", ".", "\""],
+      "glosses": ["when", "wild-geese-DEF", "see.PST.PL", "tame-geese-DEF", ",", "REL", "go-PST.PL", "on", "yard-DEF", ",", "lower.PST", "3PL", "REFL", "toward", "earth-DEF", "conj", "call.PST", ":", "\"", "come.IMP", "PRT", "!", "come.IMP", "PRT", "!", "now", "go.PRS", "3SG.N", "to", "mountains.GEN", ".", "\""],
+      "translation": "When the wild geese saw the tame geese that were walking in the yard, they swooped down toward the earth and called: \"Come along! Come along! Now we're off to the mountains.\""
+    },
+    {
+      "original": "Det var en ung gåskarl, som vildgässens rop hade gett en riktig reslust.",
+      "morphemes": ["Det", "var", "en", "ung", "gås-karl", ",", "som", "vild-gäss-en-s", "rop", "hade", "gett", "en", "riktig", "res-lust", "."],
+      "glosses": ["3SG.N", "be.PST", "INDEF", "young", "goose-male", ",", "REL", "wild-geese-DEF-GEN", "call", "have.PST", "give.SUP", "INDEF", "real", "travel-desire", "."],
+      "translation": "It was a young gander whose wanderlust the wild geese's call had truly awakened."
+    },
+    {
+      "original": "Han bredde ut vingarna och höjde sig i luften, men han var så ovan att flyga, att han föll ner till marken igen.",
+      "morphemes": ["Han", "bredd-e", "ut", "ving-arna", "och", "höjde", "sig", "i", "luft-en", ",", "men", "han", "var", "så", "ovan", "att", "flyg-a", ",", "att", "han", "föll", "ner", "till", "mark-en", "igen", "."],
+      "glosses": ["3SG.M", "spread-PST", "PRT", "wing-DEF.PL", "conj", "raise.PST", "REFL", "in", "air-DEF", ",", "conj", "3SG.M", "be.PST", "so", "unaccustomed", "to", "fly-INF", ",", "that", "3SG.M", "fall.PST", "PRT", "to", "ground-DEF", "again", "."],
+      "translation": "He spread his wings and raised himself into the air, but he was so unaccustomed to flying that he fell back down to the ground again."
+    },
+    {
+      "original": "Han tog ett språng rätt ner i gåsflocken och slog armarna om halsen på gåskarlen.",
+      "morphemes": ["Han", "tog", "ett", "språng", "rätt", "ner", "i", "gås-flock-en", "och", "slog", "arm-arna", "om", "hals-en", "på", "gås-karl-en", "."],
+      "glosses": ["3SG.M", "take.PST", "INDEF.N", "leap", "straight", "PRT", "in", "goose-flock-DEF", "conj", "throw.PST", "arm-DEF.PL", "around", "neck-DEF", "on", "goose-male-DEF", "."],
+      "translation": "He took a leap straight down into the flock of geese and threw his arms around the gander's neck."
+    },
+    {
+      "original": "Men just i detsamma hade gåskarlen kommit underfund med hur han skulle bära sig åt för att höja sig från marken.",
+      "morphemes": ["Men", "just", "i", "det-samma", "hade", "gås-karl-en", "kommit", "under-fund", "med", "hur", "han", "skull-e", "bär-a", "sig", "åt", "för", "att", "höja", "sig", "från", "mark-en", "."],
+      "glosses": ["conj", "just", "in", "3SG.N-same", "have.PST", "goose-male-DEF", "come.SUP", "under-foundation", "with", "how", "3SG.M", "shall-COND", "carry-INF", "REFL", "PRT", "for", "to", "raise.INF", "REFL", "from", "ground-DEF", "."],
+      "translation": "But at that very moment the gander had figured out how he should go about lifting himself off the ground."
+    },
+    {
+      "original": "Pojken blev så huvudyr, att han inte visste till sig på en lång stund.",
+      "morphemes": ["Pojk-en", "blev", "så", "huvud-yr", ",", "att", "han", "inte", "visste", "till", "sig", "på", "en", "lång", "stund", "."],
+      "glosses": ["boy-DEF", "become.PST", "so", "head-dizzy", ",", "that", "3SG.M", "NEG", "know.PST", "PRT", "REFL", "for", "INDEF", "long", "while", "."],
+      "translation": "The boy became so dizzy that he did not know himself for a long while."
+    },
+    {
+      "original": "Till sist tvang pojken sig ändå att kasta en blick åt jorden till.",
+      "morphemes": ["Till", "sist", "tvang", "pojk-en", "sig", "ändå", "att", "kast-a", "en", "blick", "åt", "jord-en", "till", "."],
+      "glosses": ["to", "last", "force.PST", "boy-DEF", "REFL", "still", "to", "cast-INF", "INDEF", "glance", "toward", "earth-DEF", "PRT", "."],
+      "translation": "At last the boy forced himself nonetheless to cast a glance down toward the earth."
+    },
+    {
+      "original": "Då tyckte han, att under honom låg utbredd en stor duk, som var indelad i en otrolig massa små och stora rutor.",
+      "morphemes": ["Då", "tyck-te", "han", ",", "att", "under", "honom", "låg", "ut-bredd", "en", "stor", "duk", ",", "som", "var", "in-delad", "i", "en", "otrolig", "massa", "små", "och", "stora", "rutor", "."],
+      "glosses": ["then", "think-PST", "3SG.M", ",", "that", "under", "3SG.M.ACC", "lie.PST", "out-spread", "INDEF", "large", "cloth", ",", "REL", "be.PST", "in-divided", "in", "INDEF", "incredible", "mass", "small", "conj", "large", "squares", "."],
+      "translation": "Then he thought that beneath him lay spread out a great cloth that was divided into an incredible multitude of small and large squares."
+    },
+    {
+      "original": "\"Vad är det för ett stort, rutigt stycke tyg, som jag ser ner på?\" sade pojken för sig själv.",
+      "morphemes": ["\"", "Vad", "är", "det", "för", "ett", "stort", ",", "rutigt", "stycke", "tyg", ",", "som", "jag", "ser", "ner", "på", "?", "\"", "sade", "pojk-en", "för", "sig", "själv", "."],
+      "glosses": ["\"", "what", "be.PRS", "3SG.N", "for", "INDEF.N", "large", ",", "checkered", "piece", "fabric", ",", "REL", "1SG", "see.PRS", "PRT", "PRT", "?", "\"", "say.PST", "boy-DEF", "for", "REFL", "self", "."],
+      "translation": "\"What sort of large checkered piece of fabric is it that I am looking down at?\" said the boy to himself."
+    },
+    {
+      "original": "Men vildgässen, som flögo omkring honom, ropade genast: \"Åkrar och ängar! Åkrar och ängar!\"",
+      "morphemes": ["Men", "vild-gäss-en", ",", "som", "flög-o", "om-kring", "honom", ",", "ropade", "genast", ":", "\"", "Åkrar", "och", "ängar", "!", "Åkrar", "och", "ängar", "!", "\""],
+      "glosses": ["conj", "wild-geese-DEF", ",", "REL", "fly-PST.PL", "around-around", "3SG.M.ACC", ",", "call.PST", "immediately", ":", "\"", "fields", "conj", "meadows", "!", "fields", "conj", "meadows", "!", "\""],
+      "translation": "But the wild geese, who flew around him, immediately called out: \"Fields and meadows! Fields and meadows!\""
+    },
+    {
+      "original": "Då förstod han, att det stora, rutiga tygstycket var den platta skånska jorden, som han for fram över.",
+      "morphemes": ["Då", "förstod", "han", ",", "att", "det", "stora", ",", "rutiga", "tyg-stycket", "var", "den", "platta", "skånska", "jord-en", ",", "som", "han", "for", "fram", "över", "."],
+      "glosses": ["then", "understand.PST", "3SG.M", ",", "that", "DEF.ART", "large", ",", "checkered", "fabric-piece.DEF", "be.PST", "DEF.ART", "flat", "Scanian", "earth-DEF", ",", "REL", "3SG.M", "travel.PST", "PRT", "over", "."],
+      "translation": "Then he understood that the large checkered piece of fabric was the flat Scanian earth that he was traveling over."
+    },
+    {
+      "original": "Pojken märkte, att gässen inte flögo sin väg rakt fram. De svävade hit och dit över hela Söderslätt.",
+      "morphemes": ["Pojk-en", "märk-te", ",", "att", "gäss-en", "inte", "flög-o", "sin", "väg", "rakt", "fram", ".", "De", "sväv-ade", "hit", "och", "dit", "över", "hela", "Söderslätt", "."],
+      "glosses": ["boy-DEF", "notice-PST", ",", "that", "geese-DEF", "NEG", "fly-PST.PL", "POSS.REFL", "way", "straight", "PRT", ".", "3PL", "hover-PST", "here", "conj", "there", "over", "whole", "Söderslätt", "."],
+      "translation": "The boy noticed that the geese were not flying straight on their way. They drifted here and there over all of Söderslätt."
+    },
+    {
+      "original": "Aldrig förr hade han farit fram med så god fart, och att rida fort och vilt, det hade han alltid tyckt om.",
+      "morphemes": ["Aldrig", "förr", "hade", "han", "farit", "fram", "med", "så", "god", "fart", ",", "och", "att", "rid-a", "fort", "och", "vilt", ",", "det", "hade", "han", "alltid", "tyckt", "om", "."],
+      "glosses": ["never", "before", "have.PST", "3SG.M", "travel.SUP", "PRT", "with", "such", "good", "speed", ",", "conj", "to", "ride-INF", "fast", "conj", "wildly", ",", "3SG.N", "have.PST", "3SG.M", "always", "like.SUP", "PRT", "."],
+      "translation": "Never before had he traveled forward with such good speed, and to ride fast and wildly was something he had always liked."
+    }
+  ]
+}

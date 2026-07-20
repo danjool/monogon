@@ -1,0 +1,468 @@
+{
+  "language": "sv",
+  "confirmed_by_tutor": false,
+  "consonants": [
+    {
+      "ipa": "/p/",
+      "spellings": ["p", "pp"],
+      "examples": [
+        { "word": "pappa", "gloss": "dad" },
+        { "word": "upp", "gloss": "up" }
+      ],
+      "note": "voiceless bilabial stop; aspirated word-initially"
+    },
+    {
+      "ipa": "/b/",
+      "spellings": ["b", "bb"],
+      "examples": [
+        { "word": "bra", "gloss": "good/well" },
+        { "word": "gubbe", "gloss": "old man" }
+      ],
+      "note": "voiced bilabial stop"
+    },
+    {
+      "ipa": "/t/",
+      "spellings": ["t", "tt", "th (loanwords)"],
+      "examples": [
+        { "word": "ta", "gloss": "take" },
+        { "word": "vatten", "gloss": "water" },
+        { "word": "mat", "gloss": "food" }
+      ],
+      "note": "voiceless dental/alveolar stop; aspirated word-initially"
+    },
+    {
+      "ipa": "/d/",
+      "spellings": ["d", "dd"],
+      "examples": [
+        { "word": "dag", "gloss": "day" },
+        { "word": "addera", "gloss": "add" }
+      ],
+      "note": "voiced alveolar stop; often weakened intervocalically in casual speech"
+    },
+    {
+      "ipa": "/k/",
+      "spellings": ["k (before a,o,u,å)", "ck", "c (before a,o,u,å)", "g (final devoiced)"],
+      "examples": [
+        { "word": "katt", "gloss": "cat" },
+        { "word": "tack", "gloss": "thanks" },
+        { "word": "café", "gloss": "café" }
+      ],
+      "note": "voiceless velar stop; aspirated word-initially; before front vowels e,i,y,ä,ö → /ɕ/"
+    },
+    {
+      "ipa": "/ɡ/",
+      "spellings": ["g (before a,o,u,å)", "gg", "g (word-final, devoiced)"],
+      "examples": [
+        { "word": "god", "gloss": "good" },
+        { "word": "lugga", "gloss": "pull hair" },
+        { "word": "dag", "gloss": "day" }
+      ],
+      "note": "voiced velar stop; before front vowels e,i,y,ä,ö → /j/ (see /j/ row); word-finally devoices to /k/ in many words (dag → /dɑːk/)"
+    },
+    {
+      "ipa": "/f/",
+      "spellings": ["f", "ff"],
+      "examples": [
+        { "word": "fin", "gloss": "fine/pretty" },
+        { "word": "kaffe", "gloss": "coffee" }
+      ],
+      "note": "voiceless labiodental fricative"
+    },
+    {
+      "ipa": "/v/",
+      "spellings": ["v", "w"],
+      "examples": [
+        { "word": "var", "gloss": "was/where" },
+        { "word": "webb", "gloss": "web" }
+      ],
+      "note": "voiced labiodental fricative"
+    },
+    {
+      "ipa": "/s/",
+      "spellings": ["s", "ss", "c (before e,i,y,ä,ö)", "z"],
+      "examples": [
+        { "word": "som", "gloss": "who/which/as" },
+        { "word": "passa", "gloss": "fit/suit" },
+        { "word": "cykel", "gloss": "bicycle" },
+        { "word": "zon", "gloss": "zone" }
+      ],
+      "note": "voiceless alveolar sibilant"
+    },
+    {
+      "ipa": "/ɧ/",
+      "spellings": ["sj", "skj", "stj", "sk (before e,i,y,ä,ö)", "sch", "sh", "ch (loanwords)", "-tion"],
+      "examples": [
+        { "word": "sjö", "gloss": "lake" },
+        { "word": "skjorta", "gloss": "shirt" },
+        { "word": "stjärna", "gloss": "star" },
+        { "word": "skina", "gloss": "shine" },
+        { "word": "schema", "gloss": "schedule" },
+        { "word": "nation", "gloss": "nation" }
+      ],
+      "note": "the sj-sound — a simultaneous velar+labial fricative; highly variable by dialect (may sound like /ʃ/ or /x/); the headline messy case in Swedish spelling"
+    },
+    {
+      "ipa": "/ɕ/",
+      "spellings": ["tj", "kj", "k (before e,i,y,ä,ö)", "ch (some loanwords)"],
+      "examples": [
+        { "word": "tjugo", "gloss": "twenty" },
+        { "word": "kjol", "gloss": "skirt" },
+        { "word": "kök", "gloss": "kitchen" },
+        { "word": "kyrka", "gloss": "church" }
+      ],
+      "note": "the tj-sound; voiceless alveolo-palatal fricative; further forward than English 'sh'"
+    },
+    {
+      "ipa": "/h/",
+      "spellings": ["h"],
+      "examples": [
+        { "word": "han", "gloss": "he" },
+        { "word": "hem", "gloss": "home" }
+      ],
+      "note": "glottal fricative; h is silent in hj- clusters (hjälpa → /jɛlpa/)"
+    },
+    {
+      "ipa": "/j/",
+      "spellings": ["j", "g (before e,i,y,ä,ö)", "dj", "gj", "hj", "lj"],
+      "examples": [
+        { "word": "ja", "gloss": "yes" },
+        { "word": "göra", "gloss": "do/make" },
+        { "word": "djur", "gloss": "animal" },
+        { "word": "hjälpa", "gloss": "help" },
+        { "word": "ljus", "gloss": "light/candle" }
+      ],
+      "note": "palatal approximant; in dj/gj/hj/lj clusters only the /j/ is pronounced — the first letter is silent"
+    },
+    {
+      "ipa": "/m/",
+      "spellings": ["m", "mm"],
+      "examples": [
+        { "word": "man", "gloss": "man/one" },
+        { "word": "sommar", "gloss": "summer" }
+      ],
+      "note": "bilabial nasal"
+    },
+    {
+      "ipa": "/n/",
+      "spellings": ["n", "nn"],
+      "examples": [
+        { "word": "nu", "gloss": "now" },
+        { "word": "inne", "gloss": "inside" }
+      ],
+      "note": "alveolar nasal; assimilates to /ŋ/ before /k/ and /g/"
+    },
+    {
+      "ipa": "/ŋ/",
+      "spellings": ["ng", "n (before k)", "nk"],
+      "examples": [
+        { "word": "många", "gloss": "many" },
+        { "word": "tänka", "gloss": "think" },
+        { "word": "bank", "gloss": "bank" }
+      ],
+      "note": "velar nasal; the g in ng is silent (unlike English 'finger'); nk → /ŋk/"
+    },
+    {
+      "ipa": "/l/",
+      "spellings": ["l", "ll"],
+      "examples": [
+        { "word": "lite", "gloss": "a little" },
+        { "word": "alla", "gloss": "all/everyone" }
+      ],
+      "note": "alveolar lateral approximant; merges with preceding r to form retroflex /ɭ/ in rl clusters"
+    },
+    {
+      "ipa": "/r/",
+      "spellings": ["r", "rr"],
+      "examples": [
+        { "word": "röd", "gloss": "red" },
+        { "word": "järn", "gloss": "iron" }
+      ],
+      "note": "alveolar trill or tap in central/northern Sweden; uvular /ʀ/ in southern Sweden. Triggers retroflexion of following t/d/n/l/s"
+    },
+    {
+      "ipa": "/ʈ/",
+      "spellings": ["rt"],
+      "examples": [
+        { "word": "svart", "gloss": "black" },
+        { "word": "kort", "gloss": "short/card" }
+      ],
+      "note": "retroflex stop from r+t assimilation; only in r-dialects (not southern/Scanian Swedish)"
+    },
+    {
+      "ipa": "/ɖ/",
+      "spellings": ["rd"],
+      "examples": [
+        { "word": "ord", "gloss": "word" },
+        { "word": "bord", "gloss": "table" }
+      ],
+      "note": "retroflex stop from r+d assimilation; only in r-dialects"
+    },
+    {
+      "ipa": "/ɳ/",
+      "spellings": ["rn"],
+      "examples": [
+        { "word": "barn", "gloss": "child/children" },
+        { "word": "horn", "gloss": "horn" }
+      ],
+      "note": "retroflex nasal from r+n assimilation; only in r-dialects"
+    },
+    {
+      "ipa": "/ɭ/",
+      "spellings": ["rl"],
+      "examples": [
+        { "word": "värld", "gloss": "world" },
+        { "word": "Karl", "gloss": "Karl (name)" }
+      ],
+      "note": "retroflex lateral from r+l assimilation; only in r-dialects"
+    },
+    {
+      "ipa": "/ʂ/",
+      "spellings": ["rs"],
+      "examples": [
+        { "word": "förstå", "gloss": "understand" },
+        { "word": "person", "gloss": "person" }
+      ],
+      "note": "retroflex fricative from r+s assimilation; sounds like English 'sh' but retroflex; only in r-dialects"
+    }
+  ],
+  "vowels": [
+    {
+      "ipa": "/iː/",
+      "length": "long",
+      "spellings": ["i (open syllable)", "y (rare loanwords)"],
+      "examples": [
+        { "word": "vi", "gloss": "we" },
+        { "word": "tid", "gloss": "time" },
+        { "word": "bil", "gloss": "car" }
+      ],
+      "note": "close front unrounded, long; long syllable = single consonant follows (bil vs bill)"
+    },
+    {
+      "ipa": "/ɪ/",
+      "length": "short",
+      "spellings": ["i (closed syllable, before double consonant or cluster)"],
+      "examples": [
+        { "word": "vitt", "gloss": "white (neuter)" },
+        { "word": "sitta", "gloss": "sit" },
+        { "word": "mitt", "gloss": "my (neuter)/middle" }
+      ],
+      "note": "near-close front unrounded, short; vit /viːt/ (long i) vs vitt /vɪtː/ (short i)"
+    },
+    {
+      "ipa": "/eː/",
+      "length": "long",
+      "spellings": ["e (open syllable)", "ej"],
+      "examples": [
+        { "word": "se", "gloss": "see" },
+        { "word": "lek", "gloss": "play/game" },
+        { "word": "nej", "gloss": "no" }
+      ],
+      "note": "close-mid front unrounded, long; de (they) is spelled with e but pronounced /dɔm/ in normal speech — the spelling is historical"
+    },
+    {
+      "ipa": "/ɛ/",
+      "length": "short",
+      "spellings": ["e (closed syllable)", "ä (closed syllable)"],
+      "examples": [
+        { "word": "men", "gloss": "but" },
+        { "word": "sätta", "gloss": "put/set" },
+        { "word": "ett", "gloss": "a/one (neuter)" }
+      ],
+      "note": "open-mid front unrounded, short; e and ä both yield /ɛ/ in closed syllables in many dialects"
+    },
+    {
+      "ipa": "/ɛː/",
+      "length": "long",
+      "spellings": ["ä (open syllable)", "äj"],
+      "examples": [
+        { "word": "väg", "gloss": "road/way" },
+        { "word": "läsa", "gloss": "read" },
+        { "word": "här", "gloss": "here" }
+      ],
+      "note": "open-mid front unrounded, long; some educated Stockholm speakers merge this with /eː/"
+    },
+    {
+      "ipa": "/aː/",
+      "length": "long",
+      "spellings": ["a (open syllable)"],
+      "examples": [
+        { "word": "ta", "gloss": "take" },
+        { "word": "dag", "gloss": "day" },
+        { "word": "har", "gloss": "have (present)" }
+      ],
+      "note": "open front (or central) unrounded, long; one of the most frequent vowels in Swedish"
+    },
+    {
+      "ipa": "/a/",
+      "length": "short",
+      "spellings": ["a (closed syllable, before double consonant)"],
+      "examples": [
+        { "word": "katt", "gloss": "cat" },
+        { "word": "att", "gloss": "to/that (conjunction)" },
+        { "word": "man", "gloss": "man/one" }
+      ],
+      "note": "open front unrounded, short; dag /daːɡ/ vs dagg (dew) /daɡː/"
+    },
+    {
+      "ipa": "/uː/",
+      "length": "long",
+      "spellings": ["u (open syllable)", "o (words with historical long ō)"],
+      "examples": [
+        { "word": "hus", "gloss": "house" },
+        { "word": "du", "gloss": "you (singular)" },
+        { "word": "bort", "gloss": "away" }
+      ],
+      "note": "close back rounded, long; highly protruded lips — unlike English /uː/. Letter o = /uː/ in many common words (bort, stor, blomma); bok is sometimes cited but has variable realization across dialects"
+    },
+    {
+      "ipa": "/ʊ/",
+      "length": "short",
+      "spellings": ["u (closed syllable)", "o (some words)"],
+      "examples": [
+        { "word": "full", "gloss": "full/drunk" },
+        { "word": "och", "gloss": "and" },
+        { "word": "komma", "gloss": "come/comma" }
+      ],
+      "note": "near-close back rounded, short; och is commonly /ɔk/ or /ʊk/ depending on speaker"
+    },
+    {
+      "ipa": "/oː/",
+      "length": "long",
+      "spellings": ["å (open syllable)", "o (words with historical short ŏ, varies by word)"],
+      "examples": [
+        { "word": "så", "gloss": "so/thus/sow" },
+        { "word": "gå", "gloss": "go/walk" },
+        { "word": "stor", "gloss": "big" }
+      ],
+      "note": "close-mid back rounded, long; the letter å always represents this vowel (long) or its short counterpart"
+    },
+    {
+      "ipa": "/ɔ/",
+      "length": "short",
+      "spellings": ["å (closed syllable)", "o (closed syllable in many words)"],
+      "examples": [
+        { "word": "håll", "gloss": "hold/keep" },
+        { "word": "son", "gloss": "son" },
+        { "word": "kom", "gloss": "came" }
+      ],
+      "note": "open-mid back rounded, short; short counterpart to /oː/"
+    },
+    {
+      "ipa": "/yː/",
+      "length": "long",
+      "spellings": ["y (open syllable)"],
+      "examples": [
+        { "word": "ny", "gloss": "new" },
+        { "word": "lysa", "gloss": "shine/light up" },
+        { "word": "by", "gloss": "village" }
+      ],
+      "note": "close front rounded, long; like French 'u' or German 'ü'; one of Swedish's distinctive vowels; round lips as for /uː/ but tongue forward as for /iː/"
+    },
+    {
+      "ipa": "/ʏ/",
+      "length": "short",
+      "spellings": ["y (closed syllable)"],
+      "examples": [
+        { "word": "nytt", "gloss": "new (neuter)" },
+        { "word": "lyft", "gloss": "lift" },
+        { "word": "bytt", "gloss": "exchanged" }
+      ],
+      "note": "near-close front rounded, short; ny /yː/ vs nytt /ʏtː/"
+    },
+    {
+      "ipa": "/øː/",
+      "length": "long",
+      "spellings": ["ö (open syllable)"],
+      "examples": [
+        { "word": "söt", "gloss": "sweet" },
+        { "word": "göra", "gloss": "do/make" },
+        { "word": "öga", "gloss": "eye" }
+      ],
+      "note": "close-mid front rounded, long; like German 'ö' or French 'eu'; round lips as for /oː/ but tongue forward; one of Swedish's three extra letters"
+    },
+    {
+      "ipa": "/œ/",
+      "length": "short",
+      "spellings": ["ö (closed syllable)"],
+      "examples": [
+        { "word": "möss", "gloss": "mice" },
+        { "word": "höst", "gloss": "autumn" },
+        { "word": "söt", "gloss": "sweet" }
+      ],
+      "note": "open-mid front rounded, short; söt /søːt/ (long) vs möss /mœsː/ (short)"
+    },
+    {
+      "ipa": "/ə/",
+      "length": "reduced",
+      "spellings": ["e (unstressed final syllable)", "-en/-er/-et suffixes (unstressed)"],
+      "examples": [
+        { "word": "pojke", "gloss": "boy" },
+        { "word": "flicka", "gloss": "girl" },
+        { "word": "boken", "gloss": "the book" },
+        { "word": "böcker", "gloss": "books" }
+      ],
+      "note": "schwa — a reduced, central vowel in unstressed syllables; the -e in pojke and the vowel in -en/-er/-et endings are all reduced toward /ə/ in natural speech. Not a phonemic contrast in Swedish but important for natural-sounding output."
+    }
+  ],
+  "pitch_accent": {
+    "description": "Swedish has two lexical tones called accent 1 (acute) and accent 2 (grave). Most polysyllabic words have accent 2; monosyllables and words derived from monosyllabic stems have accent 1. Confusing them rarely causes misunderstanding but is immediately noticeable.",
+    "accent1": {
+      "name": "Accent 1 (acute / single tone)",
+      "description": "A single falling tone on the stressed syllable. Common in monosyllables and words derived from monosyllables by adding -en/-et.",
+      "examples": [
+        { "word": "anden", "gloss": "the duck", "note": "monosyllabic stem 'and' → accent 1" },
+        { "word": "bilen", "gloss": "the car" },
+        { "word": "hunden", "gloss": "the dog" }
+      ]
+    },
+    "accent2": {
+      "name": "Accent 2 (grave / double tone)",
+      "description": "A rise-fall melody spread over the stressed syllable and the next; sounds like a 'singing' quality. Default for most native polysyllabic words.",
+      "examples": [
+        { "word": "anden", "gloss": "the spirit/ghost", "note": "same spelling as 'the duck' but different tone" },
+        { "word": "fiskare", "gloss": "fisherman" },
+        { "word": "flickan", "gloss": "the girl" }
+      ]
+    },
+    "minimal_pairs": [
+      { "word1": "anden", "gloss1": "the duck (accent 1)", "word2": "anden", "gloss2": "the spirit (accent 2)" },
+      { "word1": "komma", "gloss1": "comma (accent 1)", "word2": "komma", "gloss2": "to come (accent 2)" },
+      { "word1": "buren", "gloss1": "the cage (accent 1)", "word2": "buren", "gloss2": "carried (past participle, accent 2)" },
+      { "word1": "normen", "gloss1": "the norm (accent 1)", "word2": "normen", "gloss2": "the Norwegian woman (accent 2)" }
+    ],
+    "note": "Accent realization varies greatly by dialect — Stockholm has falling+rising; Gothenburg has a distinctive lilt; southern Sweden (Scania) lacks the distinction entirely. Focus on recognizing that it exists; perfect the melody with a tutor."
+  },
+  "prosody_rules": [
+    {
+      "rule": "Complementary vowel-consonant length",
+      "description": "In a stressed syllable, vowel length and the following consonant length are always complementary: long vowel + short consonant, OR short vowel + long consonant. A stressed syllable is never short vowel + short consonant.",
+      "examples": [
+        { "word": "bil", "note": "long /iː/ + single /l/" },
+        { "word": "bill", "note": "short /ɪ/ + long /lː/ — though this spelling is rare, the pattern applies to all stressed syllables" },
+        { "word": "vit", "note": "long /yː/ + single /t/ = /viːt/" },
+        { "word": "vitt", "note": "short /ɪ/ + long /tː/ = /vɪtː/" }
+      ]
+    },
+    {
+      "rule": "Double consonant = preceding vowel is short",
+      "description": "A doubled consonant letter (tt, ll, nn, ss, etc.) signals that the preceding stressed vowel is short, and the consonant itself is held longer. This applies across the board — it is the general spelling rule, not word-specific.",
+      "examples": [
+        { "word": "katt", "note": "short /a/ because tt" },
+        { "word": "alla", "note": "short /a/ because ll" },
+        { "word": "vatten", "note": "short /a/ because tt" },
+        { "word": "dag", "note": "long /aː/ because single g" }
+      ]
+    },
+    {
+      "rule": "k/g/sk before front vowels",
+      "description": "The letters k, g, and sk change pronunciation before front vowels (e, i, y, ä, ö). This is a positional rule, not a separate letter: k → /ɕ/, g → /j/, sk → /ɧ/. See the /ɕ/, /j/, and /ɧ/ rows for spelling details.",
+      "examples": [
+        { "word": "kista", "note": "k before i → /ɕ/ ('shista')" },
+        { "word": "katt", "note": "k before a → /k/ (hard)" },
+        { "word": "göra", "note": "g before ö → /j/" },
+        { "word": "skina", "note": "sk before i → /ɧ/" },
+        { "word": "skola", "note": "sk before o → /sk/ (hard)" }
+      ]
+    }
+  ]
+}

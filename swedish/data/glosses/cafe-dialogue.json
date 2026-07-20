@@ -1,0 +1,31 @@
+{
+  "id": "cafe-dialogue",
+  "title": "At the café",
+  "source": "Original — everyday phrases for ordering and getting around.",
+  "lines": [
+    {
+      "original": "Hej , jag heter Danny .",
+      "morphemes": ["Hej", ",", "jag", "het-er", "Danny", "."],
+      "glosses": ["hello", ",", "1SG", "be.named-PRS", "Danny", "."],
+      "translation": "Hi, my name is Danny."
+    },
+    {
+      "original": "Kan jag få en kaffe , tack ?",
+      "morphemes": ["Kan", "jag", "få", "en", "kaffe", ",", "tack", "?"],
+      "glosses": ["can.PRS", "1SG", "get.INF", "INDEF", "coffee", ",", "thanks", "?"],
+      "translation": "Can I have a coffee, please?"
+    },
+    {
+      "original": "Var ligger stationen ?",
+      "morphemes": ["Var", "ligg-er", "station-en", "?"],
+      "glosses": ["where", "lie-PRS", "station-DEF", "?"],
+      "translation": "Where is the station?"
+    },
+    {
+      "original": "Det kostar trettio kronor .",
+      "morphemes": ["Det", "kost-ar", "trettio", "kron-or", "."],
+      "glosses": ["3SG.N", "cost-PRS", "thirty", "krona-PL", "."],
+      "translation": "It costs thirty kronor."
+    }
+  ]
+}

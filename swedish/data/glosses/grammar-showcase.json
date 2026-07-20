@@ -1,0 +1,37 @@
+{
+  "id": "grammar-showcase",
+  "title": "Swedish grammar in five sentences",
+  "source": "Original examples — each line targets one feature of Swedish grammar.",
+  "lines": [
+    {
+      "original": "Igår köpte jag en bok .",
+      "morphemes": ["I-går", "köp-te", "jag", "en", "bok", "."],
+      "glosses": ["in-yesterday", "buy-PST", "1SG", "INDEF", "book", "."],
+      "translation": "Yesterday I bought a book. (V2: a fronted adverb forces verb-before-subject.)"
+    },
+    {
+      "original": "Den stora boken är min .",
+      "morphemes": ["Den", "stor-a", "bok-en", "är", "min", "."],
+      "glosses": ["DEF.ART", "big-DEF", "book-DEF", "be.PRS", "my", "."],
+      "translation": "The big book is mine. (Double definiteness: free article den + suffix -en.)"
+    },
+    {
+      "original": "Han klär på sig snabbt .",
+      "morphemes": ["Han", "klä-r", "på", "sig", "snabb-t", "."],
+      "glosses": ["3SG.M", "dress-PRS", "PRT", "REFL.3SG", "quick-ADV", "."],
+      "translation": "He gets dressed quickly. (Reflexive sig + verb particle på.)"
+    },
+    {
+      "original": "Jag har redan läst den .",
+      "morphemes": ["Jag", "har", "redan", "läs-t", "den", "."],
+      "glosses": ["1SG", "have.PRS", "already", "read-SUP", "3SG", "."],
+      "translation": "I have already read it. (Perfect: auxiliary har + supine läst.)"
+    },
+    {
+      "original": "Vi ska resa till Sverige .",
+      "morphemes": ["Vi", "ska", "res-a", "till", "Sverige", "."],
+      "glosses": ["1PL", "shall.PRS", "travel-INF", "to", "Sweden", "."],
+      "translation": "We are going to travel to Sweden. (Future with ska + infinitive.)"
+    }
+  ]
+}

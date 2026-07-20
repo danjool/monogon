@@ -1,0 +1,25 @@
+{
+  "id": "lagerlof-nils",
+  "title": "Nils Holgersson (opening)",
+  "source": "Selma Lagerlöf, Nils Holgerssons underbara resa genom Sverige (1906). Public domain.",
+  "lines": [
+    {
+      "original": "Det var en gång en pojke .",
+      "morphemes": ["Det", "var", "en", "gång", "en", "pojke", "."],
+      "glosses": ["3SG.N", "be.PST", "INDEF", "time", "INDEF", "boy", "."],
+      "translation": "Once upon a time there was a boy."
+    },
+    {
+      "original": "Han var ungefär fjorton år gammal .",
+      "morphemes": ["Han", "var", "ungefär", "fjorton", "år", "gammal", "."],
+      "glosses": ["3SG.M", "be.PST", "approximately", "fourteen", "years", "old", "."],
+      "translation": "He was about fourteen years old."
+    },
+    {
+      "original": "Pojken tyckte om att sova och äta .",
+      "morphemes": ["Pojk-en", "tyck-te", "om", "att", "sov-a", "och", "ät-a", "."],
+      "glosses": ["boy-DEF", "like-PST", "PRT", "to", "sleep-INF", "and", "eat-INF", "."],
+      "translation": "The boy liked sleeping and eating. (Particle verb tycka om = 'to like'.)"
+    }
+  ]
+}
